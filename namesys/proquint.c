@@ -46,33 +46,36 @@ static inline int vowsd(char c)
 */
 int ProquintIsProquint(char *str)
 {
-    int i, c;
+    int i, c, l = strlen(str);
 
-    // if str is null, or length isn't 11 or don't have - at middle
-    if (!str || strlen(str) != 11 || str[5] != '-') {
+    // if str is null, or length is invalid
+    if (!str || ((l+1) % 6)) {
         return 0; // it's not a proquint
     }
 
     // run every position
-    for (i = 0 ; i < 11 ; i++) {
-        if (i == 5) i++; // skip -, already tested.
-        switch (i) {
-            case 1:
-            case 3:
-            case 7:
-            case 9:
-                // compare with vowse array
-                c = vowsd(str[i]);
-                if (str[i] != vowse[c]) {
-                    return 0; // it's not a proquint
-                }
-                break;
-            default: // 0,2,4,6,8,10
-                // compare with conse array
-                c = consd(str[i]);
-                if (str[i] != conse[c]) {
-                    return 0; // it's not a proquint
-                }
+    for (i = 0 ; i < l ; i++) {
+        if (((i+1) % 6) == 0) {      // After each 5 characters
+            if (str[i] != '-') { // need a -
+                return 0;        // or it's not a proquint
+            }
+        } else {
+            switch ((i+1) % 2) { // i + 1 to avoid zero division
+                case 0:
+                    // compare with vowse array
+                    c = vowsd(str[i]);
+                    if (str[i] != vowse[c]) {
+
+                        return 0; // it's not a proquint
+                    }
+                    break;
+                default:
+                    // compare with conse array
+                    c = consd(str[i]);
+                    if (str[i] != conse[c]) {
+                        return 0; // it's not a proquint
+                    }
+            }
         }
     }
 
@@ -86,22 +89,28 @@ int ProquintIsProquint(char *str)
 *
 * @return {string} The given byte slice as an identifier.
 */
-char *ProquintEncode(char *buf)
+char *ProquintEncode(char *buf, int size)
 {
     char *ret;
     int i, c;
     uint16_t n;
 
+    if (size % 2) {
+        return NULL; // not multiple of 2
+    }
+
     if (!buf) {
         return NULL;
     }
 
-    ret = malloc(12);
+    // Each word (2 bytes) uses 5 ascii characters
+    // and one - or a NULL terminator.
+    ret = malloc(size * 3);
     if (!ret) {
         return NULL;
     }
 
-    for (i = 0, c = 0; i < 4; i += 2) {
+    for (i = 0, c = 0; i < size; i += 2) {
         n = ((buf[i] & 0xff) << 8) | (buf[i + 1] & 0xff);
 
         ret[c++] = conse[(n >> 12) & 0x0f];
@@ -126,20 +135,20 @@ char *ProquintEncode(char *buf)
 char *ProquintDecode(char *str)
 {
     char *ret;
-    int i, c;
+    int i, c, l = strlen(str);
     uint16_t x;
 
     // make sure its a valid Proquint string.
-    if (!ProquintIsProquint(str)) {
+    if (!ProquintIsProquint(str) && ((l+1) % 3)==0) {
         return NULL;
     }
 
-    ret = malloc(4);
+    ret = malloc((l+1)/3);
     if (!ret) {
         return NULL;
     }
 
-    for (i = 0, c = 0 ; i < 11 ; i += 6) {
+    for (i = 0, c = 0 ; i < l ; i += 6) {
         x =(consd(str[i + 0]) << 12) | \
            (vowsd(str[i + 1]) << 10) | \
            (consd(str[i + 2]) <<  6) | \

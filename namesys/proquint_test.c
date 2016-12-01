@@ -5,10 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-int ProquintIsProquint(char *str);
-char *ProquintEncode(char *buf);
-char *ProquintDecode(char *str);
+#include "ipfs/namesys/namesys.h"
 
 int main(void) {
     char *r, *s;
@@ -24,7 +21,7 @@ int main(void) {
             struct in_addr ip_addr;
             memcpy (&(ip_addr.s_addr), r, sizeof(ip_addr.s_addr));
             printf ("%s\t%s", p[i], inet_ntoa(ip_addr));
-            s = ProquintEncode(r);
+            s = ProquintEncode(r, sizeof(ip_addr.s_addr));
             free (r);
             if (s) {
                 printf ("\t%s", s);
