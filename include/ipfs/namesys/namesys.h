@@ -43,7 +43,13 @@
         int (*func)(char**, char*);
     } resolvers;
 
+    // Resolver provides path resolution to IPFS
+    // It has a pointer to a DAGService, which is uses to resolve nodes.
+    // TODO: now that this is more modular, try to unify this code with the
+    //       the resolvers in namesys
     typedef struct s_resolver {
+        //DAGService DAG;
+        //NodeLink *lnk;
         // resolveOnce looks up a name once (without recursion).
         int (*resolveOnce) (char **, char *);
     } resolver;
