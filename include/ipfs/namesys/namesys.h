@@ -80,6 +80,9 @@
     int Publish (char *proto, ciPrivKey name, char *value);
     int PublishWithEOL (char *proto, ciPrivKey name, char *value, time_t eol);
 
+    int ProquintIsProquint(char *str);
+    char *ProquintEncode(char *buf, int size);
+    char *ProquintDecode(char *str);
     int ProquintResolveOnce (char **p, char *name);
 
     int domainMatchString (char *d);
