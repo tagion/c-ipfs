@@ -4,6 +4,8 @@
 #ifndef __TEST_INIT_H__
 #define __TEST_INIT_H__
 
+#include <stdlib.h>
+
 #include "ipfs/cmd/ipfs/init.h"
 #include "ipfs/commands/argument.h"
 #include "ipfs/commands/request.h"
