@@ -108,7 +108,7 @@ int repo_config_write_config_file(char* full_filename, struct RepoConfig* config
  * @param repo the struct to allocate memory for
  * @returns false(0) if something bad happened, otherwise true(1)
  */
-int ipfs_repo_fsrepo_new(char* repo_path, struct RepoConfig* config, struct FSRepo** repo) {
+int ipfs_repo_fsrepo_new(const char* repo_path, struct RepoConfig* config, struct FSRepo** repo) {
 	*repo = (struct FSRepo*)malloc(sizeof(struct FSRepo));
 
 	if (repo_path == NULL) {

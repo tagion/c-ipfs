@@ -48,7 +48,7 @@ int fs_repo_write_config_file(char* path, struct RepoConfig* config);
  * @param repo the struct to allocate memory for
  * @returns false(0) if something bad happened, otherwise true(1)
  */
-int ipfs_repo_fsrepo_new(char* repo_path, struct RepoConfig* config, struct FSRepo** fs_repo);
+int ipfs_repo_fsrepo_new(const char* repo_path, struct RepoConfig* config, struct FSRepo** fs_repo);
 
 /***
  * Free all resources used by this struct

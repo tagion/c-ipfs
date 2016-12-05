@@ -1,7 +1,9 @@
 #include <dirent.h>
 #include <sys/stat.h>
+#include <string.h>
 
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "ipfs/os/utils.h"
 
 int remove_directory(const char *path)
 {

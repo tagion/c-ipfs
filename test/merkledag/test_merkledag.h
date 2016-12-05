@@ -2,6 +2,68 @@
 #include "ipfs/node/node.h"
 #include "../test_helper.h"
 
+int test_merkledag_get_data() {
+	int retVal = 0;
+
+	// create a fresh repo
+	retVal = drop_and_build_repository("/tmp/.ipfs");
+	if (retVal == 0)
+		return 0;
+
+	// open the fs repo
+	struct RepoConfig* repo_config = NULL;
+	struct FSRepo* fs_repo;
+	const char* path = "/tmp/.ipfs";
+
+	// create the struct
+	retVal = ipfs_repo_fsrepo_new((char*)path, repo_config, &fs_repo);
+	if (retVal == 0)
+		return 0;
+
+	// open the repository and read the config file
+	retVal = ipfs_repo_fsrepo_open(fs_repo);
+	if (retVal == 0) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		return 0;
+	}
+
+	// get the size of the database
+	int start_file_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
+
+	// create data for node
+	size_t binary_data_size = 256;
+	unsigned char binary_data[binary_data_size];
+	for(int i = 0; i < binary_data_size; i++) {
+		binary_data[i] = i;
+	}
+
+	// create a node
+	struct Node* node1 = N_Create_From_Data(binary_data, 256);
+
+	retVal = ipfs_merkledag_add(node1, fs_repo);
+	if (retVal == 0) {
+		Node_Delete(node1);
+		return 0;
+	}
+
+	// now retrieve it
+	struct Node* results_node;
+	retVal = ipfs_merkledag_get(node1->cached, &results_node, fs_repo);
+	if (retVal == 0)
+		return 0;
+
+	if (results_node->data_size != 256)
+		return 0;
+
+	// the data should be the same
+	for(int i = 0; i < results_node->data_size; i++) {
+		if (results_node->data[i] != node1->data[i])
+			return 0;
+	}
+
+	return retVal;
+}
+
 int test_merkledag_add_data() {
 	int retVal = 0;
 
@@ -31,14 +93,14 @@ int test_merkledag_add_data() {
 	int start_file_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
 
 	// create data for node
-	size_t binary_data_size = 255;
+	size_t binary_data_size = 256;
 	unsigned char binary_data[binary_data_size];
 	for(int i = 0; i < binary_data_size; i++) {
 		binary_data[i] = i;
 	}
 
 	// create a node
-	struct Node* node1 = N_Create_From_Data(binary_data, 255);
+	struct Node* node1 = N_Create_From_Data(binary_data, 256);
 
 	retVal = ipfs_merkledag_add(node1, fs_repo);
 	if (retVal == 0) {

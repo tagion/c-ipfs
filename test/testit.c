@@ -41,7 +41,8 @@ const char* names[] = {
 		"test_repo_bootstrap_peers_init",
 		"test_ipfs_datastore_put",
 		"test_node",
-		"test_merkledag_add_data"
+		"test_merkledag_add_data",
+		"test_merkledag_get_data"
 };
 
 int (*funcs[])(void) = {
@@ -64,7 +65,8 @@ int (*funcs[])(void) = {
 		test_repo_bootstrap_peers_init,
 		test_ipfs_datastore_put,
 		test_node,
-		test_merkledag_add_data
+		test_merkledag_add_data,
+		test_merkledag_get_data
 };
 
 /**

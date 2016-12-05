@@ -1,18 +1,18 @@
 #include "ipfs/blocks/block.h"
 
 int test_blocks_new() {
-	const char* input = "Hello, World!";
+	const unsigned char* input = (const unsigned char*)"Hello, World!";
 	int retVal = 0;
 	struct Block* block;
-	retVal = ipfs_blocks_block_new(input, strlen(input) + 1, &block);
+	retVal = ipfs_blocks_block_new(input, strlen((const char*)input) + 1, &block);
 	if (retVal == 0)
 		return 0;
 
 	// now examine the block
-	if (strcmp(block->data, input) != 0)
+	if (strcmp((const char*)block->data, (const char*)input) != 0)
 		return 0;
 
-	if (block->data_length != strlen(input) + 1)
+	if (block->data_length != strlen((const char*)input) + 1)
 		return 0;
 
 	if (block->cid->codec != CID_PROTOBUF)

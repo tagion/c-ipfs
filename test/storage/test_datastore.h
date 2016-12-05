@@ -14,8 +14,8 @@
  */
 int test_ipfs_datastore_put() {
 	struct Block* block;
-	int retVal;
-	const unsigned char* input = "Hello, world!";
+	int retVal = 0;
+	const unsigned char* input = (unsigned char*)"Hello, world!";
 
 	// build the ipfs repository, then shut it down, so we can start fresh
 	drop_and_build_repository("/tmp/.ipfs");
@@ -44,7 +44,7 @@ int test_ipfs_datastore_put() {
 		return 0;
 
 	// send to Put with key
-	retVal = fs_repo->config->datastore->datastore_put(key, key_length, block->data, block->data_length, fs_repo->config->datastore);
+	retVal = fs_repo->config->datastore->datastore_put((const unsigned char*)key, key_length, block->data, block->data_length, fs_repo->config->datastore);
 	if (retVal == 0)
 		return 0;
 

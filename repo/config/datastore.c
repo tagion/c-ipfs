@@ -17,7 +17,7 @@ int alloc_and_assign(char** result, const char* string) {
  * @param datastore the struct to initialize
  * @returns true(1) on success
  */
-int ipfs_repo_config_datastore_init(struct Datastore* datastore, char* config_root) {
+int ipfs_repo_config_datastore_init(struct Datastore* datastore, const char* config_root) {
 	unsigned long stringLength = strlen(config_root) + 12;
 	datastore->path = malloc(sizeof(char) * stringLength);
 	os_utils_filepath_join(config_root, "datastore", datastore->path, stringLength);
