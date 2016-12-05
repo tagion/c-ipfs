@@ -1,6 +1,7 @@
 #include "cid/test_cid.h"
 #include "cmd/ipfs/test_init.h"
 #include "flatfs/test_flatfs.h"
+#include "merkledag/test_merkledag.h"
 #include "node/test_node.h"
 #include "repo/test_repo_bootstrap_peers.h"
 #include "repo/test_repo_config.h"
@@ -39,7 +40,8 @@ const char* names[] = {
 		"test_blocks_new",
 		"test_repo_bootstrap_peers_init",
 		"test_ipfs_datastore_put",
-		"test_node"
+		"test_node",
+		"test_merkledag_add_data"
 };
 
 int (*funcs[])(void) = {
@@ -61,7 +63,8 @@ int (*funcs[])(void) = {
 		test_blocks_new,
 		test_repo_bootstrap_peers_init,
 		test_ipfs_datastore_put,
-		test_node
+		test_node,
+		test_merkledag_add_data
 };
 
 /**

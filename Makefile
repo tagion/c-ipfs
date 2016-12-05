@@ -8,7 +8,9 @@ all:
 	cd cmd; make all;
 	cd commands; make all;
 	cd core; make all;
+	cd merkledag; make all;
 	cd multibase; make all;
+	cd node; make all;
 	cd os; make all;
 	cd repo; make all;
 	cd flatfs; make all;
@@ -22,7 +24,9 @@ clean:
 	cd cmd; make clean;
 	cd commands; make clean;
 	cd core; make clean;
+	cd merkledag; make clean;
 	cd multibase; make clean;
+	cd node; make clean;
 	cd os; make clean;
 	cd repo; make clean;
 	cd flatfs; make clean;
