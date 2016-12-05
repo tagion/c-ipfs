@@ -65,20 +65,20 @@ int remove_directory(const char *path)
    return r;
 }
 
-int make_ipfs_repository(struct FSRepo* fs_repo) {
+int make_ipfs_repository(const char* path) {
 	int retVal;
 	struct RepoConfig* repo_config;
 
 	char currDirectory[1024];
-	retVal = os_utils_filepath_join(fs_repo->path, "config", currDirectory, 1024);
+	retVal = os_utils_filepath_join(path, "config", currDirectory, 1024);
 	if (retVal == 0)
 		return 0;
 	unlink(currDirectory);
-	retVal = os_utils_filepath_join(fs_repo->path, "datastore", currDirectory, 1024);
+	retVal = os_utils_filepath_join(path, "datastore", currDirectory, 1024);
 	if (retVal == 0)
 		return 0;
 	remove_directory(currDirectory);
-	retVal = os_utils_filepath_join(fs_repo->path, "blockstore", currDirectory, 1024);
+	retVal = os_utils_filepath_join(path, "blockstore", currDirectory, 1024);
 	if (retVal == 0)
 		return 0;
 	remove_directory(currDirectory);
@@ -87,24 +87,23 @@ int make_ipfs_repository(struct FSRepo* fs_repo) {
 	retVal = ipfs_repo_config_new(&repo_config);
 	if (retVal == 0)
 		return 0;
-	retVal = ipfs_repo_config_init(repo_config, 2048, fs_repo->path);
+	retVal = ipfs_repo_config_init(repo_config, 2048, path);
 	if (retVal == 0)
 		return 0;
 	// now the fs_repo
-	retVal = ipfs_repo_fsrepo_new(fs_repo->path, repo_config, &fs_repo);
+	struct FSRepo* fs_repo;
+	retVal = ipfs_repo_fsrepo_new(path, repo_config, &fs_repo);
 	if (retVal == 0)
 		return 0;
 	// this builds a new repo
 	retVal = ipfs_repo_fsrepo_init(fs_repo);
-	if (retVal == 0)
+	if (retVal == 0) {
+		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
+	}
 
 	// clean up
-	char* path[strlen(fs_repo->path) + 1];
-	strcpy(path, fs_repo->path);
 	ipfs_repo_fsrepo_free(fs_repo);
-	// this is cleaned up by fsrepo_free
-	//ipfs_repo_config_free(repo_config);
 
 	// make sure the repository exists
 	retVal = os_utils_filepath_join(path, "config", currDirectory, 1024);
@@ -115,7 +114,5 @@ int make_ipfs_repository(struct FSRepo* fs_repo) {
 }
 
 int drop_and_build_repository(const char* path) {
-	struct FSRepo fs_repo;
-	fs_repo.path = path;
-	return make_ipfs_repository(&fs_repo);
+	return make_ipfs_repository(path);
 }
