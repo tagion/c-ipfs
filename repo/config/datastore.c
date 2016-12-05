@@ -1,11 +1,3 @@
-//
-//  datastore.c
-//  c-ipfs
-//
-//  Created by John Jones on 11/2/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #include <stdlib.h>
 #include <string.h>
 

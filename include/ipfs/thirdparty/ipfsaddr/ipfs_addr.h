@@ -1,11 +1,3 @@
-//
-//  ipfs_addr.h
-//  c-ipfs
-//
-//  Created by John Jones on 11/2/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #ifndef ipfs_addr_h
 #define ipfs_addr_h
 

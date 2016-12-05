@@ -1,11 +1,3 @@
-//
-//  option.h
-//  c-ipfs
-//
-//  Created by John Jones on 10/26/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #ifndef __COMMANDS_COMMAND_OPTION_H__
 #define __COMMANDS_COMMAND_OPTION_H__
 

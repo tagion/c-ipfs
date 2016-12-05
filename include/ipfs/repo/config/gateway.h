@@ -1,11 +1,3 @@
-//
-//  gateway.h
-//  c-ipfs
-//
-//  Created by John Jones on 11/2/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #ifndef gateway_h
 #define gateway_h
 

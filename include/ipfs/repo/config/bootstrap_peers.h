@@ -1,11 +1,3 @@
-//
-//  bootstrap_peer.h
-//  c-ipfs
-//
-//  Created by John Jones on 11/2/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #ifndef bootstrap_peer_h
 #define bootstrap_peer_h
 

@@ -1,11 +1,3 @@
-//
-//  test_repo_bootstrap_peers.h
-//  c-ipfs
-//
-//  Created by John Jones on 11/2/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #ifndef test_repo_bootstrap_peers_h
 #define test_repo_bootstrap_peers_h
 

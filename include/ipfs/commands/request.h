@@ -1,11 +1,3 @@
-//
-//  request.h
-//  c-ipfs
-//
-//  Created by John Jones on 10/26/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #ifndef __COMMANDS_REQUEST_H__
 #define __COMMANDS_REQUEST_H__
 

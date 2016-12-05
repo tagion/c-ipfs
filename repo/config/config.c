@@ -1,11 +1,3 @@
-//
-//  config.c
-//  c-ipfs
-//
-//  Created by John Jones on 10/27/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

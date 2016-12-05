@@ -1,11 +1,3 @@
-//
-//  req_log.h
-//  c-ipfs
-//
-//  Created by John Jones on 10/27/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #ifndef __COMMANDS_REQ_LOG_H__
 #define __COMMANDS_REQ_LOG_H__
 

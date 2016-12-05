@@ -1,11 +1,3 @@
-//
-//  test_repo_identity.h
-//  c-ipfs
-//
-//  Created by John Jones on 10/31/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #ifndef test_repo_identity_h
 #define test_repo_identity_h
 

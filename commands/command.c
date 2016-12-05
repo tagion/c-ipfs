@@ -1,10 +1,3 @@
-//
-//  command.c
-//  c-ipfs
-//
-//  Created by John Jones on 10/27/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
 #include <stdlib.h>
 
 #include "ipfs/commands/command.h"

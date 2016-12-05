@@ -1,11 +1,3 @@
-//
-//  fs_repo.c
-//  c-ipfs
-//
-//  Created by John Jones on 10/27/16.
-//  Copyright © 2016 JMJAtlanta. All rights reserved.
-//
-
 #include "libp2p/crypto/encoding/base64.h"
 
 #include "ipfs/repo/config/datastore.h"
