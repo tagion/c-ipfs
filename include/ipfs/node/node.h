@@ -130,9 +130,10 @@ struct Node * N_Create_From_Link(struct Link * mylink);
 
 /*N_Create_From_Data
  * @param data: bytes buffer you want to create the node from
+ * @param data_size length of buffer
  * returns a node with the data you inputted.
  */
-struct Node * N_Create_From_Data(unsigned char * data);
+struct Node * N_Create_From_Data(unsigned char * data, size_t data_size);
 
 /*Node_Resolve_Max_Size
  * !!!This shouldn't concern you!

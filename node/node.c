@@ -223,14 +223,16 @@ struct Node * N_Create_From_Link(struct Link * mylink)
 }
 
 /*N_Create_From_Data
- * @param data: bytes buffer you want to create the node from
+ * @param data bytes buffer you want to create the node from
+ * @param data_size the length of the buffer
  * returns a node with the data you inputted.
  */
-struct Node * N_Create_From_Data(unsigned char * data)
+struct Node * N_Create_From_Data(unsigned char * data, size_t data_size)
 {
 	struct Node * mynode;
 	mynode = (struct Node *) malloc(sizeof(struct Node));
 	mynode->data = data;
+	mynode->data_size = data_size;
 	mynode->cached = NULL;
 	return mynode;
 }
