@@ -44,7 +44,7 @@ static inline int vowsd(char c)
 * @return {bool} Whether or not it qualifies.
 * @return {error} Error
 */
-int ProquintIsProquint(char *str)
+int ipfs_proquint_is_proquint(char *str)
 {
     int i, c, l = strlen(str);
 
@@ -89,7 +89,7 @@ int ProquintIsProquint(char *str)
 *
 * @return {string} The given byte slice as an identifier.
 */
-char *ProquintEncode(char *buf, int size)
+char *ipfs_proquint_encode(char *buf, int size)
 {
     char *ret;
     int i, c;
@@ -132,14 +132,14 @@ char *ProquintEncode(char *buf, int size)
 *
 * @return {[]byte} The identifier as a byte slice.
 */
-char *ProquintDecode(char *str)
+char *ipfs_proquint_decode(char *str)
 {
     char *ret;
     int i, c, l = strlen(str);
     uint16_t x;
 
     // make sure its a valid Proquint string.
-    if (!ProquintIsProquint(str) && ((l+1) % 3)==0) {
+    if (!ipfs_proquint_is_proquint(str) && ((l+1) % 3)==0) {
         return NULL;
     }
 
@@ -163,16 +163,16 @@ char *ProquintDecode(char *str)
 }
 
 // resolveOnce implements resolver. Decodes the proquint string.
-int ProquintResolveOnce (char **p, char *name)
+int ipfs_proquint_resolve_once (char **p, char *name)
 {
-    int err = ProquintIsProquint(name);
+    int err = ipfs_proquint_is_proquint(name);
     char buf[500];
 
     if (err) {
         *p = NULL;
         err = ErrInvalidProquint;
     } else {
-        err = ParsePath(buf, ProquintDecode(name));
+        err = ipfs_path_parse(buf, ipfs_proquint_decode(name));
         if (!err) {
             *p = malloc (strlen(buf) + 1);
             if (p) {

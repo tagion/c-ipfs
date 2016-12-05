@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 	};
 
     for (i = 0 ; chk[i].str ; i++) {
-        if (IsDomain (chk[i].str) != chk[i].condition) {
+        if (ipfs_isdomain_is_domain (chk[i].str) != chk[i].condition) {
             printf ("Misclassification: %s should be %d\n", chk[i].str, chk[i].condition);
         }
     }

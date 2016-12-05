@@ -48,18 +48,18 @@ type lookupRes struct {
 // resolveOnce implements resolver.
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
-int DNSResolverResolveOnce (char **path, char *name)
+int ipfs_dns_resolver_resolve_once (char **path, char *name)
 {
     char **segments, *domain, *dnslink, buf[500], dlprefix[] = "_dnslink.";
     int p1[2], p2[2], r, c=2;
     struct pollfd event[2], *e;
 
-    segments = SplitN(name, "/", 2);
+    segments = ipfs_path_split_n(name, "/", 2);
     domain = segments[0];
 
     *path = NULL;
 
-    if (!IsDomain(domain)) {
+    if (!ipfs_isdomain_is_domain(domain)) {
         return ErrInvalidDomain;
     }
     //log.Infof("DNSResolver resolving %s", domain);
@@ -74,7 +74,7 @@ int DNSResolverResolveOnce (char **path, char *name)
             return ErrPipe;
         case 0: // child
             close(p1[STDIN_FILENO]); // we don't need to read at child process.
-            return workDomain (p1[STDOUT_FILENO], r, domain);
+            return ipfs_dns_work_domain (p1[STDOUT_FILENO], r, domain);
     }
     close(p1[STDOUT_FILENO]); // we don't need to write at main process.
     r = fork();
@@ -91,7 +91,7 @@ int DNSResolverResolveOnce (char **path, char *name)
             strcpy (dnslink, dlprefix);
             strcat (dnslink, domain);
 
-            return workDomain (p2[STDOUT_FILENO], r, dnslink);
+            return ipfs_dns_work_domain (p2[STDOUT_FILENO], r, dnslink);
     }
     close(p2[STDOUT_FILENO]); // we don't need to write at main process.
 
@@ -137,23 +137,23 @@ int DNSResolverResolveOnce (char **path, char *name)
         return ErrResolveFailed;
     }
 
-    if (SegmentsLength (segments) > 1) {
+    if (ipfs_path_segments_length (segments) > 1) {
         name = *path + strlen(*path) - 1;
         while (*name == '/') {
             *name-- = '\0';
         }
         name = *path;
-        *path = PathFromSegments (name, segments+1);
+        *path = ipfs_path_from_segments (name, segments+1);
         free (name);
         if (!*path) {
             return ErrResolveFailed;
         }
     }
-    FreeSegments (&segments);
+    ipfs_path_free_segments (&segments);
     return 0;
 }
 
-int workDomain (int output, DNSResolver *r, char *name)
+int ipfs_dns_work_domain (int output, DNSResolver *r, char *name)
 {
     char **txt, *path;
     int i, err = r->lookupTXT(&txt, name);
@@ -163,7 +163,7 @@ int workDomain (int output, DNSResolver *r, char *name)
     }
 
     for (i = 0 ; txt[i] ; i++) {
-        err = parseEntry (&path, txt[i]);
+        err = ipfs_dns_parse_entry (&path, txt[i]);
         if (!err) {
             err = (write (output, path, strlen(path)) != strlen(path));
             free (path);
@@ -176,12 +176,12 @@ int workDomain (int output, DNSResolver *r, char *name)
     return ErrResolveFailed;
 }
 
-int parseEntry (char **path, char *txt)
+int ipfs_dns_parse_entry (char **path, char *txt)
 {
     char buf[500];
     int err;
 
-    err = ParseCidToPath(buf, txt); // bare IPFS multihashes
+    err = ipfs_path_parse_from_cid(buf, txt); // bare IPFS multihashes
     if (! err) {
         *path = malloc(strlen(buf) + 1);
         if (!*path) {
@@ -190,16 +190,16 @@ int parseEntry (char **path, char *txt)
         strcpy(*path, buf);
         return 0;
     }
-    return tryParseDnsLink(path, txt);
+    return ipfs_dns_try_parse_dns_link(path, txt);
 }
 
-int tryParseDnsLink(char **path, char *txt)
+int ipfs_dns_try_parse_dns_link(char **path, char *txt)
 {
-    char **parts = SplitN(txt, "=", 2), buf[500];
+    char **parts = ipfs_path_split_n(txt, "=", 2), buf[500];
     int err;
 
-    if (SegmentsLength(parts) == 2 && strcmp(parts[0], "dnslink")==0) {
-        err = ParsePath(buf, parts[1]);
+    if (ipfs_path_segments_length(parts) == 2 && strcmp(parts[0], "dnslink")==0) {
+        err = ipfs_path_parse(buf, parts[1]);
         if (err == 0) {
             *parts = malloc(strlen(buf) + 1);
             if (! *parts) {

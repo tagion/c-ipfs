@@ -65,7 +65,7 @@
 
     typedef struct s_mpns {
         resolvers  *resolver;
-        publishers *Publisher;
+        publishers *publisher;
     } mpns;
 
     typedef struct s_tlds {
@@ -73,30 +73,30 @@
         int  condition;
     } tlds;
 
-    int resolve (resolver *r, char **p, char *str, int depth, char **prefixes);
-    int Resolve(char **path, char *name);
-    int ResolveN(char **path, char *name, int depth);
-    int resolveOnce (char **path, char *name);
-    int Publish (char *proto, ciPrivKey name, char *value);
-    int PublishWithEOL (char *proto, ciPrivKey name, char *value, time_t eol);
+    int ipfs_namesys_resolve (resolver *r, char **p, char *str, int depth, char **prefixes);
+    int ipfs_namesys_resolve(char **path, char *name);
+    int ipfs_namesys_resolve_n(char **path, char *name, int depth);
+    int ipfs_namesys_resolve_once (char **path, char *name);
+    int ipfs_namesys_publish (char *proto, ciPrivKey name, char *value);
+    int ipfs_namesys_publish_with_eol (char *proto, ciPrivKey name, char *value, time_t eol);
 
-    int ProquintIsProquint(char *str);
-    char *ProquintEncode(char *buf, int size);
-    char *ProquintDecode(char *str);
-    int ProquintResolveOnce (char **p, char *name);
+    int ipfs_proquint_is_proquint(char *str);
+    char *ipfs_proquint_encode(char *buf, int size);
+    char *ipfs_proquint_decode(char *str);
+    int ipfs_proquint_resolve_once (char **p, char *name);
 
-    int domainMatchString (char *d);
-    int IsICANNTLD(char *s);
-    int IsExtendedTLD (char *s);
-    int IsTLD (char *s);
-    int IsDomain (char *s);
+    int ipfs_isdomain_match_string (char *d);
+    int ipfs_isdomain_is_icann_tld(char *s);
+    int ipfs_isdomain_is_extended_tld (char *s);
+    int ipfs_isdomain_is_tld (char *s);
+    int ipfs_isdomain_is_domain (char *s);
 
     typedef struct s_DNSResolver {
         // TODO
     } DNSResolver;
 
-    int DNSResolverResolveOnce (DNSResolver *r, char **path, char *name);
-    int workDomain (int output, DNSResolver *r, char *name);
-    int parseEntry (char **Path, char *txt);
-    int tryParseDnsLink (char **Path, char *txt);
+    int ipfs_dns_resolver_resolve_once (DNSResolver *r, char **path, char *name);
+    int ipfs_dns_work_domain (int output, DNSResolver *r, char *name);
+    int ipfs_dns_parse_entry (char **Path, char *txt);
+    int ipfs_dns_try_parse_dns_link (char **Path, char *txt);
 #endif //NAMESYS_H

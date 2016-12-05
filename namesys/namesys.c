@@ -34,14 +34,14 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 
 const DefaultResolverCacheTTL = time.Minute;
 
-// Resolve implements Resolver.
-int Resolve(char **path, char *name)
+// ipfs_namesys_resolve implements Resolver.
+int ipfs_namesys_resolve(char **path, char *name)
 {
-    return ResolveN(path, name, DefaultDepthLimit);
+    return ipfs_namesys_resolve_n(path, name, DefaultDepthLimit);
 }
 
-// ResolveN implements Resolver.
-int ResolveN(char **path, char *name, int depth)
+// ipfs_namesys_resolve_n implements Resolver.
+int ipfs_namesys_resolve_n(char **path, char *name, int depth)
 {
     char ipfs_prefix[] = "/ipfs/";
     char p[500];
@@ -49,10 +49,10 @@ int ResolveN(char **path, char *name, int depth)
     int err;
     resolver r;
 
-    r.resolveOnce = resolveOnce;
+    r.resolveOnce = ipfs_namesys_resolve_once;
 
     if (memcmp(name, ipfs_prefix, strlen(ipfs_prefix)) == 0) {
-        ParsePath(p, name);
+        ipfs_path_parse(p, name);
         *path = malloc(strlen(p) + 1);
         if (*p) {
             strcpy(*path, p);
@@ -70,7 +70,7 @@ int ResolveN(char **path, char *name, int depth)
         }
         strcpy(str, ipfs_prefix);
         strcat(str, name+1);     // ignore inital / from name, because ipfs_prefix already has it.
-        err = ParsePath(p, str); // save return value.
+        err = ipfs_path_parse(p, str); // save return value.
         free (str);              // so we can free allocated memory before return.
         *path = malloc(strlen(p) + 1);
         if (*p) {
@@ -81,11 +81,11 @@ int ResolveN(char **path, char *name, int depth)
         return err;
     }
 
-    return resolve(&r, path, name, depth, ps);
+    return ipfs_namesys_resolve(&r, path, name, depth, ps);
 }
 
-// resolveOnce implements resolver.
-int resolveOnce (char **path, char *name)
+// ipfs_namesys_resolve_once implements resolver.
+int ipfs_namesys_resolve_once (char **path, char *name)
 {
     char ipns_prefix[] = "/ipns/";
     char *ptr = NULL;
@@ -103,13 +103,13 @@ int resolveOnce (char **path, char *name)
         }
         strcpy(ptr, ipns_prefix);
         strcat(ptr, name);
-        segs = Segments(ptr);
+        segs = ipfs_path_split_segments(ptr);
         free (ptr);
     } else {
-        segs = Segments(name);
+        segs = ipfs_path_split_segments(name);
     }
 
-    if (!segs || SegmentsLength(segs) < 2) {
+    if (!segs || ipfs_path_segments_length(segs) < 2) {
         //log.Warningf("Invalid name syntax for %s", name);
         return ErrResolveFailed;
     }
@@ -119,8 +119,8 @@ int resolveOnce (char **path, char *name)
         //log.Debugf("Attempting to resolve %s with %s", segments[1], ns[i]->resolver->protocol);
         err = ns[i]->resolver->func(&p, segs[1]);
         if (!err) {
-            if (SegmentsLength(segs) > 2) {
-                *path = PathFromSegments(p, segs+2);
+            if (ipfs_path_segments_length(segs) > 2) {
+                *path = ipfs_path_from_segments(p, segs+2);
             } else {
                 *path = p;
             }
@@ -131,8 +131,8 @@ int resolveOnce (char **path, char *name)
     return ErrResolveFailed;
 }
 
-// Publish implements Publisher
-int Publish (char *proto, ciPrivKey name, char *value)
+// ipfs_namesys_publish implements Publisher
+int ipfs_namesys_publish (char *proto, ciPrivKey name, char *value)
 {
     int i;
 
@@ -144,7 +144,7 @@ int Publish (char *proto, ciPrivKey name, char *value)
     return ErrPublishFailed;
 }
 
-int PublishWithEOL (char *proto, ciPrivKey name, char *value, time_t eol)
+int ipfs_namesys_publish_with_eol (char *proto, ciPrivKey name, char *value, time_t eol)
 {
     int i;
 

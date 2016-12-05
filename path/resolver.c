@@ -1,20 +1,20 @@
 #include "ipfs/cid/cid.h"
 #include "ipfs/path/path.h"
 
-Resolver* NewBasicResolver (DAGService *ds)
+Resolver* ipfs_path_new_basic_resolver (DAGService *ds)
 {
     Resolver *ret = malloc(sizeof(Resolver));
     if (!ret) return NULL;
     ret->DAG = ds;
-    ret->ResolveOnce = ResolveSingle;
+    ret->ResolveOnce = ipfs_path_resolve_single;
     return ret;
 }
 
-// SplitAbsPath clean up and split fpath. It extracts the first component (which
+// ipfs_path_split_abs_path clean up and split fpath. It extracts the first component (which
 // must be a Multihash) and return it separately.
-int SplitAbsPath (struct Cid* cid, char ***parts, char *fpath)
+int ipfs_path_split_abs_path (struct Cid* cid, char ***parts, char *fpath)
 {
-    *parts = Segments(fpath);
+    *parts = ipfs_path_split_segments(fpath);
 
     if (strcmp (**parts, "ipfs") == 0) *parts++;
 
@@ -26,9 +26,9 @@ int SplitAbsPath (struct Cid* cid, char ***parts, char *fpath)
     return 0;
 }
 
-// ResolvePath fetches the node for given path. It returns the last item
-// returned by ResolvePathComponents.
-int ResolvePath(Node **nd, Context ctx, Resolver *s, char *fpath)
+// ipfs_path_resolve_path fetches the node for given path. It returns the last item
+// returned by ipfs_path_resolve_path_components.
+int ipfs_path_resolve_path(Node **nd, Context ctx, Resolver *s, char *fpath)
 {
     int err = IsValid(fpath);
     Node **ndd;
@@ -36,7 +36,7 @@ int ResolvePath(Node **nd, Context ctx, Resolver *s, char *fpath)
     if (err) {
         return err;
     }
-    err = ResolvePathComponents(&ndd, ctx, s, fpath);
+    err = ipfs_path_resolve_path_components(&ndd, ctx, s, fpath);
     if (err) {
         return err;
     }
@@ -50,21 +50,21 @@ int ResolvePath(Node **nd, Context ctx, Resolver *s, char *fpath)
     return 0;
 }
 
-int ResolveSingle(NodeLink **lnk, Context ctx, DAGService *ds, Node **nd, char *name)
+int ipfs_path_resolve_single(NodeLink **lnk, Context ctx, DAGService *ds, Node **nd, char *name)
 {
-    return ResolveLink(lnk, name);
+    return ipfs_path_resolve_link(lnk, name);
 }
 
-// ResolvePathComponents fetches the nodes for each segment of the given path.
+// ipfs_path_resolve_path_components fetches the nodes for each segment of the given path.
 // It uses the first path component as a hash (key) of the first node, then
-// resolves all other components walking the links, with ResolveLinks.
-int ResolvePathComponents(Node ***nd, Context ctx, Resolver *s, char *fpath)
+// resolves all other components walking the links, with ipfs_path_resolve_links.
+int ipfs_path_resolve_path_components(Node ***nd, Context ctx, Resolver *s, char *fpath)
 {
     int err;
     struct Cid h;
     char **parts;
 
-    err = SplitAbsPath(&h, &parts, fpath);
+    err = ipfs_path_split_abs_path(&h, &parts, fpath);
     if (err) {
         return err;
     }
@@ -75,27 +75,27 @@ int ResolvePathComponents(Node ***nd, Context ctx, Resolver *s, char *fpath)
     //   return DAG_ERR_VAL;
     //}
 
-    return ResolveLinks(ctx, *nd, parts);
+    return ipfs_path_resolve_links(ctx, *nd, parts);
 }
 
-// ResolveLinks iteratively resolves names by walking the link hierarchy.
+// ipfs_path_resolve_links iteratively resolves names by walking the link hierarchy.
 // Every node is fetched from the DAGService, resolving the next name.
 // Returns the list of nodes forming the path, starting with ndd. This list is
 // guaranteed never to be empty.
 //
-// ResolveLinks(nd, []string{"foo", "bar", "baz"})
+// ipfs_path_resolve_links(nd, []string{"foo", "bar", "baz"})
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
-int ResolveLinks(Node ***result, Context ctx, Node *ndd, char **names)
+int ipfs_path_resolve_links(Node ***result, Context ctx, Node *ndd, char **names)
 {
     int err, idx = 0;
     NodeLink *lnk;
     Node *nd;
 
-    *result = calloc (sizeof(Node*), SegmentsLength(names) + 1);
+    *result = calloc (sizeof(Node*), ipfs_path_segments_length(names) + 1);
     if (!*result) {
         return -1;
     }
-    memset (*result, NULL, sizeof(Node*) * (SegmentsLength(names)+1));
+    memset (*result, NULL, sizeof(Node*) * (ipfs_path_segments_length(names)+1));
 
     *result[idx++] = ndd;
     nd = ndd; // dup arg workaround
@@ -107,7 +107,7 @@ int ResolveLinks(Node ***result, Context ctx, Node *ndd, char **names)
         //defer cancel()
 
         // for each of the path components
-        err = ResolveLink(&lnk, *names);
+        err = ipfs_path_resolve_link(&lnk, *names);
         if (err) {
             char msg[51];
             *result[idx] = NULL;
