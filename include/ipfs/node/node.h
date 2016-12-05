@@ -28,7 +28,7 @@ struct Node
 	unsigned char * encoded;
 	struct Cid * cached;
 	int link_ammount;
-	struct Link * links[];
+	struct Link* links[];
 };
 
 /*====================================================================================
@@ -118,7 +118,7 @@ int Node_Remove_Link(char * Name, struct Node * mynode);
  * @param linksz: sizeof(your cid here)
  * Returns your node with the newly added link
  */
-struct Node * N_Add_Link(struct Node ** mynode, struct Link * mylink, size_t linksz);
+struct Node* N_Add_Link(struct Node** mynode, struct Link* mylink, size_t linksz);
 
 /*N_Create_From_Link
  * Create a node from a link

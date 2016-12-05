@@ -38,5 +38,5 @@ int test_node() {
 	Free_Link(mylink2);
 	Free_Link(ResultLink);
 	Node_Delete(Mynode);
-	return 0;
+	return 1;
 }

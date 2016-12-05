@@ -46,6 +46,11 @@ struct Node * Create_Empty_Node()
 {
 	struct Node * N;
 	N = (struct Node *)malloc(sizeof(struct Node));
+	N->data_size = 0;
+	N->cached = NULL;
+	N->data = NULL;
+	N->encoded = NULL;
+	N->link_ammount = 0;
 	return N;
 }
 
@@ -67,16 +72,14 @@ int Node_Set_Data(struct Node * N, unsigned char * Data)
 	return 1;
 }
 
-/*Node_Get_Data
+/***
  * Gets data from a node
- * @param Node: = The node you want to get data from. (unsigned char *)
- * Returns data of node.
+ * @param Node The node you want to get data from. (unsigned char *)
+ * @returns data of node.
  */
-unsigned char * Node_Get_Data(struct Node * N)
+unsigned char* Node_Get_Data(struct Node* N)
 {
-	unsigned char * DATA;
-	DATA = N->data;
-	return DATA;
+	return N->data;
 }
 
 /**
@@ -93,7 +96,7 @@ int Node_Set_Cid(struct Node* N, struct Cid* cid) {
  * @param Node: The node you want to copy (struct CP_Node *)
  * Returns a copy of the node you wanted to copy.
  */
-struct Node * Node_Copy(struct Node * CP_Node)
+struct Node* Node_Copy(struct Node * CP_Node)
 {
 	struct Node * CN;
 	CN = (struct Node*) malloc(sizeof(struct Node) + sizeof(struct Link) * 2);
@@ -133,7 +136,7 @@ void Node_Delete(struct Node * N)
  * @param Name: (char * name) searches for link with this name
  * Returns the link struct if it's found otherwise returns NULL
  */
-struct Link * Node_Get_Link(struct Node * N, char * Name)
+struct Link* Node_Get_Link(struct Node * N, char * Name)
 {
 	struct Link * L;
 	for(int i=0;i<N->link_ammount;i++)
@@ -218,6 +221,9 @@ struct Node * N_Create_From_Link(struct Link * mylink)
 	mynode->link_ammount = 0;
 	mynode->link_ammount++;
 	mynode->links[0] = malloc(sizeof(struct Link));
+	mynode->data_size = 0;
+	mynode->data = NULL;
+	mynode->cached = NULL;
 	memcpy(mynode->links[0], mylink, sizeof(struct Link));
 	return mynode;
 }
