@@ -4,7 +4,7 @@
 #include "ipfs/namesys/namesys.h"
 #include "ipfs/namesys/isdomain.h"
 
-void ToUpper(char *dst, char *src)
+void ipfs_isdomain_to_upper(char *dst, char *src)
 {
     while(*src) {
         *dst++ = toupper(*src++);
@@ -12,7 +12,7 @@ void ToUpper(char *dst, char *src)
     *dst = '\0';
 }
 
-int HasSuffix (char *s, char *suf)
+int ipfs_isdomain_has_suffix (char *s, char *suf)
 {
     char *p;
 
@@ -20,11 +20,11 @@ int HasSuffix (char *s, char *suf)
     return strcmp(p, suf) == 0;
 }
 
-int IsAtArray(tlds *a, char *s)
+int ipfs_isdomain_is_at_array(tlds *a, char *s)
 {
     char str[strlen(s)+1];
 
-    ToUpper(str, s);
+    ipfs_isdomain_to_upper(str, s);
     while(a->str) {
         if (strcmp(a->str, str) == 0) {
             return a->condition;
@@ -34,11 +34,11 @@ int IsAtArray(tlds *a, char *s)
     return 0;
 }
 
-int domainMatchString (char *d)
+int ipfs_isdomain_match_string (char *d)
 {
     char str[strlen(d)+1], *p = str, *l;
 
-    ToUpper(str, d);
+    ipfs_isdomain_to_upper(str, d);
 
     // l point to last two chars.
     l = p + strlen(p) - 2;
@@ -64,31 +64,31 @@ int domainMatchString (char *d)
     return 1; // valid
 }
 
-// IsICANNTLD returns whether the given string is a TLD (Top Level Domain),
+// ipfs_isdomain_is_icann_tld returns whether the given string is a TLD (Top Level Domain),
 // according to ICANN. Well, really according to the TLDs listed in this
 // package.
-int IsICANNTLD(char *s)
+int ipfs_isdomain_is_icann_tld(char *s)
 {
-    return IsAtArray (TLDs, s);
+    return ipfs_isdomain_is_at_array (TLDs, s);
 }
 
-// IsExtendedTLD returns whether the given string is a TLD (Top Level Domain),
+// ipfs_isdomain_is_extended_tld returns whether the given string is a TLD (Top Level Domain),
 // extended with a few other "TLDs", .bit, .onion
-int IsExtendedTLD (char *s)
+int ipfs_isdomain_is_extended_tld (char *s)
 {
-    return IsAtArray (ExtendedTLDs, s);
+    return ipfs_isdomain_is_at_array (ExtendedTLDs, s);
 }
 
-// IsTLD returns whether the given string is a TLD (according to ICANN, or
+// ipfs_isdomain_is_tld returns whether the given string is a TLD (according to ICANN, or
 // in the set of ExtendedTLDs listed in this package.
-int IsTLD (char *s)
+int ipfs_isdomain_is_tld (char *s)
 {
-    return IsICANNTLD (s) || IsExtendedTLD(s);
+    return ipfs_isdomain_is_icann_tld (s) || ipfs_isdomain_is_extended_tld(s);
 }
 
-// IsDomain returns whether given string is a domain.
+// ipfs_isdomain_is_domain returns whether given string is a domain.
 // It first checks the TLD, and then uses a regular expression.
-int IsDomain (char *s)
+int ipfs_isdomain_is_domain (char *s)
 {
     char str[strlen(s)];
     char *tld;
@@ -96,7 +96,7 @@ int IsDomain (char *s)
     strcpy(str, s);
     s = str; // work with local copy.
 
-    if (HasSuffix (s, ".")) {
+    if (ipfs_isdomain_has_suffix (s, ".")) {
         s[strlen(s) - 1] = '\0';
     }
 
@@ -108,9 +108,9 @@ int IsDomain (char *s)
 
     tld++; // ignore last dot
 
-    if (!IsTLD (tld)) {
+    if (!ipfs_isdomain_is_tld (tld)) {
         return 0;
     }
 
-    return domainMatchString(s);
+    return ipfs_isdomain_match_string(s);
 }

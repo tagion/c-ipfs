@@ -5,7 +5,7 @@
 #include <ipfs/path/path.h>
 
 // FromCid safely converts a cid.Cid type to a Path type
-char* PathFromCid (struct Cid *c)
+char* ipfs_path_from_cid (struct Cid *c)
 {
    const char prefix[] = "/ipfs/";
    char *rpath, *cidstr = CidString(c);
@@ -17,7 +17,7 @@ char* PathFromCid (struct Cid *c)
    return rpath;
 }
 
-char** SplitN (char *p, char *delim, int n)
+char** ipfs_path_split_n (char *p, char *delim, int n)
 {
    char *c, **r, *rbuf;
    int i, dlen = strlen(delim);
@@ -62,15 +62,15 @@ char** SplitN (char *p, char *delim, int n)
    return r;
 }
 
-char** Segments (char *p)
+char** ipfs_path_split_segments (char *p)
 {
    if (*p == '/') p++; // Ignore leading slash
 
-   return SplitN (p, "/", -1);
+   return ipfs_path_split_n (p, "/", -1);
 }
 
-// Count Segments
-int SegmentsLength (char **s)
+// Count segments
+int ipfs_path_segments_length (char **s)
 {
    int r = 0;
 
@@ -81,8 +81,8 @@ int SegmentsLength (char **s)
    return r;
 }
 
-// free memory allocated by Segments
-void FreeSegments (char ***s)
+// free memory allocated by ipfs_path_split_segments
+void ipfs_path_free_segments (char ***s)
 {
    if (*s && **s) {
       free(**s); // free string buffer
@@ -91,25 +91,25 @@ void FreeSegments (char ***s)
    }
 }
 
-// IsJustAKey returns true if the path is of the form <key> or /ipfs/<key>.
-int IsJustAKey (char *p)
+// ipfs_path_is_just_a_key returns true if the path is of the form <key> or /ipfs/<key>.
+int ipfs_path_is_just_a_key (char *p)
 {
    char **parts;
    int ret = 0;
-   parts = Segments (p);
+   parts = ipfs_path_split_segments (p);
    if (parts) {
-      if (SegmentsLength (parts) == 2 && strcmp (parts[0], "ipfs") == 0) ret++;
-      FreeSegments(&parts);
+      if (ipfs_path_segments_length (parts) == 2 && strcmp (parts[0], "ipfs") == 0) ret++;
+      ipfs_path_free_segments(&parts);
    }
    return ret;
 }
 
-// PopLastSegment returns a new Path without its final segment, and the final
+// ipfs_path_pop_last_segment returns a new Path without its final segment, and the final
 // segment, separately. If there is no more to pop (the path is just a key),
 // the original path is returned.
-int PopLastSegment (char **str, char *p)
+int ipfs_path_pop_last_segment (char **str, char *p)
 {
-   if (IsJustAKey(p)) return 0;
+   if (ipfs_path_is_just_a_key(p)) return 0;
    *str = strrchr(p, '/');
    if (!*str) return ErrBadPath; // error
    **str = '\0';
@@ -117,7 +117,7 @@ int PopLastSegment (char **str, char *p)
    return 0;
 }
 
-char *PathFromSegments(char *prefix, char **seg)
+char *ipfs_path_from_segments(char *prefix, char **seg)
 {
    int retlen, i;
    char *ret;
@@ -140,7 +140,7 @@ char *PathFromSegments(char *prefix, char **seg)
    return ret;
 }
 
-int ParseCidToPath (char *dst, char *txt)
+int ipfs_path_parse_from_cid (char *dst, char *txt)
 {
    struct Cid *c;
    char *r;
@@ -153,7 +153,7 @@ int ParseCidToPath (char *dst, char *txt)
       return ErrCidDecode;
    }
 
-   r = PathFromCid(c);
+   r = ipfs_path_from_cid(c);
 
    if (!r) {
       return ErrCidDecode;
@@ -163,7 +163,7 @@ int ParseCidToPath (char *dst, char *txt)
    return 0;
 }
 
-int ParsePath (char *dst, char *txt)
+int ipfs_path_parse (char *dst, char *txt)
 {
    int err, i;
    char *c;
@@ -176,10 +176,10 @@ int ParsePath (char *dst, char *txt)
       if (*txt == '/') {
          txt++;
       }
-      err = ParseCidToPath (dst+plen, txt);
-      if (err == 0) { // only change dst if ParseCidToPath returned success.
+      err = ipfs_path_parse_from_cid (dst+plen, txt);
+      if (err == 0) { // only change dst if ipfs_path_parse_from_cid returned success.
          // Use memcpy instead of strcpy to avoid overwriting
-         // result of ParseCidToPath with a null terminator.
+         // result of ipfs_path_parse_from_cid with a null terminator.
          memcpy (dst, prefix, plen);
       }
       return err;
@@ -194,15 +194,15 @@ int ParsePath (char *dst, char *txt)
       strcpy (buf, txt+6); // copy to temp buffer.
       c = strchr(buf, '/');
       if (c) *c = '\0';
-      return ParseCidToPath(dst, buf);
+      return ipfs_path_parse_from_cid(dst, buf);
    } else if (strcmp (txt, "/ipns/") != 0) {
       return ErrBadPath;
    }
    return 0;
 }
 
-int PathIsValid (char *p)
+int ipfs_path_is_valid (char *p)
 {
    char buf[4096];
-   return ParsePath(buf, p);
+   return ipfs_path_parse(buf, p);
 }

@@ -4,7 +4,7 @@
 #include "ipfs/path/path.h"
 #include "ipfs/namesys/namesys.h"
 
-int resolve (resolver *r, char **p, char *str, int depth, char **prefixes)
+int ipfs_namesys_base_resolve (resolver *r, char **p, char *str, int depth, char **prefixes)
 {
     int err, i;
     char ipfs_prefix[] = "/ipfs/";
@@ -26,7 +26,7 @@ int resolve (resolver *r, char **p, char *str, int depth, char **prefixes)
         }
         for (i = 0 ; prefixes[i] ; i++) {
             if (memcmp(*p, prefixes[i], strlen(prefixes[i])) == 0) {
-                if (SegmentsLength(prefixes) == 1) {
+                if (ipfs_path_segments_length(prefixes) == 1) {
                     str += strlen(prefixes[i]);
                 }
                 break;

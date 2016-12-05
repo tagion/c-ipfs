@@ -16,12 +16,12 @@ int main(void) {
                  NULL};
 
     for (i = 0 ; p[i] ; i++) {
-        r = ProquintDecode (p[i]);
+        r = ipfs_proquint_decode (p[i]);
         if (r) {
             struct in_addr ip_addr;
             memcpy (&(ip_addr.s_addr), r, sizeof(ip_addr.s_addr));
             printf ("%s\t%s", p[i], inet_ntoa(ip_addr));
-            s = ProquintEncode(r, sizeof(ip_addr.s_addr));
+            s = ipfs_proquint_encode(r, sizeof(ip_addr.s_addr));
             free (r);
             if (s) {
                 printf ("\t%s", s);
