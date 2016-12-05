@@ -31,23 +31,31 @@ int repo_fsrepo_lmdb_put(const char* key, size_t key_size, unsigned char* data, 
 	retVal = mdb_txn_begin(mdb_env, NULL, 0, &mdb_txn);
 	if (retVal != 0)
 		return 0;
-	retVal = mdb_dbi_open(mdb_txn, NULL, 0, &mdb_dbi);
+	retVal = mdb_dbi_open(mdb_txn, NULL, MDB_DUPSORT, &mdb_dbi);
 	if (retVal != 0)
 		return 0;
 
-	// write
+	// prepare data
 	db_key.mv_size = key_size;
 	db_key.mv_data = (char*)key;
+
+	// write
 	db_value.mv_size = data_size;
 	db_value.mv_data = data;
-	retVal = mdb_put(mdb_txn, mdb_dbi, &db_key, &db_value, MDB_NODUPDATA);
-	if (retVal != 0)
-		return 0;
+	retVal = mdb_put(mdb_txn, mdb_dbi, &db_key, &db_value, MDB_NODUPDATA | MDB_NOOVERWRITE);
+	if (retVal == 0) // the normal case
+		retVal = 1;
+	else {
+		if (retVal == MDB_KEYEXIST) // We tried to add a key that already exists. Skip.
+			retVal = 1;
+		else
+			retVal = 0;
+	}
 
 	// cleanup
 	mdb_dbi_close(mdb_env, mdb_dbi);
 	mdb_txn_commit(mdb_txn);
-	return 1;
+	return retVal;
 }
 
 

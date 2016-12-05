@@ -1,5 +1,6 @@
-#include "libp2p/crypto/encoding/base64.h"
+#include <stdio.h>
 
+#include "libp2p/crypto/encoding/base64.h"
 #include "ipfs/repo/config/datastore.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/os/utils.h"

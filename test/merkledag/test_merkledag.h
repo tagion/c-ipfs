@@ -41,8 +41,10 @@ int test_merkledag_add_data() {
 	struct Node* node1 = N_Create_From_Data(binary_data, 255);
 
 	retVal = ipfs_merkledag_add(node1, fs_repo);
-	if (retVal == 0)
+	if (retVal == 0) {
+		Node_Delete(node1);
 		return 0;
+	}
 
 	// make sure everything is correct
 	if (node1->cached == NULL)
@@ -50,28 +52,39 @@ int test_merkledag_add_data() {
 
 	int first_add_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
 	if (first_add_size == start_file_size) { // uh oh, database should have increased in size
+		Node_Delete(node1);
 		return 0;
 	}
 
 	// adding the same binary again should do nothing (the hash should be the same)
 	struct Node* node2 = N_Create_From_Data(binary_data, 255);
 	retVal = ipfs_merkledag_add(node2, fs_repo);
-	if (retVal == 0)
+	if (retVal == 0) {
+		Node_Delete(node1);
+		Node_Delete(node2);
 		return 0;
+	}
 
 	// make sure everything is correct
-	if (node2->cached == NULL)
+	if (node2->cached == NULL) {
+		Node_Delete(node1);
+		Node_Delete(node2);
 		return 0;
+	}
 	for(int i = 0; i < node1->cached->hash_length; i++) {
 		if (node1->cached->hash[i] != node2->cached->hash[i]) {
 			printf("hash of node1 does not match node2 at position %d\n", i);
+			Node_Delete(node1);
+			Node_Delete(node2);
 			return 0;
 		}
 	}
 
 	int second_add_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
 	if (first_add_size != second_add_size) { // uh oh, the database shouldn't have changed size
-		fprintf("looks as if a new record was added when it shouldn't have. Old file size: %d, new file size: %d\n", first_add_size, second_add_size);
+		printf("looks as if a new record was added when it shouldn't have. Old file size: %d, new file size: %d\n", first_add_size, second_add_size);
+		Node_Delete(node1);
+		Node_Delete(node2);
 		return 0;
 	}
 
@@ -81,12 +94,20 @@ int test_merkledag_add_data() {
 	struct Node* node3 = N_Create_From_Data(binary_data, 255);
 
 	retVal = ipfs_merkledag_add(node3, fs_repo);
-	if (retVal == 0)
+	if (retVal == 0) {
+		Node_Delete(node1);
+		Node_Delete(node2);
+		Node_Delete(node3);
 		return 0;
+	}
 
 	// make sure everything is correct
-	if (node3->cached == NULL)
+	if (node3->cached == NULL) {
+		Node_Delete(node1);
+		Node_Delete(node2);
+		Node_Delete(node3);
 		return 0;
+	}
 
 	Node_Delete(node1);
 	Node_Delete(node2);
@@ -96,6 +117,8 @@ int test_merkledag_add_data() {
 		printf("Node 3 should have been added, but the file size did not change from %d.\n", third_add_size);
 		return 0;
 	}
+
+	ipfs_repo_fsrepo_free(fs_repo);
 
 	return 1;
 }
