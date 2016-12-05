@@ -29,6 +29,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-multihash/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-multiaddr}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lmdb}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-ipfs/include}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.581176638" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

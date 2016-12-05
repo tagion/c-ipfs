@@ -1,14 +1,15 @@
-#include "repo/test_repo_config.h"
-#include "repo/test_repo_identity.h"
-#include "repo/test_repo_bootstrap_peers.h"
-#include "repo/test_repo_fsrepo.h"
-#include "cmd/ipfs/test_init.h"
 #include "cid/test_cid.h"
+#include "cmd/ipfs/test_init.h"
 #include "flatfs/test_flatfs.h"
+#include "node/test_node.h"
+#include "repo/test_repo_bootstrap_peers.h"
+#include "repo/test_repo_config.h"
+#include "repo/test_repo_fsrepo.h"
+#include "repo/test_repo_identity.h"
 #include "storage/test_ds_helper.h"
 #include "storage/test_datastore.h"
 #include "storage/test_blocks.h"
-
+ 		 
 int testit(const char* name, int (*func)(void)) {
 	printf("Testing %s...\n", name);
 	int retVal = func();
@@ -37,7 +38,8 @@ const char* names[] = {
 		"test_ds_key_from_binary",
 		"test_blocks_new",
 		"test_repo_bootstrap_peers_init",
-		"test_ipfs_datastore_put"
+		"test_ipfs_datastore_put",
+		"test_node"
 };
 
 int (*funcs[])(void) = {
@@ -58,7 +60,8 @@ int (*funcs[])(void) = {
 		test_ds_key_from_binary,
 		test_blocks_new,
 		test_repo_bootstrap_peers_init,
-		test_ipfs_datastore_put
+		test_ipfs_datastore_put,
+		test_node
 };
 
 /**
@@ -72,7 +75,7 @@ int main(int argc, char** argv) {
 		only_one = 1;
 		test_wanted = argv[1];
 	}
-	for (int i = 0; i < sizeof(funcs) / sizeof(funcs[0]); i++) {
+	for (int i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
 		if (only_one && strcmp(names[i], test_wanted) == 0)
 			counter += testit(names[i], funcs[i]);
 		else
