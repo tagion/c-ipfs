@@ -103,6 +103,9 @@ int make_ipfs_repository(struct FSRepo* fs_repo) {
 	return retVal;
 }
 
+/**
+ * create a repository and put a record in the datastore and a block in the blockstore
+ */
 int test_ipfs_datastore_put() {
 	struct Block* block;
 	int retVal;
@@ -134,11 +137,8 @@ int test_ipfs_datastore_put() {
 	if (retVal == 0)
 		return 0;
 
-	/*
-
 	// send to Put with key
-	retVal = fs_repo->config->datastore->datastore_put(key, key_length, block, fs_repo->config->datastore);
-	*/
+	retVal = fs_repo->config->datastore->datastore_put(key, key_length, block->data, block->data_length, fs_repo->config->datastore);
 	if (retVal == 0)
 		return 0;
 

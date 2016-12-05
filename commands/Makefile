@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O0 -I../include -I../../c-libp2p/include
+CFLAGS = -O0 -I../include -I../../c-libp2p/include -Wall
 LFLAGS = 
 DEPS = ../include/ipfs/commands/argument.h ../include/ipfs/commands/command_option.h \
 	../include/ipfs/commands/command.h ../include/ipfs/commands/context.h \

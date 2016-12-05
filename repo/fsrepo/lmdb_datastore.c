@@ -16,7 +16,7 @@
  * @param block the block to be written
  * @returns true(1) on success
  */
-int repo_fsrepo_lmdb_put(const char* key, size_t key_size, struct Block* block, struct Datastore* datastore) {
+int repo_fsrepo_lmdb_put(const char* key, size_t key_size, unsigned char* data, size_t data_size, struct Datastore* datastore) {
 	int retVal;
 	MDB_txn* mdb_txn;
 	MDB_dbi mdb_dbi;
@@ -38,8 +38,8 @@ int repo_fsrepo_lmdb_put(const char* key, size_t key_size, struct Block* block, 
 	// write
 	db_key.mv_size = key_size;
 	db_key.mv_data = (char*)key;
-	db_value.mv_size = block->data_length;
-	db_value.mv_data = block->data;
+	db_value.mv_size = data_size;
+	db_value.mv_data = data;
 	retVal = mdb_put(mdb_txn, mdb_dbi, &db_key, &db_value, MDB_NODUPDATA);
 	if (retVal != 0)
 		return 0;

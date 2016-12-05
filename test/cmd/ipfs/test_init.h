@@ -5,14 +5,16 @@
 #define __TEST_INIT_H__
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+//#include <string.h>
 
 #include "ipfs/cmd/ipfs/init.h"
 #include "ipfs/commands/argument.h"
 #include "ipfs/commands/request.h"
 #include "ipfs/commands/command.h"
+#include "ipfs/os/utils.h"
 
-#include <stdio.h>
-//#include <string.h>
 
 int test_init_new_installation() {
 	unlink("/tmp/.ipfs/config");
