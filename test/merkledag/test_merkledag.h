@@ -27,9 +27,6 @@ int test_merkledag_get_data() {
 		return 0;
 	}
 
-	// get the size of the database
-	int start_file_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
-
 	// create data for node
 	size_t binary_data_size = 256;
 	unsigned char binary_data[binary_data_size];

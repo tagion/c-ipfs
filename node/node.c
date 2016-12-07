@@ -7,7 +7,12 @@
 #include <string.h>
 #include "inttypes.h"
 #include "ipfs/cid/cid.h"
+
 #include "ipfs/node/node.h"
+
+/*====================================================================================
+ * Link Functions
+ *===================================================================================*/
 
 /* Create_Link
  * @Param name: The name of the link (char *)
@@ -20,7 +25,7 @@ struct Link * Create_Link(char * name, unsigned char * ahash)
 	mylink = malloc(sizeof(struct Link));
 	mylink->name = name;
 	int ver = 0;
-	size_t lenhash = strlen(ahash)-1;
+	size_t lenhash = strlen((char*)ahash)-1;
 	ipfs_cid_new(ver, ahash, lenhash*2, CID_PROTOBUF, &mylink->Lcid);
 	mylink->size = sizeof(mylink) + mylink->Lcid->hash_length; //Unsure of this
 	return mylink;
@@ -34,7 +39,6 @@ void Free_Link(struct Link * L)
 	ipfs_cid_free(L->Lcid);
 	free(L);
 }
-
 /*====================================================================================
  * Node Functions
  *===================================================================================*/
@@ -46,7 +50,6 @@ struct Node * Create_Empty_Node()
 {
 	struct Node * N;
 	N = (struct Node *)malloc(sizeof(struct Node));
-	N->data_size = 0;
 	N->cached = NULL;
 	N->data = NULL;
 	N->encoded = NULL;
@@ -54,10 +57,24 @@ struct Node * Create_Empty_Node()
 	return N;
 }
 
+/**
+ * Set the cached struct element
+ * @param N the node to be modified
+ * @param TheCid the Cid to be copied into the Node->cached element
+ * @returns true(1) on success
+ */
+int Node_Set_Cached(struct Node * N, struct Cid * TheCid)
+{
+	if (N->cached != NULL)
+		ipfs_cid_free(N->cached);
+	return ipfs_cid_new(TheCid->version, TheCid->hash, TheCid->hash_length, TheCid->codec, &(N->cached));
+}
+
 /*Node_Set_Data
  * Sets the data of a node
  * @param Node: The node which you want to set data in.
  * @param Data, the data you want to assign to the node
+ * Sets pointers of encoded & cached to NULL /following go method
  * returns 1 on success 0 on failure
  */
 int Node_Set_Data(struct Node * N, unsigned char * Data)
@@ -72,31 +89,40 @@ int Node_Set_Data(struct Node * N, unsigned char * Data)
 	return 1;
 }
 
-/***
- * Gets data from a node
- * @param Node The node you want to get data from. (unsigned char *)
- * @returns data of node.
+/*Node_Set_Encoded
+ * @param NODE: the node you wish to alter (struct Node *)
+ * @param Data: The data you wish to set in encoded.(unsigned char *)
+ * returns 1 on success 0 on failure
  */
-unsigned char* Node_Get_Data(struct Node* N)
+int Node_Set_Encoded(struct Node * N, unsigned char * Data)
 {
-	return N->data;
+	if(!N || !Data)
+	{
+		return 0;
+	}
+	N->encoded = Data;
+	//I don't know if these will be needed, enable them if you need them.
+	//N->cached = NULL;
+	//N->data = NULL;
+	return 1;
 }
-
-/**
- * set Cid on node
- * @param node the node
- * @param the Cid to use
- * @returns true(1) on success
+/*Node_Get_Data
+ * Gets data from a node
+ * @param Node: = The node you want to get data from. (unsigned char *)
+ * Returns data of node.
  */
-int Node_Set_Cid(struct Node* N, struct Cid* cid) {
-	return ipfs_cid_new(cid->version, cid->hash, cid->hash_length, cid->codec, &N->cached);
+unsigned char * Node_Get_Data(struct Node * N)
+{
+	unsigned char * DATA;
+	DATA = N->data;
+	return DATA;
 }
 
 /*Node_Copy: Returns a copy of the node you input
  * @param Node: The node you want to copy (struct CP_Node *)
  * Returns a copy of the node you wanted to copy.
  */
-struct Node* Node_Copy(struct Node * CP_Node)
+struct Node * Node_Copy(struct Node * CP_Node)
 {
 	struct Node * CN;
 	CN = (struct Node*) malloc(sizeof(struct Node) + sizeof(struct Link) * 2);
@@ -111,7 +137,6 @@ struct Node* Node_Copy(struct Node * CP_Node)
 	memcpy(CN->links[0],CP_Node->links[0], sizeof(struct Link));
 	return CN;
 }
-
 /*Node_Delete
  * Once you are finished using a node, always delete it using this.
  * It will take care of the links inside it.
@@ -119,24 +144,28 @@ struct Node* Node_Copy(struct Node * CP_Node)
  */
 void Node_Delete(struct Node * N)
 {
-	if(N->link_ammount > 0)
+	if(N)
 	{
-		for(int i=0; i<N->link_ammount; i++)
+		if(N->link_ammount > 0)
 		{
-			free(N->links[i]);
+			for(int i=0; i<N->link_ammount; i++)
+			{
+				free(N->links[i]);
+			}
 		}
-	}
-	if (N->cached != NULL)
-		free(N->cached);
+		if(N->cached)
+		{
+			free(N->cached);
+		}
 	free(N);
+	}
 }
-
 /*Node_Get_Link
  * Returns a copy of the link with given name
  * @param Name: (char * name) searches for link with this name
  * Returns the link struct if it's found otherwise returns NULL
  */
-struct Link* Node_Get_Link(struct Node * N, char * Name)
+struct Link * Node_Get_Link(struct Node * N, char * Name)
 {
 	struct Link * L;
 	for(int i=0;i<N->link_ammount;i++)
@@ -146,7 +175,7 @@ struct Link* Node_Get_Link(struct Node * N, char * Name)
 			L = (struct Link *)malloc(sizeof(struct Link));
 			memcpy(L,N->links[i],sizeof(struct Link));
 			int ver = L->Lcid->version;
-			char * ahash = L->Lcid->hash;
+			unsigned char * ahash = L->Lcid->hash;
 			size_t lenhash = L->Lcid->hash_length;
 			ipfs_cid_new(ver, ahash, lenhash, CID_PROTOBUF, &L->Lcid);
 			return L;
@@ -154,7 +183,6 @@ struct Link* Node_Get_Link(struct Node * N, char * Name)
 	}
 	return NULL;
 }
-
 /*Node_Remove_Link
  * Removes a link from node if found by name.
  * @param name: Name of link (char * name)
@@ -177,7 +205,6 @@ int Node_Remove_Link(char * Name, struct Node * mynode)
 	}
 	return 0;
 }
-
 /* N_Add_Link
  * Adds a link to your node
  * @param mynode: &yournode
@@ -221,29 +248,49 @@ struct Node * N_Create_From_Link(struct Link * mylink)
 	mynode->link_ammount = 0;
 	mynode->link_ammount++;
 	mynode->links[0] = malloc(sizeof(struct Link));
-	mynode->data_size = 0;
-	mynode->data = NULL;
-	mynode->cached = NULL;
 	memcpy(mynode->links[0], mylink, sizeof(struct Link));
+	mynode->cached = NULL;
+	mynode->data = NULL;
+	mynode->encoded = NULL;
 	return mynode;
 }
-
 /*N_Create_From_Data
- * @param data bytes buffer you want to create the node from
- * @param data_size the length of the buffer
+ * @param data: bytes buffer you want to create the node from
  * returns a node with the data you inputted.
  */
 struct Node * N_Create_From_Data(unsigned char * data, size_t data_size)
 {
-	struct Node * mynode;
-	mynode = (struct Node *) malloc(sizeof(struct Node));
-	mynode->data = data;
-	mynode->data_size = data_size;
-	mynode->cached = NULL;
-	mynode->link_ammount = 0;
-	return mynode;
+	if(data)
+	{
+		struct Node * mynode;
+		mynode = (struct Node *) malloc(sizeof(struct Node));
+		mynode->data = data;
+		mynode->data_size = data_size;
+		mynode->link_ammount=0;
+		mynode->encoded = NULL;
+		mynode->cached = NULL;
+		return mynode;
+	}
+		return NULL;
 }
-
+/*N_Create_From_Encoded
+ * @param data: encoded bytes buffer you want to create the node from
+ * returns a node with the encoded data you inputted.
+ */
+struct Node * N_Create_From_Encoded(unsigned char * data)
+{
+	if(data)
+	{
+		struct Node * mynode;
+		mynode = (struct Node *) malloc(sizeof(struct Node));
+		mynode->encoded = data;
+		mynode->link_ammount = 0;
+		mynode->data = NULL;
+		mynode->cached = NULL;
+		return mynode;
+	}
+	return NULL;
+}
 /*Node_Resolve_Max_Size
  * !!!This shouldn't concern you!
  *Gets the ammount of words that will be returned by Node_Resolve
@@ -277,6 +324,7 @@ int Node_Resolve_Max_Size(char * input1)
  *@param2: Sentence to gather words/paths from (Eg: char * meh = "foo/bar/bin")
  *@Returns 1 or 0, 0 if something went wrong, 1 if everything went smoothly.
 */
+
 int Node_Resolve(char ** result, char * input1)
 {
 	if(!input1)
@@ -333,7 +381,6 @@ struct Link_Proc * Node_Resolve_Links(struct Node * N, char * path)
 	}
 	return LProc;
 }
-
 /*Free_link_Proc
  * frees the Link_Proc struct you created.
  * @param1: Link_Proc struct (struct Link_Proc *)

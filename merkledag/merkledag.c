@@ -23,7 +23,7 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
 		return 0;
 	}
 
-	Node_Set_Cid(node, block->cid);
+	Node_Set_Cached(node, block->cid);
 	ipfs_blocks_block_free(block);
 
 	// TODO: call HasBlock (unsure why as yet)
@@ -48,7 +48,7 @@ int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct F
 
 	// we have the block. Fill the node
 	*node = N_Create_From_Data(block->data, block->data_length);
-	Node_Set_Cid(*node, cid);
+	Node_Set_Cached(*node, cid);
 
 	return retVal;
 }
