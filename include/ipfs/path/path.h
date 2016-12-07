@@ -29,6 +29,7 @@
    char** ipfs_path_split_segments (char *p);
    int ipfs_path_segments_length (char **s);
    void ipfs_path_free_segments (char ***s);
+   char *ipfs_path_clean_path(char *str);
    int ipfs_path_is_just_a_key (char *p);
    int ipfs_path_pop_last_segment (char **str, char *p);
    char *ipfs_path_from_segments(char *prefix, char **seg);

@@ -91,6 +91,80 @@ void ipfs_path_free_segments (char ***s)
    }
 }
 
+// ipfs_path_clean_path returns the shortest path name equivalent to path
+// by purely lexical processing. It applies the following rules
+// iteratively until no further processing can be done:
+//
+//	1. Replace multiple slashes with a single slash.
+//	2. Eliminate each . path name element (the current directory).
+//	3. Eliminate each inner .. path name element (the parent directory)
+//	   along with the non-.. element that precedes it.
+//	4. Eliminate .. elements that begin a rooted path:
+//	   that is, replace "/.." by "/" at the beginning of a path.
+//
+// The returned path ends in a slash only if it is the root "/".
+//
+// If the result of this process is an empty string, Clean
+// returns the string ".".
+//
+// See also Rob Pike, ``Lexical File Names in Plan 9 or
+// Getting Dot-Dot Right,''
+// https://9p.io/sys/doc/lexnames.html
+char *ipfs_path_clean_path(char *str)
+{
+    char *buf;
+    char **path, **p, *r, *s;
+    int l;
+
+    l = strlen(str)+3;
+    r = buf = malloc(l);
+    *r = '\0';
+    if (!r) {
+        return NULL;
+    }
+    buf[--l] = '\0';
+
+    path = ipfs_path_split_n(str, "/", -1);
+    if (!path) {
+        free(r);
+        return NULL;
+    }
+    p = path;
+
+    for (p = path; *p ; p++) {
+        if (**p == '\0' && r[0] == '\0') {
+            strncpy(r, "/", l);
+        } else {
+            if (strcmp(*p, "..") == 0) {
+                s = strrchr(r, '/');
+                if (s && s > r) {
+                    *s = '\0';
+                }
+            } else if (**p != '\0' && **p != '/' && strcmp(*p, ".")) {
+                if (*r == '\0') {
+                    strncat(r, "./", l - strlen(r));
+                } else if (r[strlen(r)-1] != '/') {
+                    strncat(r, "/", l - strlen(r));
+                }
+                strncat(r, *p, l - strlen(r));
+            }
+        }
+    }
+
+    ipfs_path_free_segments(&path);
+
+    l = strlen(buf)+1;
+    r = malloc(l);
+    if (!r) {
+        free(buf);
+        return NULL;
+    }
+    strncpy(r, buf, l);
+    free(buf);
+
+    return r;
+}
+
 // ipfs_path_is_just_a_key returns true if the path is of the form <key> or /ipfs/<key>.
 int ipfs_path_is_just_a_key (char *p)
 {
