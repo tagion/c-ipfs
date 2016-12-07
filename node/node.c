@@ -155,7 +155,10 @@ void Node_Delete(struct Node * N)
 		}
 		if(N->cached)
 		{
-			free(N->cached);
+			ipfs_cid_free(N->cached);
+		}
+		if (N->data) {
+			free(N->data);
 		}
 	free(N);
 	}
@@ -264,14 +267,15 @@ struct Node * N_Create_From_Data(unsigned char * data, size_t data_size)
 	{
 		struct Node * mynode;
 		mynode = (struct Node *) malloc(sizeof(struct Node));
-		mynode->data = data;
+		mynode->data = malloc(sizeof(unsigned char) * data_size);
+		memcpy(mynode->data, data, data_size);
 		mynode->data_size = data_size;
 		mynode->link_ammount=0;
 		mynode->encoded = NULL;
 		mynode->cached = NULL;
 		return mynode;
 	}
-		return NULL;
+	return NULL;
 }
 /*N_Create_From_Encoded
  * @param data: encoded bytes buffer you want to create the node from

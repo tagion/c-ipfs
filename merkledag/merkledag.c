@@ -50,5 +50,7 @@ int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct F
 	*node = N_Create_From_Data(block->data, block->data_length);
 	Node_Set_Cached(*node, cid);
 
+	ipfs_blocks_block_free(block);
+
 	return retVal;
 }

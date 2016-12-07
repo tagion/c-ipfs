@@ -35,28 +35,45 @@ int test_merkledag_get_data() {
 	}
 
 	// create a node
-	struct Node* node1 = N_Create_From_Data(binary_data, 256);
+	struct Node* node1 = N_Create_From_Data(binary_data, binary_data_size);
 
 	retVal = ipfs_merkledag_add(node1, fs_repo);
 	if (retVal == 0) {
 		Node_Delete(node1);
+		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
 
 	// now retrieve it
 	struct Node* results_node;
 	retVal = ipfs_merkledag_get(node1->cached, &results_node, fs_repo);
-	if (retVal == 0)
+	if (retVal == 0) {
+		Node_Delete(node1);
+		Node_Delete(results_node);
+		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
+	}
 
-	if (results_node->data_size != 256)
+	if (results_node->data_size != 256) {
+		Node_Delete(node1);
+		Node_Delete(results_node);
+		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
+	}
 
 	// the data should be the same
 	for(int i = 0; i < results_node->data_size; i++) {
-		if (results_node->data[i] != node1->data[i])
+		if (results_node->data[i] != node1->data[i]) {
+			Node_Delete(node1);
+			Node_Delete(results_node);
+			ipfs_repo_fsrepo_free(fs_repo);
 			return 0;
+		}
 	}
+
+	Node_Delete(node1);
+	Node_Delete(results_node);
+	ipfs_repo_fsrepo_free(fs_repo);
 
 	return retVal;
 }
@@ -97,7 +114,7 @@ int test_merkledag_add_data() {
 	}
 
 	// create a node
-	struct Node* node1 = N_Create_From_Data(binary_data, 256);
+	struct Node* node1 = N_Create_From_Data(binary_data, binary_data_size);
 
 	retVal = ipfs_merkledag_add(node1, fs_repo);
 	if (retVal == 0) {
@@ -116,7 +133,7 @@ int test_merkledag_add_data() {
 	}
 
 	// adding the same binary again should do nothing (the hash should be the same)
-	struct Node* node2 = N_Create_From_Data(binary_data, 255);
+	struct Node* node2 = N_Create_From_Data(binary_data, binary_data_size);
 	retVal = ipfs_merkledag_add(node2, fs_repo);
 	if (retVal == 0) {
 		Node_Delete(node1);
@@ -150,7 +167,7 @@ int test_merkledag_add_data() {
 	// now change 1 byte, which should change the hash
 	binary_data[10] = 0;
 	// create a node
-	struct Node* node3 = N_Create_From_Data(binary_data, 255);
+	struct Node* node3 = N_Create_From_Data(binary_data, binary_data_size);
 
 	retVal = ipfs_merkledag_add(node3, fs_repo);
 	if (retVal == 0) {
