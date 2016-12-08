@@ -90,10 +90,14 @@ int ipfs_isdomain_is_tld (char *s)
 // It first checks the TLD, and then uses a regular expression.
 int ipfs_isdomain_is_domain (char *s)
 {
-    char str[strlen(s)];
-    char *tld;
+    int err;
+    char *str, *tld;
 
-    strcpy(str, s);
+    str = malloc(strlen(s) + 1);
+    if (!str) {
+        return ErrAllocFailed;
+    }
+    memcpy(str, s, strlen(s) + 1);
     s = str; // work with local copy.
 
     if (ipfs_isdomain_has_suffix (s, ".")) {
@@ -112,5 +116,7 @@ int ipfs_isdomain_is_domain (char *s)
         return 0;
     }
 
-    return ipfs_isdomain_match_string(s);
+    err = ipfs_isdomain_match_string(s);
+    free (s);
+    return err;
 }

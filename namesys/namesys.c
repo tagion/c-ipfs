@@ -55,7 +55,7 @@ int ipfs_namesys_resolve_n(char **path, char *name, int depth)
         ipfs_path_parse(p, name);
         *path = malloc(strlen(p) + 1);
         if (*p) {
-            strcpy(*path, p);
+            memcpy(*path, p, strlen(p) + 1);
         } else {
             err = ErrAllocFailed;
         }
@@ -63,18 +63,22 @@ int ipfs_namesys_resolve_n(char **path, char *name, int depth)
     }
 
     if (*name == '/') {
-        int err;
-        char *str = malloc(sizeof(ipfs_prefix) + strlen(name));
+        int err, l;
+        char *str;
+
+        l = sizeof(ipfs_prefix) + strlen(name);
+        str = malloc(l);
         if (!str) {
             return ErrAllocFailed;
         }
-        strcpy(str, ipfs_prefix);
-        strcat(str, name+1);     // ignore inital / from name, because ipfs_prefix already has it.
+        str[--l] = '\0';
+        strncpy(str, ipfs_prefix, l);
+        strncat(str, name+1, l -  strlen (str)); // ignore inital / from name, because ipfs_prefix already has it.
         err = ipfs_path_parse(p, str); // save return value.
         free (str);              // so we can free allocated memory before return.
         *path = malloc(strlen(p) + 1);
         if (*p) {
-            strcpy(*path, p);
+            memcpy(*path, p, strlen(p) + 1);
         } else {
             err = ErrAllocFailed;
         }
@@ -97,12 +101,14 @@ int ipfs_namesys_resolve_once (char **path, char *name)
     }
 
     if (memcmp (name, ipns_prefix, strlen(ipns_prefix)) == 0) { // prefix missing.
-        ptr = malloc(strlen(name) + sizeof(ipns_prefix));
+        i = strlen(name) + sizeof(ipns_prefix);
+        ptr = malloc(i);
         if (!ptr) { // allocation fail.
             return ErrAllocFailed;
         }
-        strcpy(ptr, ipns_prefix);
-        strcat(ptr, name);
+        ptr[--i] = '\0';
+        strncpy(ptr, ipns_prefix, i);
+        strncat(ptr, name, i - strlen(ptr));
         segs = ipfs_path_split_segments(ptr);
         free (ptr);
     } else {

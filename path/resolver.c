@@ -87,7 +87,7 @@ int ipfs_path_resolve_path_components(Node ***nd, Context ctx, Resolver *s, char
 // would retrieve "baz" in ("bar" in ("foo" in nd.Links).Links).Links
 int ipfs_path_resolve_links(Node ***result, Context ctx, Node *ndd, char **names)
 {
-    int err, idx = 0;
+    int err, idx = 0, l;
     NodeLink *lnk;
     Node *nd;
 
@@ -115,9 +115,10 @@ int ipfs_path_resolve_links(Node ***result, Context ctx, Node *ndd, char **names
             if (ErrPath[ErrNoLink]) {
                 free(ErrPath[ErrNoLink]);
             }
-            ErrPath[ErrNoLink] = malloc(strlen(msg) + 1);
+            l = strlen(msg) + 1;
+            ErrPath[ErrNoLink] = malloc(l);
             if (ErrPath[ErrNoLink]) {
-                strcpy(ErrPath[ErrNoLink], msg);
+                memcpy(ErrPath[ErrNoLink], msg, l);
             }
             free (*result);
             return ErrNoLink;

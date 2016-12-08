@@ -4,6 +4,7 @@
    #ifdef IPFS_PATH_C
       char *ErrPath[] = {
          NULL,
+         "ErrAllocFailed",
          // ErrBadPath is returned when a given path is incorrectly formatted
          "invalid 'ipfs ref' path",
          // Paths after a protocol must contain at least one component
@@ -17,7 +18,8 @@
    #endif // IPFS_PATH_C
 
    enum {
-       ErrBadPath = 1,
+       ErrAllocFailed = 1,
+       ErrBadPath,
        ErrNoComponents,
        ErrCidDecode,
        ErrNoLink,

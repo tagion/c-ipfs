@@ -51,7 +51,7 @@ type lookupRes struct {
 int ipfs_dns_resolver_resolve_once (char **path, char *name)
 {
     char **segments, *domain, *dnslink, buf[500], dlprefix[] = "_dnslink.";
-    int p1[2], p2[2], r, c=2;
+    int p1[2], p2[2], r, l, c=2;
     struct pollfd event[2], *e;
 
     segments = ipfs_path_split_n(name, "/", 2);
@@ -84,12 +84,14 @@ int ipfs_dns_resolver_resolve_once (char **path, char *name)
         case 0: // child
             close(p2[STDIN_FILENO]); // we don't need to read at child process.
 
-            dnslink = malloc(strlen(domain) + sizeof(dlprefix));
+            l = strlen(domain) + sizeof(dlprefix);
+            dnslink = malloc(l);
             if (!dnslink) {
                 return ErrAllocFailed;
             }
-            strcpy (dnslink, dlprefix);
-            strcat (dnslink, domain);
+            dnslink[--l] = '\0';
+            strncpy (dnslink, dlprefix, l);
+            strncat (dnslink, domain, l - strlen(dnslink));
 
             return ipfs_dns_work_domain (p2[STDOUT_FILENO], r, dnslink);
     }
@@ -114,7 +116,8 @@ int ipfs_dns_resolver_resolve_once (char **path, char *name)
                     buf[r] = '\0';
                     *path = malloc(r+1);
                     if (*path) {
-                        strcpy(*path, buf);
+                        *path[r] = '\0';
+                        strncpy(*path, buf, r);
                     }
                 } else if (r <= 0) {
                     return ErrPoll;
@@ -187,7 +190,7 @@ int ipfs_dns_parse_entry (char **path, char *txt)
         if (!*path) {
             return ErrAllocFailed;
         }
-        strcpy(*path, buf);
+        memcpy(*path, buf, strlen(buf) + 1);
         return 0;
     }
     return ipfs_dns_try_parse_dns_link(path, txt);
@@ -205,7 +208,7 @@ int ipfs_dns_try_parse_dns_link(char **path, char *txt)
             if (! *parts) {
                 return ErrAllocFailed;
             }
-            strcpy(*parts, buf);
+            memcpy(*parts, buf, strlen(buf) + 1);
             return 0;
         }
         return err;
