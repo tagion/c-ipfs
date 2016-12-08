@@ -40,7 +40,6 @@
         int  condition;
     } tlds;
 
-    int ipfs_namesys_resolve (resolver *r, char **p, char *str, int depth, char **prefixes);
     int ipfs_namesys_resolve(char **path, char *name);
     int ipfs_namesys_resolve_n(char **path, char *name, int depth);
     int ipfs_namesys_resolve_once (char **path, char *name);
