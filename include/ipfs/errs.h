@@ -1,5 +1,5 @@
 #ifndef IPFS_ERRS_H
-   #define IPFS_ERRS_H
+    #define IPFS_ERRS_H
 
     char *Err[] = {
         NULL,
@@ -14,14 +14,18 @@
         "unrecognized validity type",
         "not a valid proquint string",
         "not a valid domain name",
-        "not a valid dnslink entry"
+        "not a valid dnslink entry",
         // ErrBadPath is returned when a given path is incorrectly formatted
         "invalid 'ipfs ref' path",
         // Paths after a protocol must contain at least one component
         "path must contain at least one component",
         "TODO: ErrCidDecode",
         NULL,
-        "no link named %s under %s"
+        "no link named %s under %s",
+        "ErrInvalidParam",
+        // ErrResolveLimit is returned when a recursive resolution goes over
+        // the limit.
+        "resolve depth exceeded"
     };
 
     enum {
@@ -36,11 +40,13 @@
         ErrUnrecognizedValidity,
         ErrInvalidProquint,
         ErrInvalidDomain,
-        ErrInvalidDNSLink
+        ErrInvalidDNSLink,
         ErrBadPath,
         ErrNoComponents,
         ErrCidDecode,
         ErrNoLink,
-        ErrNoLinkFmt
+        ErrNoLinkFmt,
+        ErrInvalidParam,
+        ErrResolveLimit
     } ErrsIdx;
 #endif // IPFS_ERRS_H
