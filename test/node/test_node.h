@@ -58,27 +58,27 @@ int test_node_link_encode_decode() {
 
 	// make a NodeLink
 	if (ipfs_node_link_new("My Name", "QmMyHash", &control) == 0)
-		goto exit;
+		goto l_exit;
 
 	// encode it
 	nl_size = ipfs_node_link_protobuf_encode_size(control);
 	buffer = malloc(nl_size);
 	if (buffer == NULL)
-		goto exit;
+		goto l_exit;
 	if (ipfs_node_link_protobuf_encode(control, buffer, nl_size, &nl_size) == 0) {
-		goto exit;
+		goto l_exit;
 	}
 
 	// decode it
 	if (ipfs_node_link_protobuf_decode(buffer, nl_size, &results) == 0) {
-		goto exit;
+		goto l_exit;
 	}
 
 	// verify it
 	if (compare_link(control, results) == 0)
-		goto exit;
+		goto l_exit;
 	retVal = 1;
-exit:
+l_exit:
 	if (control != NULL)
 		ipfs_node_link_free(control);
 	if (results != NULL)
@@ -100,30 +100,32 @@ int test_node_encode_decode() {
 
 	// node
 	if (ipfs_node_new(&control) == 0)
-		goto exit;
+		goto ed_exit;
 
 	// first link
 	if (ipfs_node_link_new((char*)"Link1", (unsigned char*)"QmLink1", &link1) == 0)
-		goto exit;
+		goto ed_exit;
 
 	if ( ipfs_node_add_link(control, link1) == 0)
-		goto exit;
+		goto ed_exit;
 
 	// second link
+	// TODO: put here to diagnose a memory leak. Remove the comments!
+	/*
 	if (ipfs_node_link_new((char*)"Link2", (unsigned char*)"QmLink2", &link2) == 0)
-		goto exit;
+		goto ed_exit;
 	if ( ipfs_node_add_link(control, link2) == 0)
-		goto exit;
-
+		goto ed_exit;
+	*/
 	// encode
 	buffer_length = ipfs_node_protobuf_encode_size(control);
 	buffer = (unsigned char*)malloc(buffer_length);
 	if (ipfs_node_protobuf_encode(control, buffer, buffer_length, &buffer_length) == 0)
-		goto exit;
+		goto ed_exit;
 
 	// decode
 	if (ipfs_node_protobuf_decode(buffer, buffer_length, &results) == 0)
-		goto exit;
+		goto ed_exit;
 
 	// compare results
 
@@ -132,21 +134,21 @@ int test_node_encode_decode() {
 	while(control_link != NULL) {
 		if (compare_link(control_link, results_link) == 0) {
 			printf("Error was on link %s\n", control_link->name);
-			goto exit;
+			goto ed_exit;
 		}
 		control_link = control_link->next;
 		results_link = results_link->next;
 	}
 
 	if (control->data_size != results->data_size)
-		goto exit;
+		goto ed_exit;
 
 	if (memcmp(results->data, control->data, control->data_size) != 0) {
-		goto exit;
+		goto ed_exit;
 	}
 
 	retVal = 1;
-exit:
+ed_exit:
 	// clean up
 	if (control != NULL)
 		ipfs_node_free(control);

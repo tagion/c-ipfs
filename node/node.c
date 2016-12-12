@@ -45,9 +45,13 @@ int ipfs_node_link_new(char * name, unsigned char * ahash, struct NodeLink** nod
  */
 int ipfs_node_link_free(struct NodeLink * node_link)
 {
-	if (node_link != NULL)
-		ipfs_cid_free(node_link->cid);
-	free(node_link);
+	if (node_link != NULL) {
+		if (node_link->cid != NULL)
+			ipfs_cid_free(node_link->cid);
+		if (node_link->name != NULL)
+			free(node_link->name);
+		free(node_link);
+	}
 	return 1;
 }
 
@@ -389,11 +393,12 @@ int ipfs_node_remove_link(struct Node* node, struct NodeLink* toRemove) {
  * It will take care of the links inside it.
  * @param N: the node you want to free. (struct Node *)
  */
-void ipfs_node_free(struct Node * N)
+int ipfs_node_free(struct Node * N)
 {
 	if(N != NULL)
 	{
-		struct NodeLink* current = ipfs_node_link_last(N);
+		// remove links
+		struct NodeLink* current = N->head_link;
 		while (current != NULL) {
 			struct NodeLink* toDelete = current;
 			current = current->next;
@@ -406,8 +411,12 @@ void ipfs_node_free(struct Node * N)
 		if (N->data) {
 			free(N->data);
 		}
-	free(N);
+		if (N->encoded != NULL) {
+			free(N->encoded);
+		}
+		free(N);
 	}
+	return 1;
 }
 
 /*ipfs_node_get_link_by_name

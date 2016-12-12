@@ -128,7 +128,7 @@ unsigned char * ipfs_node_get_data(struct Node * N);
  * It will take care of the links inside it.
  * @param N: the node you want to free. (struct Node *)
  */
-void ipfs_node_free(struct Node * N);
+int ipfs_node_free(struct Node * N);
 
 /*ipfs_node_get_link_by_name
  * Returns a copy of the link with given name
