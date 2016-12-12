@@ -69,21 +69,25 @@ int remove_directory(const char *path)
 
 int make_ipfs_repository(const char* path) {
 	int retVal;
+	char currDirectory[1024];
 	struct RepoConfig* repo_config;
 
-	char currDirectory[1024];
-	retVal = os_utils_filepath_join(path, "config", currDirectory, 1024);
-	if (retVal == 0)
-		return 0;
-	unlink(currDirectory);
-	retVal = os_utils_filepath_join(path, "datastore", currDirectory, 1024);
-	if (retVal == 0)
-		return 0;
-	remove_directory(currDirectory);
-	retVal = os_utils_filepath_join(path, "blockstore", currDirectory, 1024);
-	if (retVal == 0)
-		return 0;
-	remove_directory(currDirectory);
+	if (os_utils_file_exists(path)) {
+		retVal = os_utils_filepath_join(path, "config", currDirectory, 1024);
+		if (retVal == 0)
+			return 0;
+		unlink(currDirectory);
+		retVal = os_utils_filepath_join(path, "datastore", currDirectory, 1024);
+		if (retVal == 0)
+			return 0;
+		remove_directory(currDirectory);
+		retVal = os_utils_filepath_join(path, "blockstore", currDirectory, 1024);
+		if (retVal == 0)
+			return 0;
+		remove_directory(currDirectory);
+	} else {
+		mkdir(path, S_IRWXU);
+	}
 
 	// build a default repo config
 	retVal = ipfs_repo_config_new(&repo_config);

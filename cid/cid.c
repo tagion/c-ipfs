@@ -16,26 +16,40 @@ enum WireType ipfs_cid_message_fields[] = { WIRETYPE_VARINT, WIRETYPE_VARINT, WI
 
 
 size_t ipfs_cid_protobuf_encode_size(struct Cid* cid) {
-	return 11+12+cid->hash_length+11;
+	if (cid != NULL)
+		return 11+12+cid->hash_length+11;
+	return 0;
 }
 
 int ipfs_cid_protobuf_encode(struct Cid* cid, unsigned char* buffer, size_t buffer_length, size_t* bytes_written) {
 	size_t bytes_used;
 	*bytes_written = 0;
 	int retVal = 0;
-	retVal = protobuf_encode_varint(1, ipfs_cid_message_fields[0], cid->version, buffer, buffer_length, &bytes_used);
-	*bytes_written += bytes_used;
-	retVal = protobuf_encode_varint(2, ipfs_cid_message_fields[1], cid->codec, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
-	*bytes_written += bytes_used;
-	retVal = protobuf_encode_length_delimited(3, ipfs_cid_message_fields[2], cid->hash, cid->hash_length, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
-	*bytes_written += bytes_used;
+	if (cid != NULL) {
+		retVal = protobuf_encode_varint(1, ipfs_cid_message_fields[0], cid->version, buffer, buffer_length, &bytes_used);
+		*bytes_written += bytes_used;
+		retVal = protobuf_encode_varint(2, ipfs_cid_message_fields[1], cid->codec, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
+		*bytes_written += bytes_used;
+		retVal = protobuf_encode_length_delimited(3, ipfs_cid_message_fields[2], cid->hash, cid->hash_length, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
+		*bytes_written += bytes_used;
+	}
 	return 1;
 }
 
 int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Cid** output) {
+	// short cut for nulls
+	if (buffer_length == 0) {
+		*output = NULL;
+		return 1;
+	}
+
 	size_t pos = 0;
-	struct Cid cid;
+	int version = 0;
+	unsigned char* hash;
+	size_t hash_length;
+	char codec = 0;
 	int retVal = 0;
+
 	while(pos < buffer_length) {
 		size_t bytes_read = 0;
 		int field_no;
@@ -46,15 +60,15 @@ int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct
 		pos += bytes_read;
 		switch(field_no) {
 			case (1):
-				cid.version = varint_decode(&buffer[pos], buffer_length - pos, &bytes_read);
+				version = varint_decode(&buffer[pos], buffer_length - pos, &bytes_read);
 				pos += bytes_read;
 				break;
 			case (2):
-				cid.codec = varint_decode(&buffer[pos], buffer_length - pos, &bytes_read);
+				codec = varint_decode(&buffer[pos], buffer_length - pos, &bytes_read);
 				pos += bytes_read;
 				break;
 			case (3):
-				retVal = protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, &cid.hash, &cid.hash_length, &bytes_read);
+				retVal = protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, &hash, &hash_length, &bytes_read);
 				if (retVal == 0)
 					return 0;
 				pos += bytes_read;
@@ -63,8 +77,8 @@ int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct
 
 	}
 
-	retVal = ipfs_cid_new(cid.version, cid.hash, cid.hash_length, cid.codec, output);
-	free(cid.hash);
+	retVal = ipfs_cid_new(version, hash, hash_length, codec, output);
+	free(hash);
 	return retVal;
 }
 

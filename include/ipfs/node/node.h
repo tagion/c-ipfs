@@ -13,21 +13,20 @@
  *
  *===================================================================================*/
 
-struct Link
+struct NodeLink
 {
-	char * name;
-	size_t size;
-	struct Cid * Lcid;
+	char* name;
+	struct Cid * cid;
 };
 
 struct Node
 {
-	unsigned char * data;
+	unsigned char* data;
 	size_t data_size;
-	unsigned char * encoded;
-	struct Cid * cached;
+	unsigned char* encoded;
+	struct Cid* cached;
 	int link_amount;
-	struct Link * links[];
+	struct NodeLink* links[];
 };
 
 /*====================================================================================
@@ -42,107 +41,147 @@ struct Node
 
 /* Create_Link
  * @Param name: The name of the link (char *)
- * @Param size: Size of the link (size_t)
  * @Param ahash: An Qmhash
+ * @param node_link a pointer to the new struct NodeLink
+ * @returns true(1) on success
  */
-struct Link * Create_Link(char * name, unsigned char * ahash);
+int ipfs_node_link_new(char * name, unsigned char * ahash, struct NodeLink** node_link);
 
-/* Free_Link
+/* ipfs_node_link_free
  * @param L: Free the link you have allocated.
  */
-void Free_Link(struct Link * L);
+int ipfs_node_link_free(struct NodeLink * node_link);
+
+/***
+ * Node protobuf functions
+ */
+
+/***
+ * return an approximate size of the encoded node
+ * @param node the node to examine
+ * @returns the max size of an encoded stream of bytes, if it were encoded
+ */
+size_t ipfs_node_protobuf_encode_size(struct Node* node);
+
+/***
+ * Encode a node into a protobuf byte stream
+ * @param node the node to encode
+ * @param buffer where to put it
+ * @param max_buffer_length the length of buffer
+ * @param bytes_written how much of buffer was used
+ * @returns true(1) on success
+ */
+ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written);
+
+/***
+ * Decode a stream of bytes into a Node structure
+ * @param buffer where to get the bytes from
+ * @param buffer_length the length of buffer
+ * @param node pointer to the Node to be created
+ * @returns true(1) on success
+ */
+ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Node** node);
 
 /*====================================================================================
  * Node Functions
  *===================================================================================*/
 
-/*Create_Empty_Node
+/*ipfs_node_new
  * Creates an empty node, allocates the required memory
  * Returns a fresh new node with no data set in it.
  */
-struct Node * Create_Empty_Node();
+int ipfs_node_new(struct Node** node);
 
-//Node_Set_Cached
-int Node_Set_Cached(struct Node * N, struct Cid * TheCid);
+/**
+ * sets the Cid into the struct element titled cached
+ * @param node the node to work with
+ * @param cid the cid
+ * @returns true(1) on success
+ */
+int ipfs_node_set_cached(struct Node* node, struct Cid* cid);
 
-/*Node_Set_Data
+/*ipfs_node_set_data
  * Sets the data of a node
  * @param Node: The node which you want to set data in.
  * @param Data, the data you want to assign to the node
  * Sets pointers of encoded & cached to NULL /following go method
  * returns 1 on success 0 on failure
  */
-int Node_Set_Data(struct Node * N, unsigned char * Data, size_t data_size);
+int ipfs_node_set_data(struct Node * N, unsigned char * Data, size_t data_size);
 
-/*Node_Set_Encoded
+/*ipfs_node_set_encoded
  * @param NODE: the node you wish to alter (struct Node *)
  * @param Data: The data you wish to set in encoded.(unsigned char *)
  * returns 1 on success 0 on failure
  */
-int Node_Set_Encoded(struct Node * N, unsigned char * Data);
+int ipfs_node_set_encoded(struct Node * N, unsigned char * Data);
 
-/*Node_Get_Data
+/*ipfs_node_get_data
  * Gets data from a node
  * @param Node: = The node you want to get data from. (unsigned char *)
  * Returns data of node.
  */
-unsigned char * Node_Get_Data(struct Node * N);
+unsigned char * ipfs_node_get_data(struct Node * N);
 
-/*Node_Copy: Returns a copy of the node you input
+/*ipfs_node_copy: Returns a copy of the node you input
  * @param Node: The node you want to copy (struct CP_Node *)
  * Returns a copy of the node you wanted to copy.
  */
-struct Node * Node_Copy(struct Node * CP_Node);
+struct Node * ipfs_node_copy(struct Node * CP_Node);
 
-/*Node_Delete
+/*ipfs_node_free
  * Once you are finished using a node, always delete it using this.
  * It will take care of the links inside it.
  * @param N: the node you want to free. (struct Node *)
  */
-void Node_Delete(struct Node * N);
+void ipfs_node_free(struct Node * N);
 
-/*Node_Get_Link
+/*ipfs_node_get_link_by_name
  * Returns a copy of the link with given name
  * @param Name: (char * name) searches for link with this name
  * Returns the link struct if it's found otherwise returns NULL
  */
-struct Link * Node_Get_Link(struct Node * N, char * Name);
+struct NodeLink * ipfs_node_get_link_by_name(struct Node * N, char * Name);
 
-/*Node_Remove_Link
+/*ipfs_node_remove_link_by_name
  * Removes a link from node if found by name.
  * @param name: Name of link (char * name)
  * returns 1 on success, 0 on failure.
  */
-int Node_Remove_Link(char * Name, struct Node * mynode);
+int ipfs_node_remove_link_by_name(char * Name, struct Node * mynode);
 
-/* N_Add_Link
+/* ipfs_node_add_link
  * Adds a link to your node
  * @param mynode: &yournode
  * @param mylink: the CID you want to create a node from
  * @param linksz: sizeof(your cid here)
  * Returns your node with the newly added link
  */
-struct Node * N_Add_Link(struct Node ** mynode, struct Link * mylink, size_t linksz);
+struct Node * ipfs_node_add_link(struct Node ** mynode, struct NodeLink * mylink, size_t linksz);
 
-/*N_Create_From_Link
+/*ipfs_node_new_from_link
  * Create a node from a link
  * @param mylink: the link you want to create it from. (struct Cid *)
- * @param linksize: sizeof(the link in mylink) (size_T)
- * Returns a fresh new node with the link you specified. Has to be freed with Node_Free preferably.
+ * @param node the pointer to the new node
+ * @returns true(1) on success
  */
-struct Node * N_Create_From_Link(struct Link * mylink) ;
+int ipfs_node_new_from_link(struct NodeLink * mylink, struct Node** node);
 
-/*N_Create_From_Data
+/*ipfs_node_new_from_data
  * @param data: bytes buffer you want to create the node from
- * returns a node with the data you inputted.
+ * @param data_size the size of the data
+ * @param node the pointer to the new node
+ * @returns true(1) on success
  */
-struct Node * N_Create_From_Data(unsigned char * data, size_t data_size);
+int ipfs_node_new_from_data(unsigned char * data, size_t data_size, struct Node** node);
 
-/*N_Create_From_Encoded
- * @param data: encoded bytes buffer you want to create the node from
- * returns a node with the encoded data you inputted.
+/***
+ * create a Node struct from encoded data
+ * @param data: encoded bytes buffer you want to create the node from. Note: this copies the pointer, not a memcpy
+ * @param node a pointer to the node that will be created
+ * @returns true(1) on success
  */
-struct Node * N_Create_From_Encoded(unsigned char * data);
+int ipfs_node_new_from_encoded(unsigned char * data, struct Node** node);
 
 /*Node_Resolve_Max_Size
  * !!!This shouldn't concern you!
@@ -179,7 +218,7 @@ struct Link_Proc
 {
 	char * remaining_links; // Not your concern.
 	int ammount; //This will store the ammount of links, so you know what to process.
-	struct Link * links[]; // Link array
+	struct NodeLink * links[]; // Link array
 };
 
 /*Node_Resolve_Links
