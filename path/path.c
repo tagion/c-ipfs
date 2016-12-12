@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ipfs/cid/cid.h>
-#define IPFS_PATH_C
 #include <ipfs/path/path.h>
 
 // FromCid safely converts a cid.Cid type to a Path type
@@ -9,11 +8,14 @@ char* ipfs_path_from_cid (struct Cid *c)
 {
    const char prefix[] = "/ipfs/";
    char *rpath, *cidstr = CidString(c);
+   int l;
 
-   rpath = malloc(sizeof(prefix) + strlen(cidstr));
+   l = sizeof(prefix) + strlen(cidstr);
+   rpath = malloc(l);
    if (!rpath) return NULL;
-   strcpy(rpath, prefix);
-   strcat(rpath, cidstr);
+   rpath[--l] = '\0';
+   strncpy(rpath, prefix, l);
+   strncat(rpath, cidstr, l - strlen(rpath));
    return rpath;
 }
 
@@ -48,7 +50,7 @@ char** ipfs_path_split_n (char *p, char *delim, int n)
       return NULL;
    }
 
-   strcpy(rbuf, p); // keep original
+   memcpy(rbuf, p, strlen(p) + 1); // keep original
    for (c = rbuf, i = 0 ; i < n && c ; i++) {
       r[i] = c;
       c = strstr(c, delim);
@@ -206,10 +208,11 @@ char *ipfs_path_from_segments(char *prefix, char **seg)
    ret = malloc(retlen + 1); // allocate final string size + null terminator.
    if (!ret) return NULL;
 
-   strcpy(ret, prefix);
+   ret[retlen] = '\0';
+   strncpy(ret, prefix, retlen);
    for (i = 0 ; seg[i] ; i++) {
-      strcat(ret, "/");
-      strcat(ret, seg[i]);
+      strncat(ret, "/", retlen - strlen(ret));
+      strncat(ret, seg[i], retlen - strlen(ret));
    }
    return ret;
 }
@@ -232,7 +235,7 @@ int ipfs_path_parse_from_cid (char *dst, char *txt)
    if (!r) {
       return ErrCidDecode;
    }
-   strcpy (dst, r);
+   memcpy (dst, r, strlen(r) + 1);
    free (r);
    return 0;
 }
@@ -252,7 +255,7 @@ int ipfs_path_parse (char *dst, char *txt)
       }
       err = ipfs_path_parse_from_cid (dst+plen, txt);
       if (err == 0) { // only change dst if ipfs_path_parse_from_cid returned success.
-         // Use memcpy instead of strcpy to avoid overwriting
+         // Use memcpy instead of strncpy to avoid overwriting
          // result of ipfs_path_parse_from_cid with a null terminator.
          memcpy (dst, prefix, plen);
       }
@@ -264,11 +267,21 @@ int ipfs_path_parse (char *dst, char *txt)
    if (i < 3) return ErrBadPath;
 
    if (strcmp (txt, prefix) == 0) {
-      char buf[strlen(txt+5)];
-      strcpy (buf, txt+6); // copy to temp buffer.
+      char *buf;
+      i = strlen(txt+6);
+      buf = malloc(i + 1);
+      if (!buf) {
+          return ErrAllocFailed;
+      }
+      buf[i] = '\0';
+      strncpy (buf, txt+6, i); // copy to temp buffer.
       c = strchr(buf, '/');
-      if (c) *c = '\0';
-      return ipfs_path_parse_from_cid(dst, buf);
+      if (c) {
+         *c = '\0';
+      }
+      err = ipfs_path_parse_from_cid(dst, buf);
+      free (buf);
+      return err;
    } else if (strcmp (txt, "/ipns/") != 0) {
       return ErrBadPath;
    }

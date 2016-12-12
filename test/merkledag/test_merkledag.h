@@ -2,30 +2,35 @@
 #include "ipfs/node/node.h"
 #include "../test_helper.h"
 
-int test_merkledag_get_data() {
-	int retVal = 0;
-
+struct FSRepo* createAndOpenRepo(const char* dir) {
+	int retVal = 1;
 	// create a fresh repo
-	retVal = drop_and_build_repository("/tmp/.ipfs");
+	retVal = drop_and_build_repository(dir);
 	if (retVal == 0)
-		return 0;
+		return NULL;
 
 	// open the fs repo
 	struct RepoConfig* repo_config = NULL;
 	struct FSRepo* fs_repo;
-	const char* path = "/tmp/.ipfs";
 
 	// create the struct
-	retVal = ipfs_repo_fsrepo_new((char*)path, repo_config, &fs_repo);
+	retVal = ipfs_repo_fsrepo_new(dir, repo_config, &fs_repo);
 	if (retVal == 0)
-		return 0;
+		return NULL;
 
 	// open the repository and read the config file
 	retVal = ipfs_repo_fsrepo_open(fs_repo);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
-		return 0;
+		return NULL;
 	}
+	return fs_repo;
+}
+
+int test_merkledag_get_data() {
+	int retVal = 0;
+
+	struct FSRepo* fs_repo = createAndOpenRepo("/tmp/.ipfs");
 
 	// create data for node
 	size_t binary_data_size = 256;
@@ -35,11 +40,12 @@ int test_merkledag_get_data() {
 	}
 
 	// create a node
-	struct Node* node1 = N_Create_From_Data(binary_data, binary_data_size);
+	struct Node* node1;
+	retVal = ipfs_node_new_from_data(binary_data, binary_data_size, &node1);
 
 	retVal = ipfs_merkledag_add(node1, fs_repo);
 	if (retVal == 0) {
-		Node_Delete(node1);
+		ipfs_node_free(node1);
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
@@ -48,15 +54,15 @@ int test_merkledag_get_data() {
 	struct Node* results_node;
 	retVal = ipfs_merkledag_get(node1->cached, &results_node, fs_repo);
 	if (retVal == 0) {
-		Node_Delete(node1);
-		Node_Delete(results_node);
+		ipfs_node_free(node1);
+		ipfs_node_free(results_node);
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
 
 	if (results_node->data_size != 256) {
-		Node_Delete(node1);
-		Node_Delete(results_node);
+		ipfs_node_free(node1);
+		ipfs_node_free(results_node);
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
@@ -64,15 +70,15 @@ int test_merkledag_get_data() {
 	// the data should be the same
 	for(int i = 0; i < results_node->data_size; i++) {
 		if (results_node->data[i] != node1->data[i]) {
-			Node_Delete(node1);
-			Node_Delete(results_node);
+			ipfs_node_free(node1);
+			ipfs_node_free(results_node);
 			ipfs_repo_fsrepo_free(fs_repo);
 			return 0;
 		}
 	}
 
-	Node_Delete(node1);
-	Node_Delete(results_node);
+	ipfs_node_free(node1);
+	ipfs_node_free(results_node);
 	ipfs_repo_fsrepo_free(fs_repo);
 
 	return retVal;
@@ -81,27 +87,9 @@ int test_merkledag_get_data() {
 int test_merkledag_add_data() {
 	int retVal = 0;
 
-	// create a fresh repo
-	retVal = drop_and_build_repository("/tmp/.ipfs");
-	if (retVal == 0)
+	struct FSRepo* fs_repo = createAndOpenRepo("/tmp/.ipfs");
+	if (fs_repo == NULL)
 		return 0;
-
-	// open the fs repo
-	struct RepoConfig* repo_config = NULL;
-	struct FSRepo* fs_repo;
-	const char* path = "/tmp/.ipfs";
-
-	// create the struct
-	retVal = ipfs_repo_fsrepo_new((char*)path, repo_config, &fs_repo);
-	if (retVal == 0)
-		return 0;
-
-	// open the repository and read the config file
-	retVal = ipfs_repo_fsrepo_open(fs_repo);
-	if (retVal == 0) {
-		ipfs_repo_fsrepo_free(fs_repo);
-		return 0;
-	}
 
 	// get the size of the database
 	int start_file_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
@@ -114,11 +102,12 @@ int test_merkledag_add_data() {
 	}
 
 	// create a node
-	struct Node* node1 = N_Create_From_Data(binary_data, binary_data_size);
+	struct Node* node1;
+	retVal = ipfs_node_new_from_data(binary_data, binary_data_size, &node1);
 
 	retVal = ipfs_merkledag_add(node1, fs_repo);
 	if (retVal == 0) {
-		Node_Delete(node1);
+		ipfs_node_free(node1);
 		return 0;
 	}
 
@@ -128,30 +117,31 @@ int test_merkledag_add_data() {
 
 	int first_add_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
 	if (first_add_size == start_file_size) { // uh oh, database should have increased in size
-		Node_Delete(node1);
+		ipfs_node_free(node1);
 		return 0;
 	}
 
 	// adding the same binary again should do nothing (the hash should be the same)
-	struct Node* node2 = N_Create_From_Data(binary_data, binary_data_size);
+	struct Node* node2;
+	retVal = ipfs_node_new_from_data(binary_data, binary_data_size, &node2);
 	retVal = ipfs_merkledag_add(node2, fs_repo);
 	if (retVal == 0) {
-		Node_Delete(node1);
-		Node_Delete(node2);
+		ipfs_node_free(node1);
+		ipfs_node_free(node2);
 		return 0;
 	}
 
 	// make sure everything is correct
 	if (node2->cached == NULL) {
-		Node_Delete(node1);
-		Node_Delete(node2);
+		ipfs_node_free(node1);
+		ipfs_node_free(node2);
 		return 0;
 	}
 	for(int i = 0; i < node1->cached->hash_length; i++) {
 		if (node1->cached->hash[i] != node2->cached->hash[i]) {
 			printf("hash of node1 does not match node2 at position %d\n", i);
-			Node_Delete(node1);
-			Node_Delete(node2);
+			ipfs_node_free(node1);
+			ipfs_node_free(node2);
 			return 0;
 		}
 	}
@@ -159,41 +149,100 @@ int test_merkledag_add_data() {
 	int second_add_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
 	if (first_add_size != second_add_size) { // uh oh, the database shouldn't have changed size
 		printf("looks as if a new record was added when it shouldn't have. Old file size: %d, new file size: %d\n", first_add_size, second_add_size);
-		Node_Delete(node1);
-		Node_Delete(node2);
+		ipfs_node_free(node1);
+		ipfs_node_free(node2);
 		return 0;
 	}
 
 	// now change 1 byte, which should change the hash
 	binary_data[10] = 0;
 	// create a node
-	struct Node* node3 = N_Create_From_Data(binary_data, binary_data_size);
+	struct Node* node3;
+	retVal = ipfs_node_new_from_data(binary_data, binary_data_size, &node3);
 
 	retVal = ipfs_merkledag_add(node3, fs_repo);
 	if (retVal == 0) {
-		Node_Delete(node1);
-		Node_Delete(node2);
-		Node_Delete(node3);
+		ipfs_node_free(node1);
+		ipfs_node_free(node2);
+		ipfs_node_free(node3);
 		return 0;
 	}
 
 	// make sure everything is correct
 	if (node3->cached == NULL) {
-		Node_Delete(node1);
-		Node_Delete(node2);
-		Node_Delete(node3);
+		ipfs_node_free(node1);
+		ipfs_node_free(node2);
+		ipfs_node_free(node3);
 		return 0;
 	}
 
-	Node_Delete(node1);
-	Node_Delete(node2);
-	Node_Delete(node3);
+	ipfs_node_free(node1);
+	ipfs_node_free(node2);
+	ipfs_node_free(node3);
 	int third_add_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
 	if (third_add_size == second_add_size || third_add_size < second_add_size) {// uh oh, it didn't add it
 		printf("Node 3 should have been added, but the file size did not change from %d.\n", third_add_size);
 		return 0;
 	}
 
+	ipfs_repo_fsrepo_free(fs_repo);
+
+	return 1;
+}
+
+/**
+ * Should save links
+ */
+int test_merkledag_add_node_with_links() {
+	int retVal = 0;
+	struct Link* link = NULL;
+	struct Node* node1 = NULL;
+
+	struct FSRepo* fs_repo = createAndOpenRepo("/tmp/.ipfs");
+	if (fs_repo == NULL) {
+		printf("Unable to create repo\n");
+		return 0;
+	}
+
+	// make link
+	retVal = ipfs_node_link_new("", "abc123", &link);
+	retVal = ipfs_node_new_from_link(link, &node1);
+
+	retVal = ipfs_merkledag_add(node1, fs_repo);
+	if (retVal == 0) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		ipfs_node_free(node1);
+		printf("Unable to add node\n");
+		return 0;
+	}
+
+	// now look for it
+	struct Node* node2 = NULL;
+	retVal = ipfs_merkledag_get(node1->cached, &node2, fs_repo);
+	if (retVal == 0) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		ipfs_node_free(node1);
+		return 0;
+	}
+
+	struct NodeLink* node1_link = node1->head_link;
+	struct NodeLink* node2_link = node2->head_link;
+	while(node1_link != NULL) {
+		for(int i = 0; i < node1_link->cid->hash_length; i++) {
+			if(node1_link->cid->hash[i] != node2_link->cid->hash[i]) {
+				printf("Hashes do not match for node %s\n", node1_link->name);
+				ipfs_repo_fsrepo_free(fs_repo);
+				ipfs_node_free(node1);
+				ipfs_node_free(node2);
+				return 0;
+			}
+		}
+		node1_link = node1_link->next;
+		node2_link = node2_link->next;
+	}
+
+	ipfs_node_free(node1);
+	ipfs_node_free(node2);
 	ipfs_repo_fsrepo_free(fs_repo);
 
 	return 1;

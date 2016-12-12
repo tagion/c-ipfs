@@ -25,7 +25,7 @@ const char* names[] = {
 		"test_cid_new_free",
 		"test_cid_cast_multihash",
 		"test_cid_cast_non_multihash",
-		//"test_init_new_installation",
+		"test_cid_protobuf_encode_decode",
 		"test_repo_config_new",
 		"test_repo_config_init",
 		"test_repo_config_write",
@@ -41,15 +41,18 @@ const char* names[] = {
 		"test_repo_bootstrap_peers_init",
 		"test_ipfs_datastore_put",
 		"test_node",
+		"test_node_link_encode_decode",
+		"test_node_encode_decode",
 		"test_merkledag_add_data",
-		"test_merkledag_get_data"
+		"test_merkledag_get_data",
+		"test_merkledag_add_node_with_links"
 };
 
 int (*funcs[])(void) = {
 		test_cid_new_free,
 		test_cid_cast_multihash,
 		test_cid_cast_non_multihash,
-		//test_init_new_installation,
+		test_cid_protobuf_encode_decode,
 		test_repo_config_new,
 		test_repo_config_init,
 		test_repo_config_write,
@@ -65,8 +68,11 @@ int (*funcs[])(void) = {
 		test_repo_bootstrap_peers_init,
 		test_ipfs_datastore_put,
 		test_node,
+		test_node_link_encode_decode,
+		test_node_encode_decode,
 		test_merkledag_add_data,
-		test_merkledag_get_data
+		test_merkledag_get_data,
+		test_merkledag_add_node_with_links
 };
 
 /**
@@ -88,9 +94,12 @@ int main(int argc, char** argv) {
 	}
 	int array_length = sizeof(funcs) / sizeof(funcs[0]);
 	for (int i = 0; i < array_length; i++) {
-		if (only_one && strcmp(names[i], test_wanted) == 0) {
-			tests_ran++;
-			counter += testit(names[i], funcs[i]);
+		if (only_one) {
+			char* currName = names[i];
+			if (strcmp(currName, test_wanted) == 0) {
+				tests_ran++;
+				counter += testit(names[i], funcs[i]);
+			}
 		}
 		else
 			if (!only_one) {

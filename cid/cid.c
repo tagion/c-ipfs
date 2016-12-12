@@ -10,8 +10,77 @@
 #include "libp2p/crypto/encoding/base58.h"
 #include "ipfs/multibase/multibase.h"
 #include "mh/multihash.h"
-#include "multiaddr/varint.h"
+#include "varint.h"
 
+enum WireType ipfs_cid_message_fields[] = { WIRETYPE_VARINT, WIRETYPE_VARINT, WIRETYPE_LENGTH_DELIMITED };
+
+
+size_t ipfs_cid_protobuf_encode_size(struct Cid* cid) {
+	if (cid != NULL)
+		return 11+12+cid->hash_length+11;
+	return 0;
+}
+
+int ipfs_cid_protobuf_encode(struct Cid* cid, unsigned char* buffer, size_t buffer_length, size_t* bytes_written) {
+	size_t bytes_used;
+	*bytes_written = 0;
+	int retVal = 0;
+	if (cid != NULL) {
+		retVal = protobuf_encode_varint(1, ipfs_cid_message_fields[0], cid->version, buffer, buffer_length, &bytes_used);
+		*bytes_written += bytes_used;
+		retVal = protobuf_encode_varint(2, ipfs_cid_message_fields[1], cid->codec, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
+		*bytes_written += bytes_used;
+		retVal = protobuf_encode_length_delimited(3, ipfs_cid_message_fields[2], cid->hash, cid->hash_length, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
+		*bytes_written += bytes_used;
+	}
+	return 1;
+}
+
+int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Cid** output) {
+	// short cut for nulls
+	if (buffer_length == 0) {
+		*output = NULL;
+		return 1;
+	}
+
+	size_t pos = 0;
+	int version = 0;
+	unsigned char* hash;
+	size_t hash_length;
+	char codec = 0;
+	int retVal = 0;
+
+	while(pos < buffer_length) {
+		size_t bytes_read = 0;
+		int field_no;
+		enum WireType field_type;
+		if (protobuf_decode_field_and_type(&buffer[pos], buffer_length, &field_no, &field_type, &bytes_read) == 0) {
+			return 0;
+		}
+		pos += bytes_read;
+		switch(field_no) {
+			case (1):
+				version = varint_decode(&buffer[pos], buffer_length - pos, &bytes_read);
+				pos += bytes_read;
+				break;
+			case (2):
+				codec = varint_decode(&buffer[pos], buffer_length - pos, &bytes_read);
+				pos += bytes_read;
+				break;
+			case (3):
+				retVal = protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, &hash, &hash_length, &bytes_read);
+				if (retVal == 0)
+					return 0;
+				pos += bytes_read;
+				break;
+		}
+
+	}
+
+	retVal = ipfs_cid_new(version, hash, hash_length, codec, output);
+	free(hash);
+	return retVal;
+}
 
 /**
  * Create a new CID based on the given hash
@@ -118,16 +187,16 @@ int ipfs_cid_cast(unsigned char* incoming, size_t incoming_size, struct Cid* cid
 
 	// This is not a multihash. Perhaps it is using varints. Try to peel the information out of the bytes.
 	// first the version
-	int pos = 0, retVal = 0;
+	int pos = 0;
 	size_t num_bytes = 0;
-	num_bytes = uvarint_decode32(&incoming[pos], incoming_size - pos, &cid->version);
-	if (num_bytes < 0 || cid->version > 1 || cid->version < 0)
+	cid->version = varint_decode(&incoming[pos], incoming_size - pos, &num_bytes);
+	if (num_bytes == 0 || cid->version > 1 || cid->version < 0)
 		return 0;
 	pos = num_bytes;
 	// now the codec
 	uint32_t codec = 0;
-	num_bytes = uvarint_decode32(&incoming[pos], incoming_size - pos, &codec);
-	if (num_bytes < 0)
+	codec = varint_decode(&incoming[pos], incoming_size - pos, &num_bytes);
+	if (num_bytes == 0)
 		return 0;
 	cid->codec = codec;
 	pos += num_bytes;

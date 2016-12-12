@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O0 -I../include -I../../c-libp2p/include -I../../c-multihash/include -I../../c-multiaddr/ -g3 -Wall
+CFLAGS = -O0 -I../include -I../../c-libp2p/include -I../../c-multihash/include -I../../c-multiaddr/ -I../../c-protobuf -g3 -Wall
 LFLAGS = -L../../c-libp2p -L../../c-multihash -L../../c-multiaddr -lp2p -lm -lmultihash -lmultiaddr -lpthread
 DEPS = cmd/ipfs/test_init.h repo/test_repo_bootstrap_peers.h repo/test_repo_config.h repo/test_repo_identity.h cid/test_cid.h
 OBJS = testit.o test_helper.o \
@@ -18,7 +18,8 @@ OBJS = testit.o test_helper.o \
 	../repo/config/config.o ../repo/config/identity.o \
 	../repo/config/bootstrap_peers.o ../repo/config/datastore.o ../repo/config/gateway.o \
 	../repo/config/addresses.o ../repo/config/swarm.o ../repo/config/peer.o \
-	../thirdparty/ipfsaddr/ipfs_addr.o
+	../thirdparty/ipfsaddr/ipfs_addr.o \
+	../../c-protobuf/protobuf.o ../../c-protobuf/varint.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

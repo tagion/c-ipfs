@@ -176,7 +176,7 @@ int ipfs_proquint_resolve_once (char **p, char *name)
         if (!err) {
             *p = malloc (strlen(buf) + 1);
             if (p) {
-                strcpy(*p, buf);
+                memcpy(*p, buf, strlen(buf) + 1);
             }
         }
     }

@@ -3,40 +3,7 @@
 
     #define DefaultDepthLimit 32
 
-    #ifdef NAMESYS_C
-        char *ErrNamesys[] = {
-            NULL,
-            "ErrAllocFailed",
-            "ErrNULLPointer",
-            "ErrPipe",
-            "ErrPoll",
-            "Could not publish name."
-            "Could not resolve name.",
-            "Could not resolve name (recursion limit exceeded).",
-            "expired record",
-            "unrecognized validity type",
-            "not a valid proquint string",
-            "not a valid domain name",
-            "not a valid dnslink entry"
-        };
-    #else
-        extern char *ErrNamesys;
-    #endif // NAMESYS_C
-
-    enum {
-        ErrAllocFailed = 1,
-        ErrNULLPointer,
-        ErrPipe,
-        ErrPoll,
-        ErrPublishFailed,
-        ErrResolveFailed,
-        ErrResolveRecursion,
-        ErrExpiredRecord,
-        ErrUnrecognizedValidity,
-        ErrInvalidProquint,
-        ErrInvalidDomain,
-        ErrInvalidDNSLink
-    } NamesysErrs;
+    #include "ipfs/errs.h"
 
     typedef struct s_resolvers {
         char *protocol;
@@ -73,7 +40,6 @@
         int  condition;
     } tlds;
 
-    int ipfs_namesys_resolve (resolver *r, char **p, char *str, int depth, char **prefixes);
     int ipfs_namesys_resolve(char **path, char *name);
     int ipfs_namesys_resolve_n(char **path, char *name, int depth);
     int ipfs_namesys_resolve_once (char **path, char *name);
