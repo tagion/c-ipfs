@@ -3,39 +3,24 @@
 int test_node() {
 	//Variables of link:
 	char * name = "Alex";
-	unsigned char * ahash = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
+	unsigned char * ahash = (unsigned char*)"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
 	struct NodeLink * mylink;
 	int retVal = ipfs_node_link_new(name,ahash, &mylink);
-	printf("===================================\n"	\
-			"Node Link:\n" 							\
-		   " -Name: %s\n"   						\
-		   "\n Cid Details:\n\n"					\
-			   " -Version: %d\n"						\
-		   " -Codec: %c\n"							\
-			   " -Hash: %s\n"							\
-			   " -Hash Length: %lu\n"  					\
-			   "====================================\n" \
-		   , mylink->name, mylink->cid->version,mylink->cid->codec,mylink->cid->hash,mylink->cid->hash_length);
+
 	//Link Two for testing purposes
 	char * name2 = "Simo";
-	unsigned char * ahash2 = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnSimo";
+	unsigned char * ahash2 = (unsigned char*)"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnSimo";
 	struct NodeLink * mylink2;
 	retVal = ipfs_node_link_new(name2, ahash2, &mylink2);
+
 	//Nodes
 	struct Node * Mynode;
 	retVal = ipfs_node_new_from_link(mylink, &Mynode);
-	mylink->name = "HAHA";//Testing for valid node creation
-	printf("Node Link[0] Name: %s\nHash: %s\n",Mynode->links[0]->name, Mynode->links[0]->cid->hash);
-	Mynode = ipfs_node_add_link(&Mynode, mylink2, sizeof(mylink2));
-	mylink2->name = "HAHA";//Testing for valid node creation
-	printf("Node Link[1] Name: %s\nHash: %s\n",Mynode->links[1]->name,Mynode->links[1]->cid->hash);
+	//mylink->name = "HAHA";//Testing for valid node creation
+	retVal =  ipfs_node_add_link(Mynode, mylink2);
+	//mylink2->name = "HAHA";//Testing for valid node creation
 	struct NodeLink * ResultLink = ipfs_node_get_link_by_name(Mynode, "Simo");
-	printf("\nResultLink: \nName: %s\nHash: %s\n", ResultLink->name, ResultLink->cid->hash);
 	ipfs_node_remove_link_by_name("Simo", Mynode);
-	printf("Outlinkamt: %d\n", Mynode->link_amount);
-	ipfs_node_link_free(mylink);
-	ipfs_node_link_free(mylink2);
-	ipfs_node_link_free(ResultLink);
 	ipfs_node_free(Mynode);
 	return 1;
 }
@@ -121,13 +106,13 @@ int test_node_encode_decode() {
 	if (ipfs_node_link_new((char*)"Link1", (unsigned char*)"QmLink1", &link1) == 0)
 		goto exit;
 
-	if ( (control = ipfs_node_add_link(&control, link1, sizeof(link1))) == NULL)
+	if ( ipfs_node_add_link(control, link1) == 0)
 		goto exit;
 
 	// second link
 	if (ipfs_node_link_new((char*)"Link2", (unsigned char*)"QmLink2", &link2) == 0)
 		goto exit;
-	if ( (control = ipfs_node_add_link(&control, link2, sizeof(link2))) == NULL)
+	if ( ipfs_node_add_link(control, link2) == 0)
 		goto exit;
 
 	// encode
@@ -141,14 +126,16 @@ int test_node_encode_decode() {
 		goto exit;
 
 	// compare results
-	if (control->link_amount != results->link_amount || control->link_amount != 2)
-		goto exit;
 
-	for(int i = 0; i < control->link_amount; i++) {
-		if (compare_link(control->links[i], results->links[i]) == 0) {
-			printf("Error was on link %d\n", i);
+	struct NodeLink* control_link = control->head_link;
+	struct NodeLink* results_link = results->head_link;
+	while(control_link != NULL) {
+		if (compare_link(control_link, results_link) == 0) {
+			printf("Error was on link %s\n", control_link->name);
 			goto exit;
 		}
+		control_link = control_link->next;
+		results_link = results_link->next;
 	}
 
 	if (control->data_size != results->data_size)
@@ -165,10 +152,6 @@ exit:
 		ipfs_node_free(control);
 	if (results != NULL)
 		ipfs_node_free(results);
-	if (link1 != NULL)
-		ipfs_node_link_free(link1);
-	if (link2 != NULL)
-		ipfs_node_link_free(link2);
 	if (buffer != NULL)
 		free(buffer);
 

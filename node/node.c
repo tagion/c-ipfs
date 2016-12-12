@@ -30,6 +30,7 @@ int ipfs_node_link_new(char * name, unsigned char * ahash, struct NodeLink** nod
 	if (*node_link == NULL)
 		return 0;
 	(*node_link)->name = name;
+	(*node_link)->next = NULL;
 	int ver = 0;
 	size_t lenhash = strlen((char*)ahash);
 	if (ipfs_cid_new(ver, ahash, lenhash, CID_PROTOBUF, &(*node_link)->cid) == 0) {
@@ -81,6 +82,7 @@ int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, 
 	*link = (struct NodeLink*)malloc(sizeof(struct NodeLink));
 	(*link)->cid = NULL;
 	(*link)->name = NULL;
+	(*link)->next = NULL;
 	unsigned char* temp_buffer = NULL;
 	size_t temp_size;
 
@@ -139,8 +141,10 @@ size_t ipfs_node_protobuf_encode_size(struct Node* node) {
 	size += 11 + ipfs_cid_protobuf_encode_size(node->cached);
 	// links
 	size += 11;
-	for(int i = 0; i < node->link_amount; i++) {
-		size += 11 + strlen(node->links[i]->name) + ipfs_cid_protobuf_encode_size(node->links[i]->cid);
+	struct NodeLink* current = node->head_link;
+	while(current != NULL) {
+		size += 11 + strlen(current->name) + ipfs_cid_protobuf_encode_size(current->cid);
+		current = current->next;
 	}
 	return size;
 }
@@ -172,13 +176,15 @@ int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t m
 	retVal = protobuf_encode_length_delimited(3, ipfs_node_message_fields[2], cid, cid_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 	*bytes_written += bytes_used;
 	// links
-	for(int i = 0; i < node->link_amount; i++) {
+	struct NodeLink* current = node->head_link;
+	while(current != NULL) {
 		// size + name + cid
-		size_t link_buffer_size = 11 + ipfs_node_link_protobuf_encode_size(node->links[i]);
+		size_t link_buffer_size = 11 + ipfs_node_link_protobuf_encode_size(current);
 		unsigned char link_buffer[link_buffer_size];
-		retVal = ipfs_node_link_protobuf_encode(node->links[i], link_buffer, link_buffer_size, &link_buffer_size);
+		retVal = ipfs_node_link_protobuf_encode(current, link_buffer, link_buffer_size, &link_buffer_size);
 		protobuf_encode_length_delimited(4, ipfs_node_message_fields[3], link_buffer, link_buffer_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 		*bytes_written += bytes_used;
+		current = current->next;
 	}
 
 	return 1;
@@ -243,9 +249,7 @@ int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struc
 					goto exit;
 				free(temp_buffer);
 				temp_buffer = NULL;
-				*node = ipfs_node_add_link(node, temp_link, sizeof(temp_link));
-				ipfs_node_link_free(temp_link);
-				temp_link = NULL;
+				ipfs_node_add_link(*node, temp_link);
 				break;
 		}
 	}
@@ -256,8 +260,6 @@ exit:
 	if (retVal == 0) {
 		ipfs_node_free(*node);
 	}
-	if (temp_link != NULL)
-		ipfs_node_link_free(temp_link);
 	if (temp_buffer != NULL)
 		free(temp_buffer);
 
@@ -279,7 +281,7 @@ int ipfs_node_new(struct Node** node)
 	(*node)->cached = NULL;
 	(*node)->data = NULL;
 	(*node)->encoded = NULL;
-	(*node)->link_amount = 0;
+	(*node)->head_link = NULL;
 	return 1;
 }
 
@@ -349,25 +351,39 @@ unsigned char * ipfs_node_get_data(struct Node * N)
 	return DATA;
 }
 
-/*ipfs_node_copy: Returns a copy of the node you input
- * @param Node: The node you want to copy (struct CP_Node *)
- * Returns a copy of the node you wanted to copy.
- */
-struct Node * ipfs_node_copy(struct Node * CP_Node)
-{
-	struct Node * CN;
-	CN = (struct Node*) malloc(sizeof(struct Node) + sizeof(struct NodeLink) * 2);
-	if(CP_Node->link_amount != 0)
-	{
-		for(int i=0; i<CP_Node->link_amount; i++)
-		{
-			CN->links[i] = malloc(sizeof(struct NodeLink));
-		}
+struct NodeLink* ipfs_node_link_last(struct Node* node) {
+	struct NodeLink* current = node->head_link;
+	while(current != NULL) {
+		if (current->next == NULL)
+			break;
+		current = current->next;
 	}
-	memcpy(CN, CP_Node, sizeof(struct Node));
-	memcpy(CN->links[0],CP_Node->links[0], sizeof(struct NodeLink));
-	return CN;
+	return current;
 }
+
+int ipfs_node_remove_link(struct Node* node, struct NodeLink* toRemove) {
+	struct NodeLink* current = node->head_link;
+	struct NodeLink* previous = NULL;
+	while(current != NULL && current != toRemove) {
+		previous = current;
+		current = current->next;
+	}
+	if (current != NULL) {
+		if (previous == NULL) {
+			// we're trying to delete the head
+			previous = current->next;
+			ipfs_node_link_free(current);
+			node->head_link = previous;
+		} else {
+			// we're in the middle or end
+			previous = current->next;
+			ipfs_node_link_free(current);
+		}
+		return 1;
+	}
+	return 0;
+}
+
 /*ipfs_node_free
  * Once you are finished using a node, always delete it using this.
  * It will take care of the links inside it.
@@ -375,14 +391,13 @@ struct Node * ipfs_node_copy(struct Node * CP_Node)
  */
 void ipfs_node_free(struct Node * N)
 {
-	if(N)
+	if(N != NULL)
 	{
-		if(N->link_amount > 0)
-		{
-			for(int i=0; i<N->link_amount; i++)
-			{
-				free(N->links[i]);
-			}
+		struct NodeLink* current = ipfs_node_link_last(N);
+		while (current != NULL) {
+			struct NodeLink* toDelete = current;
+			current = current->next;
+			ipfs_node_remove_link(N, toDelete);
 		}
 		if(N->cached)
 		{
@@ -394,6 +409,7 @@ void ipfs_node_free(struct Node * N)
 	free(N);
 	}
 }
+
 /*ipfs_node_get_link_by_name
  * Returns a copy of the link with given name
  * @param Name: (char * name) searches for link with this name
@@ -401,22 +417,13 @@ void ipfs_node_free(struct Node * N)
  */
 struct NodeLink * ipfs_node_get_link_by_name(struct Node * N, char * Name)
 {
-	struct NodeLink * L;
-	for(int i=0;i<N->link_amount;i++)
-	{
-		if(strcmp(N->links[i]->name,Name) == 0)
-		{
-			L = (struct NodeLink *)malloc(sizeof(struct NodeLink));
-			memcpy(L,N->links[i],sizeof(struct NodeLink));
-			int ver = L->cid->version;
-			unsigned char * ahash = L->cid->hash;
-			size_t lenhash = L->cid->hash_length;
-			ipfs_cid_new(ver, ahash, lenhash, CID_PROTOBUF, &L->cid);
-			return L;
-		}
+	struct NodeLink* current = N->head_link;
+	while(current != NULL && strcmp(Name, current->name) != 0) {
+		current = current->next;
 	}
-	return NULL;
+	return current;
 }
+
 /*ipfs_node_remove_link_by_name
  * Removes a link from node if found by name.
  * @param name: Name of link (char * name)
@@ -424,21 +431,32 @@ struct NodeLink * ipfs_node_get_link_by_name(struct Node * N, char * Name)
  */
 int ipfs_node_remove_link_by_name(char * Name, struct Node * mynode)
 {
-	for(int i=0; i<mynode->link_amount; i++)
-	{
-		if(mynode->links[i]->name == Name)
-		{
-			for(int x=i;x<mynode->link_amount && x+1 != mynode->link_amount;i++)
-			{
-				memcpy(mynode->links[x],mynode->links[x+1],sizeof(struct NodeLink));
-			}
-			free(mynode->links[mynode->link_amount-1]);
-			mynode->link_amount--;
-			return 1;
+	struct NodeLink* current = mynode->head_link;
+	struct NodeLink* previous = NULL;
+	while( (current != NULL)
+			&& (( Name == NULL && current->name != NULL )
+			|| ( Name != NULL && current->name == NULL )
+			|| ( Name != NULL && current->name != NULL && strcmp(Name, current->name) != 0) ) ) {
+		previous = current;
+		current = current->next;
+	}
+	if (current != NULL) {
+		// we found it
+		if (previous == NULL) {
+			// we're first, use the next one (if there is one)
+			if (current->next != NULL)
+				mynode->head_link = current->next;
+		} else {
+			// we're somewhere in the middle, remove me from the list
+			previous->next = current->next;
+			ipfs_node_link_free(current);
 		}
+
+		return 1;
 	}
 	return 0;
 }
+
 /* ipfs_node_add_link
  * Adds a link to your nodse
  * @param mynode: &yournode
@@ -446,27 +464,22 @@ int ipfs_node_remove_link_by_name(char * Name, struct Node * mynode)
  * @param linksz: sizeof(your cid here)
  * Returns your node with the newly added link
  */
-struct Node * ipfs_node_add_link(struct Node ** mynode, struct NodeLink * mylink, size_t linksz)
+int ipfs_node_add_link(struct Node* Nl, struct NodeLink * mylink)
 {
-	struct Node * Nl = *mynode;
-	Nl->link_amount++;
-	size_t calculatesize = 0;
-	if(Nl->link_amount != 0)
-	{
-		for(int i=0; i<Nl->link_amount-1;i++)
-		{
-			calculatesize = calculatesize + sizeof(Nl->links[i]);
+	if(Nl->head_link != NULL) {
+		// add to existing by finding last one
+		struct NodeLink* current_end = Nl->head_link;
+		while(current_end->next != NULL) {
+			current_end = current_end->next;
 		}
-		calculatesize = calculatesize + linksz;
-		Nl = (struct Node *) realloc(Nl, sizeof(struct Node) + calculatesize);
+		// now we have the last one, add to it
+		current_end->next = mylink;
 	}
 	else
 	{
-		Nl = (struct Node *) malloc(sizeof(struct Node) + linksz);
+		Nl->head_link = mylink;
 	}
-	Nl->links[Nl->link_amount-1] = malloc(sizeof(struct NodeLink));
-	memcpy(Nl->links[Nl->link_amount-1],mylink,sizeof(struct NodeLink));
-	return Nl;
+	return 1;
 }
 
 /*ipfs_node_new_from_link
@@ -477,16 +490,11 @@ struct Node * ipfs_node_add_link(struct Node ** mynode, struct NodeLink * mylink
  */
 int ipfs_node_new_from_link(struct NodeLink * mylink, struct Node** node)
 {
-	*node = (struct Node *) malloc(sizeof(struct Node) + sizeof(struct NodeLink));
+	*node = (struct Node *) malloc(sizeof(struct Node));
 	if (*node == NULL)
 		return 0;
-	(*node)->link_amount = 1;
-	(*node)->links[0] = malloc(sizeof(struct NodeLink));
-	if ((*node)->links[0] == NULL) {
-		free(*node);
-		return 0;
-	}
-	memcpy((*node)->links[0], mylink, sizeof(struct NodeLink));
+	(*node)->head_link = NULL;
+	ipfs_node_add_link(*node, mylink);
 	(*node)->cached = NULL;
 	(*node)->data = NULL;
 	(*node)->encoded = NULL;

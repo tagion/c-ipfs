@@ -46,12 +46,12 @@ int main(int argc, char** argv)
 	struct Node * Mynode;
 	Mynode = N_Create_From_Link(mylink);
 	mylink->name = "HAHA";//Testing for valid node creation
-	printf("Node Link[0] Name: %s\nHash: %s\n",Mynode->links[0]->name, Mynode->links[0]->Lcid->hash);
+	printf("Node Link[0] Name: %s\nHash: %s\n",Mynode->head_link[0]->name, Mynode->head_link[0]->Lcid->hash);
 
 	//N_Add_Link
 	Mynode = N_Add_Link(&Mynode, mylink2, sizeof(mylink2));
 	mylink2->name = "HAHA";//Testing for valid node creation
-	printf("Node Link[1] Name: %s\nHash: %s\n",Mynode->links[1]->name,Mynode->links[1]->Lcid->hash);
+	printf("Node Link[1] Name: %s\nHash: %s\n",Mynode->head_link[1]->name,Mynode->head_link[1]->Lcid->hash);
 
 	//Node_Get_Link
 	struct Link * ResultLink = Node_Get_Link(Mynode, "Simo");
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 	//Node Copy
 	struct Node * Node2;
 	Node2 = Node_Copy(Mynode);
-	printf("NODE COPY TEST: [0]: %s\n", Node2->links[0]->Lcid->hash);
+	printf("NODE COPY TEST: [0]: %s\n", Node2->head_link[0]->Lcid->hash);
 	Node_Delete(Node2);
 
 	//Node_Set_Data

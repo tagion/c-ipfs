@@ -225,23 +225,20 @@ int test_merkledag_add_node_with_links() {
 		return 0;
 	}
 
-	if (node2->link_amount != node1->link_amount) {
-		printf("Link amount %d does not match %d\n", node2->link_amount, node1->link_amount);
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(node1);
-		ipfs_node_free(node2);
-		return 0;
-	}
-
-	// make sure hashes match
-	for(int i = 0; i < node1->links[0]->cid->hash_length; i++) {
-		if(node1->links[0]->cid->hash[i] != node2->links[0]->cid->hash[i]) {
-			printf("Hashes do not match\n");
-			ipfs_repo_fsrepo_free(fs_repo);
-			ipfs_node_free(node1);
-			ipfs_node_free(node2);
-			return 0;
+	struct NodeLink* node1_link = node1->head_link;
+	struct NodeLink* node2_link = node2->head_link;
+	while(node1_link != NULL) {
+		for(int i = 0; i < node1_link->cid->hash_length; i++) {
+			if(node1_link->cid->hash[i] != node2_link->cid->hash[i]) {
+				printf("Hashes do not match for node %s\n", node1_link->name);
+				ipfs_repo_fsrepo_free(fs_repo);
+				ipfs_node_free(node1);
+				ipfs_node_free(node2);
+				return 0;
+			}
 		}
+		node1_link = node1_link->next;
+		node2_link = node2_link->next;
 	}
 
 	ipfs_node_free(node1);

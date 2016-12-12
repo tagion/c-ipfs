@@ -17,6 +17,7 @@ struct NodeLink
 {
 	char* name;
 	struct Cid * cid;
+	struct NodeLink* next;
 };
 
 struct Node
@@ -25,8 +26,7 @@ struct Node
 	size_t data_size;
 	unsigned char* encoded;
 	struct Cid* cached;
-	int link_amount;
-	struct NodeLink* links[];
+	struct NodeLink* head_link;
 };
 
 /*====================================================================================
@@ -123,12 +123,6 @@ int ipfs_node_set_encoded(struct Node * N, unsigned char * Data);
  */
 unsigned char * ipfs_node_get_data(struct Node * N);
 
-/*ipfs_node_copy: Returns a copy of the node you input
- * @param Node: The node you want to copy (struct CP_Node *)
- * Returns a copy of the node you wanted to copy.
- */
-struct Node * ipfs_node_copy(struct Node * CP_Node);
-
 /*ipfs_node_free
  * Once you are finished using a node, always delete it using this.
  * It will take care of the links inside it.
@@ -157,7 +151,7 @@ int ipfs_node_remove_link_by_name(char * Name, struct Node * mynode);
  * @param linksz: sizeof(your cid here)
  * Returns your node with the newly added link
  */
-struct Node * ipfs_node_add_link(struct Node ** mynode, struct NodeLink * mylink, size_t linksz);
+int ipfs_node_add_link(struct Node * mynode, struct NodeLink * mylink);
 
 /*ipfs_node_new_from_link
  * Create a node from a link
