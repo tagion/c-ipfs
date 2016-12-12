@@ -42,7 +42,9 @@ const char* names[] = {
 		"test_ipfs_datastore_put",
 		"test_node",
 		"test_merkledag_add_data",
-		"test_merkledag_get_data"
+		"test_merkledag_get_data",
+		"test_merkledag_add_node_with_links",
+		"test_cid_protobuf_encode_decode"
 };
 
 int (*funcs[])(void) = {
@@ -66,7 +68,9 @@ int (*funcs[])(void) = {
 		test_ipfs_datastore_put,
 		test_node,
 		test_merkledag_add_data,
-		test_merkledag_get_data
+		test_merkledag_get_data,
+		test_merkledag_add_node_with_links,
+		test_cid_protobuf_encode_decode,
 };
 
 /**

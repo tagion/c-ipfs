@@ -1,3 +1,6 @@
+/***
+ * Merkledag methods
+ */
 #ifndef __IPFS_MERKLEDAG_H__
 #define __IPFS_MERKLEDAG_H__
 

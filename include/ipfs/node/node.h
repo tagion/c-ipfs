@@ -26,7 +26,7 @@ struct Node
 	size_t data_size;
 	unsigned char * encoded;
 	struct Cid * cached;
-	int link_ammount;
+	int link_amount;
 	struct Link * links[];
 };
 
@@ -72,7 +72,7 @@ int Node_Set_Cached(struct Node * N, struct Cid * TheCid);
  * Sets pointers of encoded & cached to NULL /following go method
  * returns 1 on success 0 on failure
  */
-int Node_Set_Data(struct Node * N, unsigned char * Data);
+int Node_Set_Data(struct Node * N, unsigned char * Data, size_t data_size);
 
 /*Node_Set_Encoded
  * @param NODE: the node you wish to alter (struct Node *)

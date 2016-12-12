@@ -33,7 +33,7 @@ int test_node() {
 	struct Link * ResultLink = Node_Get_Link(Mynode, "Simo");
 	printf("\nResultLink: \nName: %s\nHash: %s\n", ResultLink->name, ResultLink->Lcid->hash);
 	Node_Remove_Link("Simo", Mynode);
-	printf("Outlinkamt: %d\n", Mynode->link_ammount);
+	printf("Outlinkamt: %d\n", Mynode->link_amount);
 	Free_Link(mylink);
 	Free_Link(mylink2);
 	Free_Link(ResultLink);

@@ -175,8 +175,15 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
  * @returns true(1) on success
  */
 int repo_fsrepo_lmdb_put_block(const struct Block* block, const struct Datastore* datastore) {
-
 	return repo_fsrepo_lmdb_put(block->cid->hash, block->cid->hash_length, block->data, block->data_length, datastore);
+}
+
+/***
+ * Save a node in the datastore
+ */
+int repo_fsrepo_lmdb_put_node(const struct Node* node, const struct Datastore* datastore) {
+	// first the links, then the data
+
 }
 
 /**

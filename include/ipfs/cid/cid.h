@@ -6,6 +6,7 @@
 #define __IPFS_CID_CID_H
 
 #include <stddef.h>
+#include "protobuf.h"
 
 #define CID_PROTOBUF 0x70
 #define CID_CBOR 0x71
@@ -25,6 +26,30 @@ struct Cid {
 	size_t hash_length;
 };
 
+/***
+ * encode a Cid into a protobuf array of bytes
+ * @param incoming the incoming Cid struct
+ * @param buffer the buffer
+ * @param max_buffer_length the length of the buffer
+ * @param bytes_written the number of bytes written
+ */
+int ipfs_cid_protobuf_encode(struct Cid* incoming, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written);
+
+/***
+ * decode an array of bytes into a Cid structure
+ * @param buffer the incming array of bytes
+ * @param buffer_length the length of the buffer
+ * @param output the Cid struct NOTE: all allocations are made by this function. Be sure to call free
+ * @returns true(1) on success
+ */
+int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Cid** output);
+
+/***
+ * Returns a safe estimate of the required buffer size to encode the Cid struct
+ * @param incoming the struct to encode
+ * @returns the number of approximate bytes
+ */
+size_t ipfs_cid_protobuf_encode_size(struct Cid* incoming);
 
 /**
  * Create a new CID based on the given hash

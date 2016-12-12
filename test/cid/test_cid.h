@@ -106,3 +106,50 @@ int test_cid_cast_non_multihash() {
 	return 1;
 }
 
+int test_cid_protobuf_encode_decode() {
+	struct Cid tester;
+	tester.version = 1;
+	tester.codec = CID_ETHEREUM_BLOCK;
+	tester.hash = "ABC123";
+	tester.hash_length = 6;
+	size_t bytes_written_to_buffer;
+
+	// encode
+	size_t buffer_length = ipfs_cid_protobuf_encode_size(&tester);
+	unsigned char buffer[buffer_length];
+	ipfs_cid_protobuf_encode(&tester, buffer, buffer_length, &bytes_written_to_buffer);
+
+	// decode
+	struct Cid* results;
+	ipfs_cid_protobuf_decode(buffer, bytes_written_to_buffer, &results);
+
+	// compare
+	if (tester.version != results->version) {
+		printf("Version %d does not match version %d\n", tester.version, results->version);
+		ipfs_cid_free(results);
+		return 0;
+	}
+
+	if (tester.codec != results->codec) {
+		printf("Codec %02x does not match %02x\n", tester.codec, results->codec);
+		ipfs_cid_free(results);
+		return 0;
+	}
+
+	if (tester.hash_length != results->hash_length) {
+		printf("Hash length %d does not match %d\n", tester.hash_length, results->hash_length);
+		ipfs_cid_free(results);
+		return 0;
+	}
+
+	for(int i = 0; i < 6; i++) {
+		if (tester.hash[i] != results->hash[i]) {
+			printf("Hash character %c does not match %c at position %d", tester.hash[i], results->hash[i], i);
+			ipfs_cid_free(results);
+			return 0;
+		}
+	}
+
+	ipfs_cid_free(results);
+	return 1;
+}
