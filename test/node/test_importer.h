@@ -73,5 +73,9 @@ int test_import_small_file() {
 		}
 	}
 
+	ipfs_repo_fsrepo_free(fs_repo);
+	ipfs_node_free(write_node);
+	ipfs_node_free(read_node);
+
 	return 1;
 }

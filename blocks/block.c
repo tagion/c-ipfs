@@ -43,7 +43,11 @@ int ipfs_blocks_block_protobuf_encode(const struct Block* block, unsigned char* 
 	size_t cid_size = ipfs_cid_protobuf_encode_size(block->cid);
 	unsigned char cid[cid_size];
 	retVal = ipfs_cid_protobuf_encode(block->cid, cid, cid_size, &cid_size);
+	if (retVal == 0)
+		return 0;
 	retVal = protobuf_encode_length_delimited(2, ipfs_block_message_fields[1], (char*)cid, cid_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	if (retVal == 0)
+		return 0;
 	*bytes_written += bytes_used;
 	return 1;
 }

@@ -178,17 +178,25 @@ int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t m
 	*bytes_written = 0;
 	int retVal = 0;
 	retVal = protobuf_encode_length_delimited(1, ipfs_node_message_fields[0], (char*)node->data, node->data_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	if (retVal == 0)
+		return 0;
 	*bytes_written += bytes_used;
 	int sz = 0;
 	if (node->encoded != NULL)
 		sz = strlen((char*)node->encoded);
 	retVal = protobuf_encode_length_delimited(2, ipfs_node_message_fields[1], (char*)node->encoded, sz, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	if (retVal == 0)
+		return 0;
 	*bytes_written += bytes_used;
 	// cid
 	size_t cid_size = ipfs_cid_protobuf_encode_size(node->cached);
 	unsigned char cid[cid_size];
 	retVal = ipfs_cid_protobuf_encode(node->cached, cid, cid_size, &cid_size);
+	if (retVal == 0)
+		return 0;
 	retVal = protobuf_encode_length_delimited(3, ipfs_node_message_fields[2], (char*)cid, cid_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	if (retVal == 0)
+		return 0;
 	*bytes_written += bytes_used;
 	// links
 	struct NodeLink* current = node->head_link;
@@ -197,6 +205,8 @@ int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t m
 		size_t link_buffer_size = 11 + ipfs_node_link_protobuf_encode_size(current);
 		unsigned char link_buffer[link_buffer_size];
 		retVal = ipfs_node_link_protobuf_encode(current, link_buffer, link_buffer_size, &link_buffer_size);
+		if (retVal == 0)
+			return 0;
 		protobuf_encode_length_delimited(4, ipfs_node_message_fields[3], (char*)link_buffer, link_buffer_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 		*bytes_written += bytes_used;
 		current = current->next;
