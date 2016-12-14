@@ -178,14 +178,6 @@ int repo_fsrepo_lmdb_put_block(const struct Block* block, const struct Datastore
 	return repo_fsrepo_lmdb_put(block->cid->hash, block->cid->hash_length, block->data, block->data_length, datastore);
 }
 
-/***
- * Save a node in the datastore
- */
-int repo_fsrepo_lmdb_put_node(const struct Node* node, const struct Datastore* datastore) {
-	// first the links, then the data
-
-}
-
 /**
  * Open an lmdb database with the given parameters.
  * Note: for now, the parameters are not used

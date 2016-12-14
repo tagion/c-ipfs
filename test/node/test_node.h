@@ -19,7 +19,7 @@ int test_node() {
 	//mylink->name = "HAHA";//Testing for valid node creation
 	retVal =  ipfs_node_add_link(Mynode, mylink2);
 	//mylink2->name = "HAHA";//Testing for valid node creation
-	struct NodeLink * ResultLink = ipfs_node_get_link_by_name(Mynode, "Simo");
+	//struct NodeLink * ResultLink = ipfs_node_get_link_by_name(Mynode, "Simo");
 	ipfs_node_remove_link_by_name("Simo", Mynode);
 	ipfs_node_free(Mynode);
 	return 1;
@@ -35,7 +35,7 @@ int compare_link(struct NodeLink* link1, struct NodeLink* link2) {
 		return 0;
 	}
 	if (link1->cid->hash_length != link2->cid->hash_length) {
-		printf("Link cid hash lengths are different. Expected %d but got %d\n", link1->cid->hash_length, link2->cid->hash_length);
+		printf("Link cid hash lengths are different. Expected %d but got %d\n", (int)link1->cid->hash_length, (int)link2->cid->hash_length);
 		return 0;
 	}
 	if (link1->cid->version != link2->cid->version) {
@@ -57,7 +57,7 @@ int test_node_link_encode_decode() {
 	int retVal = 0;
 
 	// make a NodeLink
-	if (ipfs_node_link_new("My Name", "QmMyHash", &control) == 0)
+	if (ipfs_node_link_new("My Name", (unsigned char*)"QmMyHash", &control) == 0)
 		goto l_exit;
 
 	// encode it
@@ -70,7 +70,7 @@ int test_node_link_encode_decode() {
 	}
 
 	// decode it
-	if (ipfs_node_link_protobuf_decode(buffer, nl_size, &results) == 0) {
+	if (ipfs_node_link_protobuf_decode(buffer, nl_size, &results, &nl_size) == 0) {
 		goto l_exit;
 	}
 
@@ -110,13 +110,10 @@ int test_node_encode_decode() {
 		goto ed_exit;
 
 	// second link
-	// TODO: put here to diagnose a memory leak. Remove the comments!
-	/*
 	if (ipfs_node_link_new((char*)"Link2", (unsigned char*)"QmLink2", &link2) == 0)
 		goto ed_exit;
 	if ( ipfs_node_add_link(control, link2) == 0)
 		goto ed_exit;
-	*/
 	// encode
 	buffer_length = ipfs_node_protobuf_encode_size(control);
 	buffer = (unsigned char*)malloc(buffer_length);

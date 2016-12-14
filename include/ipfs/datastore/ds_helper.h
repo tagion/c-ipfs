@@ -16,7 +16,7 @@
  * @returns true(1) on success
  */
 int ipfs_datastore_helper_ds_key_from_binary(unsigned char* binary_array, size_t array_length,
-		char* results, size_t max_results_length, size_t* results_length);
+		unsigned char* results, size_t max_results_length, size_t* results_length);
 
 /**
  * Generate a binary array based on the passed in datastore key

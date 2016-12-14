@@ -19,12 +19,12 @@
  */
 int repo_config_identity_build_peer_id(struct Identity* identity) {
 	// ic key and PeerID
-	char hash[32];
-	ID_FromPK_non_null_terminated(hash, identity->private_key.der, identity->private_key.der_length);
+	unsigned char hash[32];
+	ID_FromPK_non_null_terminated((char*)hash, (unsigned char*)identity->private_key.der, identity->private_key.der_length);
 
 	// peer id is multihashed
 	size_t sz = 255;
-	char results[sz];
+	unsigned char results[sz];
 	if (PrettyID(results, &sz, hash, 32) == 0)
 		return 0;
 
@@ -35,7 +35,7 @@ int repo_config_identity_build_peer_id(struct Identity* identity) {
 	if (identity->peer_id == NULL)
 		return 0;
 
-	strncpy(identity->peer_id, results, sz);
+	strncpy(identity->peer_id, (char*)results, sz);
 	identity->peer_id[sz] = 0;
 	return 1;
 }
@@ -100,7 +100,7 @@ int repo_config_identity_build_private_key(struct Identity* identity, const char
 	size_t decoded_size = libp2p_crypto_encoding_base64_decode_size(strlen(base64));
 	unsigned char decoded[decoded_size];
 
-	int retVal = libp2p_crypto_encoding_base64_decode(base64, strlen(base64), decoded, decoded_size, &decoded_size);
+	int retVal = libp2p_crypto_encoding_base64_decode((unsigned char*)base64, strlen(base64), decoded, decoded_size, &decoded_size);
 	if (retVal == 0)
 		return 0;
 

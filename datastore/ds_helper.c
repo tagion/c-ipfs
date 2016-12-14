@@ -13,7 +13,7 @@
  * @returns true(1) on success
  */
 int ipfs_datastore_helper_ds_key_from_binary(unsigned char* binary_array, size_t array_length,
-		char* results, size_t max_results_length, size_t* results_length) {
+		unsigned char* results, size_t max_results_length, size_t* results_length) {
 
 	size_t encoded_length = libp2p_crypto_encoding_base32_encode_size(array_length);
 	if (encoded_length > max_results_length)

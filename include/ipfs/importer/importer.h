@@ -1,6 +1,8 @@
 #ifndef __IPFS_IMPORTER_IMPORTER_H__
 #define __IPFS_IMPORTER_IMPORTER_H__
 
+#include "ipfs/node/node.h"
+
 /**
  * Creates a node based on an incoming file
  * @param file_name the file to import

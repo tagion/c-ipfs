@@ -34,9 +34,9 @@ int initialize_ipns_keyspace(struct FSRepo* repo) {
 		return 0;
 	//TODO: make a new node, then close it
 	//TODO: setup offline routing on new node
-	struct IpfsNode* ipfs_node;
-	struct Context* ctx;
-	struct BuildCfg* bld_cfg;
+	struct IpfsNode* ipfs_node = NULL;
+	struct Context* ctx = NULL;
+	struct BuildCfg* bld_cfg = NULL;
 	//TODO: see line 185 of init.go, what does core.BldCfg{Repo: r} do? BldCfg is a structure
 	retVal = ipfs_core_builder_new_node(ctx, bld_cfg, ipfs_node);
 	//return namesys_initialize_keyspace(ctx, ipfs_node->DAG, ipfs_node->Namesys, ipfs_node->pinning, ipfs_node->private_key);
@@ -88,7 +88,8 @@ int init_run(struct Request* request) {
 	// TODO: check parameters for logic errors
 	// TODO: Initialize
 	struct RepoConfig* conf;
-	int retVal = ipfs_repo_config_new(&conf);
+	if (ipfs_repo_config_new(&conf) == 0)
+		return 0;
 	// TODO: handle files in request
 	// do the heavy lifting
 	int num_bits_for_key_pair = request->cmd.options[0]->default_int_val;

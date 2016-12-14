@@ -29,7 +29,12 @@ int ipfs_node_link_new(char * name, unsigned char * ahash, struct NodeLink** nod
 	*node_link = malloc(sizeof(struct NodeLink));
 	if (*node_link == NULL)
 		return 0;
-	(*node_link)->name = name;
+	(*node_link)->name = malloc(strlen(name) + 1);
+	if ( (*node_link)->name == NULL) {
+		free(*node_link);
+		return 0;
+	}
+	strcpy((*node_link)->name, name);
 	(*node_link)->next = NULL;
 	int ver = 0;
 	size_t lenhash = strlen((char*)ahash);
@@ -55,7 +60,7 @@ int ipfs_node_link_free(struct NodeLink * node_link)
 	return 1;
 }
 
-int ipfs_node_link_protobuf_encode_size(struct NodeLink* link) {
+size_t ipfs_node_link_protobuf_encode_size(struct NodeLink* link) {
 	if (link == NULL)
 		return 0;
 
@@ -75,7 +80,7 @@ int ipfs_node_link_protobuf_encode(struct NodeLink* link, unsigned char* buffer,
 	size_t cid_size = ipfs_cid_protobuf_encode_size(link->cid);
 	unsigned char cid_buffer[cid_size];
 	retVal = ipfs_cid_protobuf_encode(link->cid, cid_buffer, cid_size, &bytes_used);
-	retVal = protobuf_encode_length_delimited(2, ipfs_node_link_message_fields[1], cid_buffer, bytes_used, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	retVal = protobuf_encode_length_delimited(2, ipfs_node_link_message_fields[1], (char*)&cid_buffer[0], bytes_used, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 	*bytes_written += bytes_used;
 	return 1;
 }
@@ -166,18 +171,18 @@ int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t m
 	size_t bytes_used = 0;
 	*bytes_written = 0;
 	int retVal = 0;
-	retVal = protobuf_encode_length_delimited(1, ipfs_node_message_fields[0], node->data, node->data_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	retVal = protobuf_encode_length_delimited(1, ipfs_node_message_fields[0], (char*)node->data, node->data_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 	*bytes_written += bytes_used;
 	int sz = 0;
 	if (node->encoded != NULL)
-		sz = strlen(node->encoded);
-	retVal = protobuf_encode_length_delimited(2, ipfs_node_message_fields[1], node->encoded, sz, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		sz = strlen((char*)node->encoded);
+	retVal = protobuf_encode_length_delimited(2, ipfs_node_message_fields[1], (char*)node->encoded, sz, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 	*bytes_written += bytes_used;
 	// cid
 	size_t cid_size = ipfs_cid_protobuf_encode_size(node->cached);
 	unsigned char cid[cid_size];
 	retVal = ipfs_cid_protobuf_encode(node->cached, cid, cid_size, &cid_size);
-	retVal = protobuf_encode_length_delimited(3, ipfs_node_message_fields[2], cid, cid_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	retVal = protobuf_encode_length_delimited(3, ipfs_node_message_fields[2], (char*)cid, cid_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 	*bytes_written += bytes_used;
 	// links
 	struct NodeLink* current = node->head_link;
@@ -186,7 +191,7 @@ int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t m
 		size_t link_buffer_size = 11 + ipfs_node_link_protobuf_encode_size(current);
 		unsigned char link_buffer[link_buffer_size];
 		retVal = ipfs_node_link_protobuf_encode(current, link_buffer, link_buffer_size, &link_buffer_size);
-		protobuf_encode_length_delimited(4, ipfs_node_message_fields[3], link_buffer, link_buffer_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		protobuf_encode_length_delimited(4, ipfs_node_message_fields[3], (char*)link_buffer, link_buffer_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 		*bytes_written += bytes_used;
 		current = current->next;
 	}
@@ -295,7 +300,7 @@ int ipfs_node_new(struct Node** node)
  * @param cid the Cid to be copied into the Node->cached element
  * @returns true(1) on success
  */
-int ipfs_node_set_cached(struct Node* node, struct Cid* cid)
+int ipfs_node_set_cached(struct Node* node, const struct Cid* cid)
 {
 	if (node->cached != NULL)
 		ipfs_cid_free(node->cached);

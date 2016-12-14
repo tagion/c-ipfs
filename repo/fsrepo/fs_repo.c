@@ -29,7 +29,7 @@ int repo_config_write_config_file(char* full_filename, struct RepoConfig* config
 	// first base 64 it
 	size_t encoded_size = libp2p_crypto_encoding_base64_encode_size(config->identity->private_key.der_length);
 	unsigned char encoded_buffer[encoded_size + 1];
-	int retVal = libp2p_crypto_encoding_base64_encode(config->identity->private_key.der, config->identity->private_key.der_length, encoded_buffer, encoded_size, &encoded_size);
+	int retVal = libp2p_crypto_encoding_base64_encode((unsigned char*)config->identity->private_key.der, config->identity->private_key.der_length, encoded_buffer, encoded_size, &encoded_size);
 	if (retVal == 0)
 		return 0;
 	encoded_buffer[encoded_size] = 0;
@@ -357,7 +357,7 @@ int fs_repo_open_config(struct FSRepo* repo) {
 		return 0;
 	}
 	// now the datastore
-	int datastore_position = _find_token(data, tokens, num_tokens, 0, "Datastore");
+	//int datastore_position = _find_token(data, tokens, num_tokens, 0, "Datastore");
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Type", &repo->config->datastore->type);
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Path", &repo->config->datastore->path);
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "StorageMax", &repo->config->datastore->storage_max);
@@ -453,10 +453,11 @@ int fs_repo_is_initialized(char* repo_path) {
 
 int ipfs_repo_fsrepo_datastore_init(struct FSRepo* fs_repo) {
 	// make the directory
-	repo_fsrepo_lmdb_create_directory(fs_repo->config->datastore);
+	if (repo_fsrepo_lmdb_create_directory(fs_repo->config->datastore) == 0)
+		return 0;
 
 	// fill in the function prototypes
-	repo_fsrepo_lmdb_cast(fs_repo->config->datastore);
+	return repo_fsrepo_lmdb_cast(fs_repo->config->datastore);
 }
 
 /**

@@ -195,7 +195,7 @@ int test_merkledag_add_data() {
  */
 int test_merkledag_add_node_with_links() {
 	int retVal = 0;
-	struct Link* link = NULL;
+	struct NodeLink* link = NULL;
 	struct Node* node1 = NULL;
 
 	struct FSRepo* fs_repo = createAndOpenRepo("/tmp/.ipfs");
@@ -205,7 +205,7 @@ int test_merkledag_add_node_with_links() {
 	}
 
 	// make link
-	retVal = ipfs_node_link_new("", "abc123", &link);
+	retVal = ipfs_node_link_new("", (unsigned char*)"abc123", &link);
 	retVal = ipfs_node_new_from_link(link, &node1);
 
 	retVal = ipfs_merkledag_add(node1, fs_repo);

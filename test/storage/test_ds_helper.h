@@ -12,8 +12,8 @@ int test_ds_key_from_binary() {
 	}
 
 	size_t outgoing_length = 100;
-	char outgoing[outgoing_length];
-	char* ptrOutgoing = &outgoing[0];
+	unsigned char outgoing[outgoing_length];
+	unsigned char* ptrOutgoing = &outgoing[0];
 
 	memset(outgoing, 0, outgoing_length);
 

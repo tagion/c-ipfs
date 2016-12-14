@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
 	int array_length = sizeof(funcs) / sizeof(funcs[0]);
 	for (int i = 0; i < array_length; i++) {
 		if (only_one) {
-			char* currName = names[i];
+			const char* currName = names[i];
 			if (strcmp(currName, test_wanted) == 0) {
 				tests_ran++;
 				counter += testit(names[i], funcs[i]);

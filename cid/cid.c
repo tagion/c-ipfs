@@ -30,7 +30,7 @@ int ipfs_cid_protobuf_encode(struct Cid* cid, unsigned char* buffer, size_t buff
 		*bytes_written += bytes_used;
 		retVal = protobuf_encode_varint(2, ipfs_cid_message_fields[1], cid->codec, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
 		*bytes_written += bytes_used;
-		retVal = protobuf_encode_length_delimited(3, ipfs_cid_message_fields[2], cid->hash, cid->hash_length, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
+		retVal = protobuf_encode_length_delimited(3, ipfs_cid_message_fields[2], (char*)cid->hash, cid->hash_length, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
 		*bytes_written += bytes_used;
 	}
 	return 1;
@@ -68,7 +68,7 @@ int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct
 				pos += bytes_read;
 				break;
 			case (3):
-				retVal = protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, &hash, &hash_length, &bytes_read);
+				retVal = protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&hash, &hash_length, &bytes_read);
 				if (retVal == 0)
 					return 0;
 				pos += bytes_read;

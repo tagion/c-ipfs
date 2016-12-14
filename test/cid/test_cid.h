@@ -11,8 +11,8 @@
 int test_cid_new_free() {
 
 	struct Cid* cid;
-	const unsigned char* hash = "ABC123";
-	int retVal = ipfs_cid_new(0, (unsigned char*)hash, strlen((char*)hash), CID_PROTOBUF, &cid);
+	unsigned char* hash = (unsigned char*)"ABC123";
+	int retVal = ipfs_cid_new(0, hash, strlen((char*)hash), CID_PROTOBUF, &cid);
 	if (retVal == 0)
 		return 0;
 
@@ -37,11 +37,11 @@ int test_cid_new_free() {
  */
 int test_cid_cast_multihash() {
 	// first, build a multihash
-	char* string_to_hash = "Hello, World!";
+	unsigned char* string_to_hash = (unsigned char*)"Hello, World!";
 	unsigned char hashed[32];
 	memset(hashed, 0, 32);
 	// hash the string
-	libp2p_crypto_hashing_sha256(string_to_hash, strlen(string_to_hash), hashed);
+	libp2p_crypto_hashing_sha256(string_to_hash, strlen((char*)string_to_hash), hashed);
 	size_t multihash_size = mh_new_length(MH_H_SHA2_256, 32);
 	unsigned char multihash[multihash_size];
 	memset(multihash, 0, multihash_size);
@@ -63,7 +63,7 @@ int test_cid_cast_multihash() {
 		return 0;
 	if (cid.codec != CID_PROTOBUF)
 		return 0;
-	if (strncmp(hashed, cid.hash, 32) != 0)
+	if (strncmp((char*)hashed, (char*)cid.hash, 32) != 0)
 		return 0;
 
 	return 1;
@@ -71,11 +71,11 @@ int test_cid_cast_multihash() {
 
 int test_cid_cast_non_multihash() {
 	// first, build a hash
-	char* string_to_hash = "Hello, World!";
+	unsigned char* string_to_hash = (unsigned char*)"Hello, World!";
 	unsigned char hashed[32];
 	memset(hashed, 0, 32);
 	// hash the string
-	libp2p_crypto_hashing_sha256(string_to_hash, strlen(string_to_hash), hashed);
+	libp2p_crypto_hashing_sha256(string_to_hash, strlen((char*)string_to_hash), hashed);
 
 	// now make it a hash with a version and codec embedded in varints before the hash
 	size_t array_size = 34; // 32 for the hash, 2 for the 2 varints
@@ -100,7 +100,7 @@ int test_cid_cast_non_multihash() {
 		return 0;
 	if (cid.codec != CID_PROTOBUF)
 		return 0;
-	if (strncmp(hashed, cid.hash, 32) != 0)
+	if (strncmp((char*)hashed, (char*)cid.hash, 32) != 0)
 		return 0;
 
 	return 1;
@@ -110,7 +110,7 @@ int test_cid_protobuf_encode_decode() {
 	struct Cid tester;
 	tester.version = 1;
 	tester.codec = CID_ETHEREUM_BLOCK;
-	tester.hash = "ABC123";
+	tester.hash = (unsigned char*)"ABC123";
 	tester.hash_length = 6;
 	size_t bytes_written_to_buffer;
 
@@ -137,7 +137,7 @@ int test_cid_protobuf_encode_decode() {
 	}
 
 	if (tester.hash_length != results->hash_length) {
-		printf("Hash length %d does not match %d\n", tester.hash_length, results->hash_length);
+		printf("Hash length %d does not match %d\n", (int)tester.hash_length, (int)results->hash_length);
 		ipfs_cid_free(results);
 		return 0;
 	}

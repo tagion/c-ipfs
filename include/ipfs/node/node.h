@@ -57,6 +57,34 @@ int ipfs_node_link_free(struct NodeLink * node_link);
  */
 
 /***
+ * Get the approximate size needed to protobuf encode this link
+ * @param link the link to examine
+ * @returns the maximum size that should be needed
+ */
+size_t ipfs_node_link_protobuf_encode_size(struct NodeLink* link);
+
+/***
+ * Encode a NodeLink into protobuf format
+ * @param link the link
+ * @param buffer where to put the encoded results
+ * @param max_buffer_length the max size that should be put in buffer
+ * @pram bytes_written the amount of the buffer used
+ * @returns true(1) on success
+ */
+int ipfs_node_link_protobuf_encode(struct NodeLink* link, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written);
+
+/****
+ * Decode from a byte array into a NodeLink
+ * @param buffer the byte array
+ * @param buffer_length the length of the byte array
+ * @param link the pointer to the new NodeLink (NOTE: Will be allocated in this function)
+ * @param bytes_read the amount of bytes read by this function
+ * @returns true(1) on success
+ */
+int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct NodeLink** link, size_t* bytes_read);
+
+
+/***
  * return an approximate size of the encoded node
  * @param node the node to examine
  * @returns the max size of an encoded stream of bytes, if it were encoded
@@ -71,7 +99,7 @@ size_t ipfs_node_protobuf_encode_size(struct Node* node);
  * @param bytes_written how much of buffer was used
  * @returns true(1) on success
  */
-ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written);
+int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written);
 
 /***
  * Decode a stream of bytes into a Node structure
@@ -80,7 +108,7 @@ ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t max_b
  * @param node pointer to the Node to be created
  * @returns true(1) on success
  */
-ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Node** node);
+int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Node** node);
 
 /*====================================================================================
  * Node Functions
@@ -98,7 +126,7 @@ int ipfs_node_new(struct Node** node);
  * @param cid the cid
  * @returns true(1) on success
  */
-int ipfs_node_set_cached(struct Node* node, struct Cid* cid);
+int ipfs_node_set_cached(struct Node* node, const struct Cid* cid);
 
 /*ipfs_node_set_data
  * Sets the data of a node

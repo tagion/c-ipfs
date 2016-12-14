@@ -17,20 +17,20 @@
  * @param result where the result string will reside.
  * @returns true(1) on success, or false(0)
  */
-int config_get_default_path_root(char* result) {
+int config_get_default_path_root(char** result) {
 	char* root = os_utils_getenv("IPFS_PATH");
 	if (root == NULL) {
 		root = os_utils_getenv("HOME");
-		result = malloc( strlen(root) + 7);
-		if (result == NULL)
+		*result = malloc( strlen(root) + 7);
+		if (*result == NULL)
 			return 0;
-		strncpy(result, root, strlen(root)+1);
-		strncat(result, "/.ipfs", 7);
+		strncpy(*result, root, strlen(root)+1);
+		strncat(*result, "/.ipfs", 7);
 	} else {
-		char* result = malloc(strlen(root)+1);
-		if (result == NULL)
+		*result = malloc(strlen(root)+1);
+		if (*result == NULL)
 			return 0;
-		strncpy(result, root, strlen(root)+1);
+		strncpy(*result, root, strlen(root)+1);
 	}
 	return 1;
 }
@@ -46,8 +46,8 @@ int config_get_default_path_root(char* result) {
  */
 int config_path(char* config_root, char* extension, char* result, int max_len) {
 	if (strlen(config_root) == 0) {
-		char* default_path;
-		int retVal = config_get_default_path_root(default_path);
+		char* default_path = NULL;
+		int retVal = config_get_default_path_root(&default_path);
 		if (!retVal)
 			return retVal;
 		retVal = os_utils_filepath_join(default_path, extension, result, max_len);
