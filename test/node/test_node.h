@@ -6,6 +6,8 @@ int test_node() {
 	unsigned char * ahash = (unsigned char*)"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
 	struct NodeLink * mylink;
 	int retVal = ipfs_node_link_new(name,ahash, &mylink);
+	if (retVal == 0)
+		return 0;
 
 	//Link Two for testing purposes
 	char * name2 = "Simo";
@@ -83,6 +85,8 @@ l_exit:
 		ipfs_node_link_free(control);
 	if (results != NULL)
 		ipfs_node_link_free(results);
+	if (buffer != NULL)
+		free(buffer);
 	return retVal;
 }
 

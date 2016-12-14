@@ -27,10 +27,16 @@ int ipfs_cid_protobuf_encode(struct Cid* cid, unsigned char* buffer, size_t buff
 	int retVal = 0;
 	if (cid != NULL) {
 		retVal = protobuf_encode_varint(1, ipfs_cid_message_fields[0], cid->version, buffer, buffer_length, &bytes_used);
+		if (retVal == 0)
+			return 0;
 		*bytes_written += bytes_used;
 		retVal = protobuf_encode_varint(2, ipfs_cid_message_fields[1], cid->codec, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
+		if (retVal == 0)
+			return 0;
 		*bytes_written += bytes_used;
 		retVal = protobuf_encode_length_delimited(3, ipfs_cid_message_fields[2], (char*)cid->hash, cid->hash_length, &buffer[*bytes_written], buffer_length - (*bytes_written), &bytes_used);
+		if (retVal == 0)
+			return 0;
 		*bytes_written += bytes_used;
 	}
 	return 1;

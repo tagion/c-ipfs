@@ -75,12 +75,18 @@ int ipfs_node_link_protobuf_encode(struct NodeLink* link, unsigned char* buffer,
 	int retVal = 0;
 	*bytes_written = 0;
 	retVal = protobuf_encode_length_delimited(1, ipfs_node_link_message_fields[0], link->name, strlen(link->name), &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	if (retVal == 0)
+		return 0;
 	*bytes_written += bytes_used;
 	// cid
 	size_t cid_size = ipfs_cid_protobuf_encode_size(link->cid);
 	unsigned char cid_buffer[cid_size];
 	retVal = ipfs_cid_protobuf_encode(link->cid, cid_buffer, cid_size, &bytes_used);
+	if (retVal == 0)
+		return 0;
 	retVal = protobuf_encode_length_delimited(2, ipfs_node_link_message_fields[1], (char*)&cid_buffer[0], bytes_used, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+	if (retVal == 0)
+		return 0;
 	*bytes_written += bytes_used;
 	return 1;
 }
