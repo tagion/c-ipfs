@@ -23,30 +23,43 @@ int test_ipfs_datastore_put() {
 		return 0;
 
 	// build the block
-	retVal = ipfs_blocks_block_new(input, strlen((char*)input), &block);
+	retVal = ipfs_blocks_block_new(&block);
 	if (retVal == 0)
 		return 0;
+
+	retVal = ipfs_blocks_block_add_data(input, strlen((char*)input), block);
+	if (retVal == 0) {
+		ipfs_blocks_block_free(block);
+		return 0;
+	}
 
 	// generate the key
 	size_t key_length = libp2p_crypto_encoding_base32_encode_size(block->data_length);
 	unsigned char key[key_length];
 	retVal = ipfs_datastore_helper_ds_key_from_binary(block->data, block->data_length, &key[0], key_length, &key_length);
-	if (retVal == 0)
+	if (retVal == 0) {
+		ipfs_blocks_block_free(block);
 		return 0;
+	}
 
 	// open the repository
 	struct FSRepo* fs_repo;
 	retVal = ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, &fs_repo);
-	if (retVal == 0)
+	if (retVal == 0) {
+		ipfs_blocks_block_free(block);
 		return 0;
+	}
 	retVal = ipfs_repo_fsrepo_open(fs_repo);
-	if (retVal == 0)
+	if (retVal == 0) {
+		ipfs_blocks_block_free(block);
 		return 0;
-
+	}
 	// send to Put with key
 	retVal = fs_repo->config->datastore->datastore_put((const unsigned char*)key, key_length, block->data, block->data_length, fs_repo->config->datastore);
-	if (retVal == 0)
+	if (retVal == 0) {
+		ipfs_blocks_block_free(block);
 		return 0;
+	}
 
 	// save the block
 

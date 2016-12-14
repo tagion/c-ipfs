@@ -64,4 +64,13 @@ int ipfs_repo_fsrepo_free(struct FSRepo* config);
  */
 int ipfs_repo_fsrepo_init(struct FSRepo* config);
 
+/***
+ * Write a block to the datastore and blockstore
+ * @param block the block to write
+ * @param fs_repo the repo to write to
+ * @returns true(1) on success
+ */
+int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_repo);
+int ipfs_repo_fsrepo_block_read(const struct Cid* cid, struct Block** block, const struct FSRepo* fs_repo);
+
 #endif /* fs_repo_h */

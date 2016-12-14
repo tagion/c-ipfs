@@ -62,11 +62,14 @@ int os_utils_directory_writeable(const char* path) {
 }
 
 int os_utils_file_size(const char* path) {
+	size_t file_size = 0;
 	// open file
 	FILE* in_file = fopen(path, "r");
+	if (in_file == NULL)
+		return 0;
 	// determine size
 	fseek(in_file, 0L, SEEK_END);
-	size_t file_size = ftell(in_file);
+	file_size = ftell(in_file);
 	fclose(in_file);
 	return file_size;
 }

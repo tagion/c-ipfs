@@ -3,6 +3,7 @@
 #include "flatfs/test_flatfs.h"
 #include "merkledag/test_merkledag.h"
 #include "node/test_node.h"
+#include "node/test_importer.h"
 #include "repo/test_repo_bootstrap_peers.h"
 #include "repo/test_repo_config.h"
 #include "repo/test_repo_fsrepo.h"
@@ -31,7 +32,9 @@ const char* names[] = {
 		"test_repo_config_write",
 		"test_repo_config_identity_new",
 		"test_repo_config_identity_private_key",
+		"test_repo_fsrepo_write_read_block",
 		"test_get_init_command",
+		"test_import_small_file",
 		"test_repo_fsrepo_open_config",
 		"test_flatfs_get_directory",
 		"test_flatfs_get_filename",
@@ -58,7 +61,9 @@ int (*funcs[])(void) = {
 		test_repo_config_write,
 		test_repo_config_identity_new,
 		test_repo_config_identity_private_key,
+		test_repo_fsrepo_write_read_block,
 		test_get_init_command,
+		test_import_small_file,
 		test_repo_fsrepo_open_config,
 		test_flatfs_get_directory,
 		test_flatfs_get_filename,

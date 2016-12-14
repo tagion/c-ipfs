@@ -1,6 +1,9 @@
 #include <stdio.h>
+#include <sys/stat.h>
 
+#include "ipfs/blocks/blockstore.h"
 #include "libp2p/crypto/encoding/base64.h"
+#include "ipfs/datastore/ds_helper.h"
 #include "ipfs/repo/config/datastore.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/os/utils.h"
@@ -460,6 +463,18 @@ int ipfs_repo_fsrepo_datastore_init(struct FSRepo* fs_repo) {
 	return repo_fsrepo_lmdb_cast(fs_repo->config->datastore);
 }
 
+int ipfs_repo_fsrepo_blockstore_init(const struct FSRepo* fs_repo) {
+	size_t full_path_size = strlen(fs_repo->path) + 15;
+	char full_path[full_path_size];
+	int retVal = os_utils_filepath_join(fs_repo->path, "blockstore", full_path, full_path_size);
+	if (retVal == 0)
+		return 0;
+
+	if (mkdir(full_path, S_IRWXU) != 0)
+		return 0;
+	return 1;
+}
+
 /**
  * Initializes a new FSRepo at the given path with the provided config
  * @param path the path to use
@@ -477,11 +492,14 @@ int ipfs_repo_fsrepo_init(struct FSRepo* repo) {
 	if (retVal == 0)
 		return 0;
 	
-	// TODO: Implement this method
 	retVal = ipfs_repo_fsrepo_datastore_init(repo);
 	if (retVal == 0)
 		return 0;
 	
+	retVal = ipfs_repo_fsrepo_blockstore_init(repo);
+	if (retVal == 0)
+		return 0;
+
 	// write the version to a file for migrations (see repo/fsrepo/migrations/mfsr.go)
 	//TODO: mfsr.RepoPath(repo_path).WriteVersion(RepoVersion)
 	return 1;
@@ -505,6 +523,49 @@ int fs_repo_write_config_file(char* path, struct RepoConfig* config) {
 	
 	free(buff);
 	
+	return retVal;
+}
+
+/***
+ * Write a block to the datastore and blockstore
+ * @param block the block to write
+ * @param fs_repo the repo to write to
+ * @returns true(1) on success
+ */
+int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_repo) {
+	/**
+	 * What is put in the blockstore is the block.
+	 * What is put in the datastore is the multihash (the Cid) as the key,
+	 * and the base32 encoded multihash as the value.
+	 */
+	int retVal = 1;
+	retVal = ipfs_blockstore_put(block, fs_repo);
+	if (retVal == 0)
+		return 0;
+	// take the cid, base32 it, and send both to the datastore
+	size_t fs_key_length = 100;
+	unsigned char fs_key[fs_key_length];
+	retVal = ipfs_datastore_helper_ds_key_from_binary(block->cid->hash, block->cid->hash_length, fs_key, fs_key_length, &fs_key_length);
+	if (retVal == 0)
+		return 0;
+	retVal = fs_repo->config->datastore->datastore_put(block->cid->hash, block->cid->hash_length, fs_key, fs_key_length, fs_repo->config->datastore);
+	if (retVal == 0)
+		return 0;
+	return 1;
+}
+
+int ipfs_repo_fsrepo_block_read(const struct Cid* cid, struct Block** block, const struct FSRepo* fs_repo) {
+	int retVal = 0;
+
+	// get the base32 hash from the database
+	// We do this only to see if it is in the database
+	size_t fs_key_length = 100;
+	unsigned char fs_key[fs_key_length];
+	retVal = fs_repo->config->datastore->datastore_get((char*)cid->hash, cid->hash_length, fs_key, fs_key_length, &fs_key_length, fs_repo->config->datastore);
+	if (retVal == 0) // maybe it doesn't exist?
+		return 0;
+	// now get the block from the blockstore
+	retVal = ipfs_blockstore_get(cid, block, fs_repo);
 	return retVal;
 }
 

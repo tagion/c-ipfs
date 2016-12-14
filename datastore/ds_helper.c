@@ -1,10 +1,11 @@
 /**
  * Some code to help with the datastore / blockstore interface
+ * NOTE: the datastore stores things under a multihash key
  */
 #include "libp2p/crypto/encoding/base32.h"
 #include "ipfs/datastore/ds_helper.h"
 /**
- * Generate a key based on the passed in binary_array
+ * Generate a base32 key based on the passed in binary_array (which is normally a multihash)
  * @param binary_array what to base the key on
  * @param array_length the size of the binary array
  * @param results where the key will be put
@@ -30,7 +31,7 @@ int ipfs_datastore_helper_ds_key_from_binary(unsigned char* binary_array, size_t
 }
 
 /**
- * Generate a binary array based on the passed in datastore key
+ * Generate a binary array (normally a multihash) based on the passed in datastore key
  * @param ds_key the base32 encoded key
  * @param key_length the length of the base32 "string"
  * @param binary_array where to put the decoded value

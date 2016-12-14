@@ -295,6 +295,7 @@ int ipfs_node_new(struct Node** node)
 		return 0;
 	(*node)->cached = NULL;
 	(*node)->data = NULL;
+	(*node)->data_size = 0;
 	(*node)->encoded = NULL;
 	(*node)->head_link = NULL;
 	return 1;

@@ -122,3 +122,22 @@ int make_ipfs_repository(const char* path) {
 int drop_and_build_repository(const char* path) {
 	return make_ipfs_repository(path);
 }
+
+
+int drop_build_and_open_repo(const char* path, struct FSRepo** fs_repo) {
+	int retVal = 0;
+
+	retVal = drop_and_build_repository("/tmp/.ipfs");
+	if (retVal == 0)
+		return 0;
+	retVal = ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, fs_repo);
+	if (retVal == 0)
+		return 0;
+	retVal = ipfs_repo_fsrepo_open(*fs_repo);
+	if (retVal == 0) {
+		free(*fs_repo);
+		return 0;
+	}
+	return 1;
+}
+

@@ -1,5 +1,7 @@
 /***
  * Here are the wrappers for the lightning database
+ * NOTE: In this implementation, the database will contain the base32 encoded value
+ * of the multihash key if the file exists on disk.
  */
 
 #include <stdlib.h>
@@ -43,12 +45,13 @@ int repo_fsrepo_lmdb_get_block(const struct Cid* cid, struct Block** block, cons
 	}
 
 	// now copy the data
-	retVal = ipfs_blocks_block_new(db_value.mv_data, db_value.mv_size, block);
+	retVal = ipfs_blocks_block_new(block);
 	if (retVal == 0) {
 		mdb_dbi_close(mdb_env, mdb_dbi);
 		mdb_txn_commit(mdb_txn);
 		return 0;
 	}
+	retVal = ipfs_blocks_block_add_data(db_value.mv_data, db_value.mv_size, *block);
 
 	// clean up
 	mdb_dbi_close(mdb_env, mdb_dbi);

@@ -21,9 +21,11 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
 
 	// turn the node into a block
 	struct Block* block;
-	ipfs_blocks_block_new(protobuf, bytes_written, &block);
+	ipfs_blocks_block_new(&block);
+	ipfs_blocks_block_add_data(protobuf, bytes_written, block);
 
-	int retVal = fs_repo->config->datastore->datastore_put_block(block, fs_repo->config->datastore);
+	// write to block store & datastore
+	int retVal = ipfs_repo_fsrepo_block_write(block, fs_repo);
 	if (retVal == 0) {
 		ipfs_blocks_block_free(block);
 		return 0;
@@ -45,17 +47,25 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
  */
 int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct FSRepo* fs_repo) {
 	int retVal = 1;
-
-	// look for the block
 	struct Block* block;
-	retVal = fs_repo->config->datastore->datastore_get_block(cid, &block, fs_repo->config->datastore);
+	size_t key_length = 100;
+	unsigned char key[key_length];
+
+	// look for the node in the datastore. If it is not there, it is not a node.
+	// If it exists, it is only a block.
+	retVal = fs_repo->config->datastore->datastore_get((char*)cid->hash, cid->hash_length, key, key_length, &key_length, fs_repo->config->datastore);
 	if (retVal == 0)
 		return 0;
 
-	// we have the block. Fill the node
+	// we have the record from the db. Go get the block from the blockstore
+	retVal = ipfs_repo_fsrepo_block_read(cid, &block, fs_repo);
+
+	// now convert the block into a node
 	ipfs_node_protobuf_decode(block->data, block->data_length, node);
+	// doesn't decode do this?
 	ipfs_node_set_cached(*node, cid);
 
+	// free resources
 	ipfs_blocks_block_free(block);
 
 	return retVal;

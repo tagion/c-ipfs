@@ -3,7 +3,10 @@
  */
 
 #ifndef __IPFS_BLOCKS_BLOCKSTORE_H__
-#ifndef __IPFS_BLOCKS_BLOCKSTORE_H__
+#define __IPFS_BLOCKS_BLOCKSTORE_H__
+
+#include "ipfs/cid/cid.h"
+#include "ipfs/repo/fsrepo/fs_repo.h"
 
 /**
  * Delete a block based on its Cid
@@ -25,14 +28,14 @@ int ipfs_blockstore_has(struct Cid* cid, struct FSRepo* fs_repo);
  * @param block where to put the data to be returned
  * @returns true(1) on success
  */
-int ipfs_blockstore_get(struct Cid* cid, struct Block* block, struct FSRepo* fs_repo);
+int ipfs_blockstore_get(const struct Cid* cid, struct Block** block, const struct FSRepo* fs_repo);
 
 /***
  * Put a block in the blockstore
  * @param block the block to store
  * @returns true(1) on success
  */
-int ipfs_blockstore_put(struct Block* block, struct FSRepo* fs_repo);
+int ipfs_blockstore_put(struct Block* block, const struct FSRepo* fs_repo);
 
 
 #endif
