@@ -29,7 +29,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* node, struct FSRepo* fs_repo) 
 		ipfs_merkledag_add(new_node, fs_repo);
 		// put link in parent node
 		struct NodeLink* new_link = NULL;
-		ipfs_node_link_new("", new_node->cached->hash, &new_link);
+		ipfs_node_link_new("", new_node->cached->hash, new_node->cached->hash_length, &new_link);
 		ipfs_node_add_link(node, new_link);
 		ipfs_node_free(new_node);
 	}

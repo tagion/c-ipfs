@@ -237,7 +237,7 @@ int test_merkledag_add_node_with_links() {
 	}
 
 	// make link
-	retVal = ipfs_node_link_new("", (unsigned char*)"abc123", &link);
+	retVal = ipfs_node_link_new("", (unsigned char*)"abc123", 6, &link);
 	if (retVal == 0) {
 		printf("Unable to make new link\n");
 		ipfs_repo_fsrepo_free(fs_repo);

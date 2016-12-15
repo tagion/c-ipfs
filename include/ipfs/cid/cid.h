@@ -76,7 +76,16 @@ int ipfs_cid_free(struct Cid* cid);
  * @cid the Cid struct to fill
  * @return true(1) on success
  */
-int ipfs_cid_decode_from_string(const unsigned char* incoming, size_t incoming_length, struct Cid** cid);
+int ipfs_cid_decode_hash_from_base58(const unsigned char* incoming, size_t incoming_length, struct Cid** cid);
+
+/**
+ * Turn a cid into a base 58 of a multihash of the cid hash
+ * @param cid the cid to work with
+ * @param buffer where to put the results
+ * @param max_buffer_length the maximum space reserved for the results
+ * @returns true(1) on success
+ */
+int ipfs_cid_hash_to_base58(struct Cid* cid, unsigned char* buffer, size_t max_buffer_length);
 
 /***
  * Turn a multibase decoded string of bytes into a Cid struct
@@ -84,6 +93,6 @@ int ipfs_cid_decode_from_string(const unsigned char* incoming, size_t incoming_l
  * @param incoming_size the size of the array
  * @param cid the Cid structure to fill
  */
-int ipfs_cid_cast(unsigned char* incoming, size_t incoming_size, struct Cid* cid);
+int ipfs_cid_cast(const unsigned char* incoming, size_t incoming_size, struct Cid* cid);
 
 #endif

@@ -24,7 +24,7 @@ enum WireType ipfs_node_link_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIR
  * @Param size: Size of the link (size_t)
  * @Param ahash: An Qmhash
  */
-int ipfs_node_link_new(char * name, unsigned char * ahash, struct NodeLink** node_link)
+int ipfs_node_link_new(char * name, unsigned char * ahash, size_t hash_size, struct NodeLink** node_link)
 {
 	*node_link = malloc(sizeof(struct NodeLink));
 	if (*node_link == NULL)
@@ -37,8 +37,7 @@ int ipfs_node_link_new(char * name, unsigned char * ahash, struct NodeLink** nod
 	strcpy((*node_link)->name, name);
 	(*node_link)->next = NULL;
 	int ver = 0;
-	size_t lenhash = strlen((char*)ahash);
-	if (ipfs_cid_new(ver, ahash, lenhash, CID_PROTOBUF, &(*node_link)->cid) == 0) {
+	if (ipfs_cid_new(ver, ahash, hash_size, CID_PROTOBUF, &(*node_link)->cid) == 0) {
 		free(*node_link);
 		return 0;
 	}

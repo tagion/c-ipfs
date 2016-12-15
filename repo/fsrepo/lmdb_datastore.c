@@ -47,16 +47,18 @@ int repo_fsrepo_lmdb_get(const char* key, size_t key_size, unsigned char* data, 
 	db_key.mv_size = key_size;
 	db_key.mv_data = (char*)key;
 
+	//printf("Looking for data that has a key size of %lu that starts with %02x and ends with %02x\n", db_key.mv_size, ((char*)db_key.mv_data)[0], ((char*)db_key.mv_data)[db_key.mv_size - 1]);
+
 	retVal = mdb_get(mdb_txn, mdb_dbi, &db_key, &db_value);
 	if (retVal != 0) {
-		mdb_dbi_close(mdb_env, mdb_dbi);
+		//mdb_dbi_close(mdb_env, mdb_dbi);
 		mdb_txn_commit(mdb_txn);
 		return 0;
 	}
 
 	// now copy the data
 	if (db_value.mv_size > max_data_size) {
-		mdb_dbi_close(mdb_env, mdb_dbi);
+		//mdb_dbi_close(mdb_env, mdb_dbi);
 		mdb_txn_commit(mdb_txn);
 		return 0;
 	}
@@ -66,7 +68,7 @@ int repo_fsrepo_lmdb_get(const char* key, size_t key_size, unsigned char* data, 
 	(*data_size) = db_value.mv_size;
 
 	// clean up
-	mdb_dbi_close(mdb_env, mdb_dbi);
+	//mdb_dbi_close(mdb_env, mdb_dbi);
 	mdb_txn_commit(mdb_txn);
 
 	return 1;
@@ -104,6 +106,9 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	db_key.mv_size = key_size;
 	db_key.mv_data = (char*)key;
 
+	// JMJ debugging
+	//printf("Saving key of %lu bytes that starts with %02x and ends with %02x\n", db_key.mv_size, ((char*)db_key.mv_data)[0], ((char*)db_key.mv_data)[db_key.mv_size-1]);
+
 	// write
 	db_value.mv_size = data_size;
 	db_value.mv_data = data;
@@ -118,7 +123,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	}
 
 	// cleanup
-	mdb_dbi_close(mdb_env, mdb_dbi);
+	//mdb_dbi_close(mdb_env, mdb_dbi);
 	mdb_txn_commit(mdb_txn);
 	return retVal;
 }

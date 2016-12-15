@@ -42,10 +42,11 @@ struct Node
 /* Create_Link
  * @Param name: The name of the link (char *)
  * @Param ahash: An Qmhash
+ * @param hash_size the size of the hash
  * @param node_link a pointer to the new struct NodeLink
  * @returns true(1) on success
  */
-int ipfs_node_link_new(char * name, unsigned char * ahash, struct NodeLink** node_link);
+int ipfs_node_link_new(char * name, unsigned char * ahash, size_t hash_size, struct NodeLink** node_link);
 
 /* ipfs_node_link_free
  * @param L: Free the link you have allocated.

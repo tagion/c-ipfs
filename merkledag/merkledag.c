@@ -65,7 +65,7 @@ int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct F
 
 	// now convert the block into a node
 	ipfs_node_protobuf_decode(block->data, block->data_length, node);
-	// doesn't decode do this?
+	// doesn't decode do this? No
 	ipfs_node_set_cached(*node, cid);
 
 	// free resources

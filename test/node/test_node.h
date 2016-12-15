@@ -5,7 +5,7 @@ int test_node() {
 	char * name = "Alex";
 	unsigned char * ahash = (unsigned char*)"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
 	struct NodeLink * mylink;
-	int retVal = ipfs_node_link_new(name,ahash, &mylink);
+	int retVal = ipfs_node_link_new(name,ahash, strlen((char*)ahash), &mylink);
 	if (retVal == 0)
 		return 0;
 
@@ -13,7 +13,7 @@ int test_node() {
 	char * name2 = "Simo";
 	unsigned char * ahash2 = (unsigned char*)"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnSimo";
 	struct NodeLink * mylink2;
-	retVal = ipfs_node_link_new(name2, ahash2, &mylink2);
+	retVal = ipfs_node_link_new(name2, ahash2, strlen((char*)ahash2), &mylink2);
 
 	//Nodes
 	struct Node * Mynode;
@@ -59,7 +59,7 @@ int test_node_link_encode_decode() {
 	int retVal = 0;
 
 	// make a NodeLink
-	if (ipfs_node_link_new("My Name", (unsigned char*)"QmMyHash", &control) == 0)
+	if (ipfs_node_link_new("My Name", (unsigned char*)"QmMyHash", 8, &control) == 0)
 		goto l_exit;
 
 	// encode it
@@ -107,14 +107,14 @@ int test_node_encode_decode() {
 		goto ed_exit;
 
 	// first link
-	if (ipfs_node_link_new((char*)"Link1", (unsigned char*)"QmLink1", &link1) == 0)
+	if (ipfs_node_link_new((char*)"Link1", (unsigned char*)"QmLink1", 7, &link1) == 0)
 		goto ed_exit;
 
 	if ( ipfs_node_add_link(control, link1) == 0)
 		goto ed_exit;
 
 	// second link
-	if (ipfs_node_link_new((char*)"Link2", (unsigned char*)"QmLink2", &link2) == 0)
+	if (ipfs_node_link_new((char*)"Link2", (unsigned char*)"QmLink2", 7, &link2) == 0)
 		goto ed_exit;
 	if ( ipfs_node_add_link(control, link2) == 0)
 		goto ed_exit;

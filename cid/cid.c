@@ -9,6 +9,7 @@
 #include "ipfs/cid/cid.h"
 #include "libp2p/crypto/encoding/base58.h"
 #include "ipfs/multibase/multibase.h"
+#include "mh/hashes.h"
 #include "mh/multihash.h"
 #include "varint.h"
 
@@ -103,15 +104,19 @@ int ipfs_cid_new(int version, unsigned char* hash, size_t hash_length, const cha
 	struct Cid* cid = *ptrToCid;
 	if (cid == NULL)
 		return 0;
-	cid->hash = malloc(sizeof(unsigned char) * hash_length);
-	if (cid->hash == NULL) {
-		free(cid);
-		return 0;
+	if (hash == NULL) {
+		cid->hash = NULL;
+	} else {
+		cid->hash = malloc(sizeof(unsigned char) * hash_length);
+		if (cid->hash == NULL) {
+			free(cid);
+			return 0;
+		}
+		memcpy(cid->hash, hash, hash_length);
 	}
 	// assign values
 	cid->version = version;
 	cid->codec = codec;
-	memcpy(cid->hash, hash, hash_length);
 	cid->hash_length = hash_length;
 
 	return 1;
@@ -131,13 +136,13 @@ int ipfs_cid_free(struct Cid* cid) {
 }
 
 /***
- * Fill a Cid struct based on a base 58 encoded string
+ * Fill a Cid struct based on a base 58 encoded multihash
  * @param incoming the string
  * @param incoming_size the size of the string
  * @cid the Cid struct to fill
  * @return true(1) on success
  */
-int ipfs_cid_decode_from_string(const unsigned char* incoming, size_t incoming_length, struct Cid** cid) {
+int ipfs_cid_decode_hash_from_base58(const unsigned char* incoming, size_t incoming_length, struct Cid** cid) {
 	int retVal = 0;
 
 	if (incoming_length < 2)
@@ -152,7 +157,7 @@ int ipfs_cid_decode_from_string(const unsigned char* incoming, size_t incoming_l
 		if (retVal == 0)
 			return 0;
 		// now we have the hash, build the object
-		return ipfs_cid_new(0, hash, hash_length, CID_PROTOBUF, cid);
+		return ipfs_cid_new(0, &hash[2], hash_length - 2, CID_PROTOBUF, cid);
 	}
 
 	// TODO: finish this
@@ -174,15 +179,43 @@ int ipfs_cid_decode_from_string(const unsigned char* incoming, size_t incoming_l
 	return 0;
 }
 
+/**
+ * Turn a cid into a base 58
+ * @param cid the cid to work with
+ * @param buffer where to put the results
+ * @param max_buffer_length the maximum space reserved for the results
+ * @returns true(1) on success
+ */
+int ipfs_cid_hash_to_base58(struct Cid* cid, unsigned char* buffer, size_t max_buffer_length) {
+
+	int multihash_len = cid->hash_length + 2;
+	unsigned char multihash[multihash_len];
+	if (mh_new(multihash, MH_H_SHA2_256, cid->hash, cid->hash_length) < 0) {
+		return 0;
+	}
+
+	// base58
+	size_t b58_size = libp2p_crypto_encoding_base58_encode_size(multihash_len);
+
+	if (b58_size > max_buffer_length) // buffer too small
+		return 0;
+
+	if( libp2p_crypto_encoding_base58_encode(multihash, multihash_len, &buffer, &max_buffer_length) == 0) {
+		return 0;
+	}
+
+	return 1;
+}
+
 /***
  * Turn a multibase decoded string of bytes into a Cid struct
  * @param incoming the multibase decoded array
  * @param incoming_size the size of the array
  * @param cid the Cid structure to fill
  */
-int ipfs_cid_cast(unsigned char* incoming, size_t incoming_size, struct Cid* cid) {
-	// this is a multihash
+int ipfs_cid_cast(const unsigned char* incoming, size_t incoming_size, struct Cid* cid) {
 	if (incoming_size == 34 && incoming[0] == 18 && incoming[1] == 32) {
+		// this is a multihash
 		cid->hash_length = mh_multihash_length(incoming, incoming_size);
 		cid->codec = CID_PROTOBUF;
 		cid->version = 0;
@@ -208,7 +241,7 @@ int ipfs_cid_cast(unsigned char* incoming, size_t incoming_size, struct Cid* cid
 	pos += num_bytes;
 	// now what is left
 	cid->hash_length = incoming_size - pos;
-	cid->hash = &incoming[pos];
+	cid->hash = (unsigned char*)(&incoming[pos]);
 
 	return 1;
 }
