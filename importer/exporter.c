@@ -29,6 +29,9 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 		return 0;
 	}
 
+	// no longer need the cid
+	ipfs_cid_free(cid);
+
 	// process blocks
 	FILE* file = fopen(file_name, "wb");
 	if (file == NULL) {
@@ -50,12 +53,13 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 			return 0;
 		}
 		bytes_written = fwrite(link_node->data, 1, link_node->data_size, file);
-		ipfs_node_free(link_node);
 		if (bytes_written != link_node->data_size) {
+			ipfs_node_free(link_node);
 			fclose(file);
 			ipfs_node_free(read_node);
 			return 0;
 		}
+		ipfs_node_free(link_node);
 		link = link->next;
 	}
 

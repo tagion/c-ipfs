@@ -62,14 +62,25 @@ int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct F
 
 	// we have the record from the db. Go get the block from the blockstore
 	retVal = ipfs_repo_fsrepo_block_read(cid, &block, fs_repo);
+	if (retVal == 0) {
+		return 0;
+	}
 
 	// now convert the block into a node
-	ipfs_node_protobuf_decode(block->data, block->data_length, node);
-	// doesn't decode do this? No
-	ipfs_node_set_cached(*node, cid);
+	if (ipfs_node_protobuf_decode(block->data, block->data_length, node) == 0) {
+		ipfs_blocks_block_free(block);
+		return 0;
+	}
+
+	// set the cid on the node
+	if (ipfs_node_set_cached(*node, cid) == 0) {
+		ipfs_blocks_block_free(block);
+		ipfs_node_free(*node);
+		return 0;
+	}
 
 	// free resources
 	ipfs_blocks_block_free(block);
 
-	return retVal;
+	return 1;
 }
