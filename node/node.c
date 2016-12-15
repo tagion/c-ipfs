@@ -528,6 +528,7 @@ int ipfs_node_new_from_link(struct NodeLink * mylink, struct Node** node)
 	ipfs_node_add_link(*node, mylink);
 	(*node)->cached = NULL;
 	(*node)->data = NULL;
+	(*node)->data_size = 0;
 	(*node)->encoded = NULL;
 	return 1;
 }

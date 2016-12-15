@@ -37,7 +37,7 @@ int test_repo_fsrepo_write_read_block() {
 		return 0;
 
 	// make some data
-	size_t data_size = 100;
+	size_t data_size = 10000;
 	unsigned char data[data_size];
 
 	int counter = 0;

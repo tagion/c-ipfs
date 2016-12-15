@@ -12,54 +12,6 @@
 #include "lmdb.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
 
-int repo_fsrepo_lmdb_get_block(const struct Cid* cid, struct Block** block, const struct Datastore* datastore) {
-	int retVal;
-	MDB_txn* mdb_txn;
-	MDB_dbi mdb_dbi;
-	struct MDB_val db_key;
-	struct MDB_val db_value;
-
-	MDB_env* mdb_env = (MDB_env*)datastore->handle;
-	if (mdb_env == NULL)
-		return 0;
-
-	// open transaction
-	retVal = mdb_txn_begin(mdb_env, NULL, 0, &mdb_txn);
-	if (retVal != 0)
-		return 0;
-	retVal = mdb_dbi_open(mdb_txn, NULL, MDB_DUPSORT, &mdb_dbi);
-	if (retVal != 0) {
-		mdb_txn_commit(mdb_txn);
-		return 0;
-	}
-
-	// prepare data
-	db_key.mv_size = cid->hash_length;
-	db_key.mv_data = cid->hash;
-
-	retVal = mdb_get(mdb_txn, mdb_dbi, &db_key, &db_value);
-	if (retVal != 0) {
-		mdb_dbi_close(mdb_env, mdb_dbi);
-		mdb_txn_commit(mdb_txn);
-		return 0;
-	}
-
-	// now copy the data
-	retVal = ipfs_blocks_block_new(block);
-	if (retVal == 0) {
-		mdb_dbi_close(mdb_env, mdb_dbi);
-		mdb_txn_commit(mdb_txn);
-		return 0;
-	}
-	retVal = ipfs_blocks_block_add_data(db_value.mv_data, db_value.mv_size, *block);
-
-	// clean up
-	mdb_dbi_close(mdb_env, mdb_dbi);
-	mdb_txn_commit(mdb_txn);
-
-	return 1;
-}
-
 /***
  * retrieve a record from the database and put in a pre-sized buffer
  * @param key the key to look for
@@ -172,16 +124,6 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 }
 
 /**
- * Write a block to the datastore with the specified key
- * @param block the block to be written
- * @param datastore the datastore to write to
- * @returns true(1) on success
- */
-int repo_fsrepo_lmdb_put_block(const struct Block* block, const struct Datastore* datastore) {
-	return repo_fsrepo_lmdb_put(block->cid->hash, block->cid->hash_length, block->data, block->data_length, datastore);
-}
-
-/**
  * Open an lmdb database with the given parameters.
  * Note: for now, the parameters are not used
  * @param argc number of parameters in the following array
@@ -229,9 +171,7 @@ int repo_fsrepo_lmdb_cast(struct Datastore* datastore) {
 	datastore->datastore_open = &repo_fsrepro_lmdb_open;
 	datastore->datastore_close = &repo_fsrepo_lmdb_close;
 	datastore->datastore_put = &repo_fsrepo_lmdb_put;
-	datastore->datastore_put_block = &repo_fsrepo_lmdb_put_block;
 	datastore->datastore_get = &repo_fsrepo_lmdb_get;
-	datastore->datastore_get_block = &repo_fsrepo_lmdb_get_block;
 	return 1;
 }
 

@@ -35,6 +35,7 @@ const char* names[] = {
 		"test_repo_fsrepo_write_read_block",
 		"test_get_init_command",
 		"test_import_small_file",
+		"test_import_large_file",
 		"test_repo_fsrepo_open_config",
 		"test_flatfs_get_directory",
 		"test_flatfs_get_filename",
@@ -48,6 +49,7 @@ const char* names[] = {
 		"test_node_encode_decode",
 		"test_merkledag_add_data",
 		"test_merkledag_get_data",
+		"test_merkledag_add_node",
 		"test_merkledag_add_node_with_links"
 };
 
@@ -64,6 +66,7 @@ int (*funcs[])(void) = {
 		test_repo_fsrepo_write_read_block,
 		test_get_init_command,
 		test_import_small_file,
+		test_import_large_file,
 		test_repo_fsrepo_open_config,
 		test_flatfs_get_directory,
 		test_flatfs_get_filename,
@@ -77,6 +80,7 @@ int (*funcs[])(void) = {
 		test_node_encode_decode,
 		test_merkledag_add_data,
 		test_merkledag_get_data,
+		test_merkledag_add_node,
 		test_merkledag_add_node_with_links
 };
 
@@ -98,6 +102,10 @@ int main(int argc, char** argv) {
 			test_wanted = argv[1];
 	}
 	int array_length = sizeof(funcs) / sizeof(funcs[0]);
+	int array2_length = sizeof(names) / sizeof(names[0]);
+	if (array_length != array2_length) {
+		printf("Test arrays are not of the same length. Funcs: %d, Names: %d\n", array_length, array2_length);
+	}
 	for (int i = 0; i < array_length; i++) {
 		if (only_one) {
 			const char* currName = names[i];
@@ -111,7 +119,6 @@ int main(int argc, char** argv) {
 				tests_ran++;
 				counter += testit(names[i], funcs[i]);
 			}
-
 	}
 
 	if (tests_ran == 0)

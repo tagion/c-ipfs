@@ -24,6 +24,67 @@ int create_bytes(unsigned char* buffer, size_t num_bytes) {
 	return 1;
 }
 
+int test_import_large_file() {
+	size_t bytes_size = 1000000; //1mb
+	unsigned char file_bytes[bytes_size];
+	const char* fileName = "/tmp/test_import_large.tmp";
+
+	// create the necessary file
+	create_bytes(file_bytes, bytes_size);
+	create_file(fileName, file_bytes, bytes_size);
+
+	// get the repo
+	drop_and_build_repository("/tmp/.ipfs");
+	struct FSRepo* fs_repo;
+	ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, &fs_repo);
+	ipfs_repo_fsrepo_open(fs_repo);
+
+	// write to ipfs
+	struct Node* write_node;
+	if (ipfs_import_file(fileName, &write_node, fs_repo) == 0) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		return 0;
+	}
+
+	// make sure all went okay
+	struct Node* read_node;
+	if (ipfs_merkledag_get(write_node->cached, &read_node, fs_repo) == 0) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		ipfs_node_free(write_node);
+		return 0;
+	}
+
+	// compare data
+	if (write_node->data_size != read_node->data_size) {
+		printf("Data size of nodes are not equal. Should be %lu but are %lu\n", write_node->data_size, read_node->data_size);
+		ipfs_repo_fsrepo_free(fs_repo);
+		ipfs_node_free(write_node);
+		ipfs_node_free(read_node);
+		return 0;
+	}
+
+	for(int i = 0; i < write_node->data_size; i++) {
+		if (write_node->data[i] != read_node->data[i]) {
+			printf("Data within node is different at position %d. The value should be %02x, but was %02x.\n", i, write_node->data[i], read_node->data[i]);
+			ipfs_repo_fsrepo_free(fs_repo);
+			ipfs_node_free(write_node);
+			ipfs_node_free(read_node);
+			return 0;
+		}
+	}
+
+	// attempt to write file
+
+	// compare original with new
+
+	ipfs_repo_fsrepo_free(fs_repo);
+	ipfs_node_free(write_node);
+	ipfs_node_free(read_node);
+
+	return 1;
+
+}
+
 int test_import_small_file() {
 	size_t bytes_size = 1000;
 	unsigned char file_bytes[bytes_size];

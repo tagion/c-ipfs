@@ -21,9 +21,7 @@ struct Datastore {
 	int (*datastore_open)(int argc, char** argv, struct Datastore* datastore);
 	int (*datastore_close)(struct Datastore* datastore);
 	int (*datastore_put)(const unsigned char* key, size_t key_size, unsigned char* data, size_t data_length, const struct Datastore* datastore);
-	int (*datastore_put_block)(const struct Block* block, const struct Datastore* datastore);
 	int (*datastore_get)(const char* key, size_t key_size, unsigned char* data, size_t max_data_length, size_t* data_length, const struct Datastore* datastore);
-	int (*datastore_get_block)(const struct Cid* cid, struct Block** block, const struct Datastore* datastore);
 	// a handle to the datastore "context" used by the datastore
 	void* handle;
 };

@@ -18,6 +18,7 @@
 size_t ipfs_import_chunk(FILE* file, struct Node* node, struct FSRepo* fs_repo) {
 	unsigned char buffer[MAX_DATA_SIZE];
 	size_t bytes_read = fread(buffer, 1, MAX_DATA_SIZE, file);
+
 	if (node->data_size == 0) {
 		ipfs_node_set_data(node, buffer, bytes_read);
 	} else {
@@ -26,7 +27,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* node, struct FSRepo* fs_repo) 
 		ipfs_node_new_from_data(buffer, bytes_read, &new_node);
 		// persist
 		ipfs_merkledag_add(new_node, fs_repo);
-		// put link in node
+		// put link in parent node
 		struct NodeLink* new_link = NULL;
 		ipfs_node_link_new("", new_node->cached->hash, &new_link);
 		ipfs_node_add_link(node, new_link);

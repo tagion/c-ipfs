@@ -190,6 +190,37 @@ int test_merkledag_add_data() {
 	return 1;
 }
 
+int test_merkledag_add_node() {
+	int retVal = 0;
+	struct Node* node1 = NULL;
+
+	struct FSRepo* fs_repo = createAndOpenRepo("/tmp/.ipfs");
+	if (fs_repo == NULL) {
+		printf("Unable to create repo\n");
+		return 0;
+	}
+
+	retVal = ipfs_node_new(&node1);
+	if (retVal == 0) {
+		printf("Unable to make node\n");
+		ipfs_repo_fsrepo_free(fs_repo);
+		return 0;
+	}
+
+	retVal = ipfs_merkledag_add(node1, fs_repo);
+	if (retVal == 0) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		ipfs_node_free(node1);
+		printf("Unable to add node\n");
+		return 0;
+	}
+
+	ipfs_node_free(node1);
+	ipfs_repo_fsrepo_free(fs_repo);
+
+	return 1;
+}
+
 /**
  * Should save links
  */
@@ -197,6 +228,7 @@ int test_merkledag_add_node_with_links() {
 	int retVal = 0;
 	struct NodeLink* link = NULL;
 	struct Node* node1 = NULL;
+	struct Node* node2 = NULL;
 
 	struct FSRepo* fs_repo = createAndOpenRepo("/tmp/.ipfs");
 	if (fs_repo == NULL) {
@@ -206,7 +238,17 @@ int test_merkledag_add_node_with_links() {
 
 	// make link
 	retVal = ipfs_node_link_new("", (unsigned char*)"abc123", &link);
+	if (retVal == 0) {
+		printf("Unable to make new link\n");
+		ipfs_repo_fsrepo_free(fs_repo);
+		return 0;
+	}
 	retVal = ipfs_node_new_from_link(link, &node1);
+	if (retVal == 0) {
+		printf("Unable to make node\n");
+		ipfs_repo_fsrepo_free(fs_repo);
+		return 0;
+	}
 
 	retVal = ipfs_merkledag_add(node1, fs_repo);
 	if (retVal == 0) {
@@ -217,7 +259,6 @@ int test_merkledag_add_node_with_links() {
 	}
 
 	// now look for it
-	struct Node* node2 = NULL;
 	retVal = ipfs_merkledag_get(node1->cached, &node2, fs_repo);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
@@ -227,6 +268,14 @@ int test_merkledag_add_node_with_links() {
 
 	struct NodeLink* node1_link = node1->head_link;
 	struct NodeLink* node2_link = node2->head_link;
+
+	if (node1_link->cid->hash_length != node2_link->cid->hash_length) {
+		printf("Hashes are not of the same length. Hash1: %lu, Hash2: %lu\n", node1_link->cid->hash_length, node2_link->cid->hash_length);
+		ipfs_repo_fsrepo_free(fs_repo);
+		ipfs_node_free(node1);
+		ipfs_node_free(node2);
+		return 0;
+	}
 	while(node1_link != NULL) {
 		for(int i = 0; i < node1_link->cid->hash_length; i++) {
 			if(node1_link->cid->hash[i] != node2_link->cid->hash[i]) {

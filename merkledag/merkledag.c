@@ -13,6 +13,8 @@
 int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
 	// taken from merkledag.go line 59
 
+	struct Block* block = NULL;
+
 	// protobuf the node
 	size_t protobuf_len = ipfs_node_protobuf_encode_size(node);
 	size_t bytes_written = 0;
@@ -20,7 +22,6 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
 	ipfs_node_protobuf_encode(node, protobuf, protobuf_len, &bytes_written);
 
 	// turn the node into a block
-	struct Block* block;
 	ipfs_blocks_block_new(&block);
 	ipfs_blocks_block_add_data(protobuf, bytes_written, block);
 
@@ -32,7 +33,9 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
 	}
 
 	ipfs_node_set_cached(node, block->cid);
-	ipfs_blocks_block_free(block);
+
+	if (block != NULL)
+		ipfs_blocks_block_free(block);
 
 	// TODO: call HasBlock (unsure why as yet)
 	return 1;
