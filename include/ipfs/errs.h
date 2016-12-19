@@ -5,6 +5,7 @@
         NULL,
         "ErrAllocFailed",
         "ErrNULLPointer",
+        "ErrUnknow",
         "ErrPipe",
         "ErrPoll",
         "Could not publish name."
@@ -25,12 +26,15 @@
         "ErrInvalidParam",
         // ErrResolveLimit is returned when a recursive resolution goes over
         // the limit.
-        "resolve depth exceeded"
+        "resolve depth exceeded",
+        NULL,
+        "Invalid value. Not signed by PrivateKey corresponding to %s"
     };
 
     enum {
         ErrAllocFailed = 1,
         ErrNULLPointer,
+        ErrUnknow,
         ErrPipe,
         ErrPoll,
         ErrPublishFailed,
@@ -47,6 +51,8 @@
         ErrNoLink,
         ErrNoLinkFmt,
         ErrInvalidParam,
-        ErrResolveLimit
+        ErrResolveLimit,
+        ErrInvalidSignature,
+        ErrInvalidSignatureFmt
     } ErrsIdx;
 #endif // IPFS_ERRS_H
