@@ -11,6 +11,7 @@
 #include "storage/test_ds_helper.h"
 #include "storage/test_datastore.h"
 #include "storage/test_blocks.h"
+#include "storage/test_unixfs.h"
  		 
 int testit(const char* name, int (*func)(void)) {
 	printf("Testing %s...\n", name);
@@ -50,7 +51,8 @@ const char* names[] = {
 		"test_merkledag_add_data",
 		"test_merkledag_get_data",
 		"test_merkledag_add_node",
-		"test_merkledag_add_node_with_links"
+		"test_merkledag_add_node_with_links",
+		"test_unixfs_encode_decode"
 };
 
 int (*funcs[])(void) = {
@@ -81,7 +83,8 @@ int (*funcs[])(void) = {
 		test_merkledag_add_data,
 		test_merkledag_get_data,
 		test_merkledag_add_node,
-		test_merkledag_add_node_with_links
+		test_merkledag_add_node_with_links,
+		test_unixfs_encode_decode
 };
 
 /**
