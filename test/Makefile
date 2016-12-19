@@ -12,9 +12,8 @@ OBJS = testit.o test_helper.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o \
 	../importer/exporter.o \
-	../merkledag/merkledag.o \
+	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \
-	../node/node.o \
 	../os/utils.o \
 	../repo/fsrepo/fs_repo.o ../repo/fsrepo/jsmn.o ../repo/fsrepo/lmdb_datastore.o \
 	../repo/config/config.o ../repo/config/identity.o \

@@ -3,7 +3,7 @@
 
 #include "ipfs/cid/cid.h"
 #include "ipfs/merkledag/merkledag.h"
-#include "ipfs/node/node.h"
+#include "ipfs/merkledag/node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 /**
  * pull objects from ipfs

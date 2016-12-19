@@ -131,6 +131,41 @@ int test_import_large_file() {
 	size_t new_file_size = os_utils_file_size("/tmp/test_import_large_file.rsl");
 	if (new_file_size != bytes_size) {
 		printf("File sizes are different. Should be %lu but the new one is %lu\n", bytes_size, new_file_size);
+		ipfs_repo_fsrepo_free(fs_repo);
+		ipfs_node_free(write_node);
+		ipfs_node_free(read_node);
+		return 0;
+	}
+
+	FILE* f1 = fopen("/tmp/test_import_large.tmp", "rb");
+	FILE* f2 = fopen("/tmp/test_import_large_file.rsl", "rb");
+
+	size_t bytes_read1 = 1;
+	size_t bytes_read2 = 1;
+	unsigned char buf1[100];
+	unsigned char buf2[100];
+	// compare bytes of files
+	while (bytes_read1 != 0 && bytes_read2 != 0) {
+		bytes_read1 = fread(buf1, 1, 100, f1);
+		bytes_read2 = fread(buf2, 1, 100, f2);
+		if (bytes_read1 != bytes_read2) {
+			printf("Error reading files for comparison. Read %lu bytes of file 1, but %lu bytes of file 2\n", bytes_read1, bytes_read2);
+			ipfs_repo_fsrepo_free(fs_repo);
+			ipfs_node_free(write_node);
+			ipfs_node_free(read_node);
+			fclose(f1);
+			fclose(f2);
+			return 0;
+		}
+		if (memcmp(buf1, buf2, bytes_read1) != 0) {
+			printf("The bytes between the files are different\n");
+			ipfs_repo_fsrepo_free(fs_repo);
+			ipfs_node_free(write_node);
+			ipfs_node_free(read_node);
+			fclose(f1);
+			fclose(f2);
+			return 0;
+		}
 	}
 
 	ipfs_repo_fsrepo_free(fs_repo);

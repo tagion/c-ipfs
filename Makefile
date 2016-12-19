@@ -11,7 +11,6 @@ all:
 	cd importer; make all;
 	cd merkledag; make all;
 	cd multibase; make all;
-	cd node; make all;
 	cd os; make all;
 	cd repo; make all;
 	cd flatfs; make all;
@@ -28,7 +27,6 @@ clean:
 	cd importer; make clean;
 	cd merkledag; make clean;
 	cd multibase; make clean;
-	cd node; make clean;
 	cd os; make clean;
 	cd repo; make clean;
 	cd flatfs; make clean;

@@ -1,5 +1,5 @@
 #include "ipfs/merkledag/merkledag.h"
-#include "ipfs/node/node.h"
+#include "ipfs/merkledag/node.h"
 #include "../test_helper.h"
 
 struct FSRepo* createAndOpenRepo(const char* dir) {

@@ -8,7 +8,7 @@
 #include "inttypes.h"
 #include "ipfs/cid/cid.h"
 
-#include "ipfs/node/node.h"
+#include "ipfs/merkledag/node.h"
 
 // for protobuf Node                           data & data_size             encoded                   cid                       link_amount & links
 enum WireType ipfs_node_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED };

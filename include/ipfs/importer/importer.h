@@ -1,7 +1,7 @@
 #ifndef __IPFS_IMPORTER_IMPORTER_H__
 #define __IPFS_IMPORTER_IMPORTER_H__
 
-#include "ipfs/node/node.h"
+#include "ipfs/merkledag/node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 
 /**

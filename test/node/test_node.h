@@ -1,4 +1,4 @@
-#include "ipfs/node/node.h"
+#include "ipfs/merkledag/node.h"
 
 int test_node() {
 	//Variables of link:
