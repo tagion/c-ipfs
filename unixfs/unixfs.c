@@ -93,7 +93,7 @@ size_t ipfs_unixfs_protobuf_encode_size(struct UnixFS* obj) {
  * @param bytes_written how many bytes were written in the buffer
  * @returns true(1) on success
  */
-int ipfs_unixfs_protobuf_encode(struct UnixFS* incoming, unsigned char* outgoing, size_t max_buffer_size, size_t* bytes_written) {
+int ipfs_unixfs_protobuf_encode(const struct UnixFS* incoming, unsigned char* outgoing, size_t max_buffer_size, size_t* bytes_written) {
 	size_t bytes_used = 0;
 	*bytes_written = 0;
 	int retVal = 0;

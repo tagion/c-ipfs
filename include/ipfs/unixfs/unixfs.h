@@ -41,8 +41,8 @@ struct UnixFSBlockSizeNode {
 
 struct UnixFS {
 	enum UnixFSDataType data_type;
-	unsigned char* bytes; // an array of bytes
 	size_t bytes_size; // the size of the bytes array
+	unsigned char* bytes; // an array of bytes
 	size_t file_size; // the file size
 	struct UnixFSBlockSizeNode* block_size_head; // a linked list of block sizes
 };
@@ -84,7 +84,7 @@ size_t ipfs_unixfs_protobuf_encode_size(struct UnixFS* obj);
  * @param bytes_written how many bytes were written in the buffer
  * @returns true(1) on success
  */
-int ipfs_unixfs_protobuf_encode(struct UnixFS* incoming, unsigned char* outgoing, size_t max_buffer_size, size_t* bytes_written);
+int ipfs_unixfs_protobuf_encode(const struct UnixFS* incoming, unsigned char* outgoing, size_t max_buffer_size, size_t* bytes_written);
 
 /***
  * Decodes a protobuf array of bytes into a UnixFS object
