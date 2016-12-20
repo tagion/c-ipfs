@@ -13,15 +13,15 @@ char* ipfs_routing_cache_get (char *key, struct ipns_entry *ientry)
 {
     int i;
     struct routingResolver *cache;
-    struct stime now;
+    struct timespec now;
 
     if (key && ientry) {
         cache = ientry->cache;
         if (cache) {
-            get_gmttime (&now);
+            timespec_get (&now);
             for (i = 0 ; i < cache->next ; i++) {
-                if (((now.t < cache->data[i]->eol.t ||
-                     (now.t == cache->data[i]->eol.t && now.ts.tv_nsec < cache->data[i]->eol.ts.tv_nsec))) &&
+                if (((now.tv_sec < cache->data[i]->eol.tv_sec ||
+                     (now.tv_sec == cache->data[i]->eol.tv_sec && now.tv_nsec < cache->data[i]->eol.tv_nsec))) &&
                     strcmp(cache->data[i]->key, key) == 0) {
                     return cache->data[i]->value;
                 }
@@ -43,8 +43,8 @@ void ipfs_routing_cache_set (char *key, char *value, struct ipns_entry *ientry)
             if (n) {
                 n->key = key;
                 n->value = value;
-                get_gmttime (&n->eol); // now
-                n->eol.t += DefaultResolverCacheTTL; // sum TTL seconds to time seconds.
+                timespec_get (&n->eol); // now
+                n->eol.tv_sec += DefaultResolverCacheTTL; // sum TTL seconds to time seconds.
                 cache->data[cache->next++] = n;
             }
         }
@@ -152,7 +152,7 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
     }
 
     // check sig with pk
-    err = libp2p_crypto_verify (ipfs_ipns_entry_data_for_sig(pb->IpnsEntry), ipfs_ipns_entry_get_signature(pb->IpnsEntry), &ok);
+    err = libp2p_crypto_verify (ipns_entry_data_for_sig(pb->IpnsEntry), pb->IpnsEntry->signature, &ok);
     if (err || !ok) {
         char buf[500];
         snprintf(buf, sizeof(buf), Err[ErrInvalidSignatureFmt], pubkey);
@@ -198,12 +198,12 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
     return 0;
 }
 
-int ipfs_namesys_routing_check_EOL (struct stime *st, struct namesys_pb *pb)
+int ipfs_namesys_routing_check_EOL (struct timespec *ts, struct namesys_pb *pb)
 {
     int err;
 
-    if (ipfs_namesys_pb_get_validity_type (pb->IpnsEntry) == IpnsEntry_EOL) {
-        err = ipfs_util_time_parse_RFC3339 (st, ipfs_namesys_pb_get_validity (pb->IpnsEntry));
+    if (*(pb->IpnsEntry->validityType) == IpnsEntry_EOL) {
+        err = ipfs_util_time_parse_RFC3339 (ts, pb->IpnsEntry->validity);
         if (!err) {
             return 1;
         }
