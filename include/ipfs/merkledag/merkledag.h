@@ -22,6 +22,6 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo);
  * @param fs_repo the repository
  * @returns true(1) on success
  */
-int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct FSRepo* fs_repo);
+int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node** node, const struct FSRepo* fs_repo);
 
 #endif

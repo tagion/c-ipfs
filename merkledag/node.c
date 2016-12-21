@@ -10,10 +10,10 @@
 
 #include "ipfs/merkledag/node.h"
 
-// for protobuf Node                           data & data_size             encoded                   cid                       link_amount & links
-enum WireType ipfs_node_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED };
-// for protobuf NodeLink                              name                     cid
-enum WireType ipfs_node_link_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED };
+// for protobuf Node (all fields optional)  links (repeated node_link)   data (optional bytes)
+enum WireType ipfs_node_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED };
+// for protobuf NodeLink (all fields optional)       hash                            name                     tsize
+enum WireType ipfs_node_link_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED, WIRETYPE_VARINT };
 
 /*====================================================================================
  * Link Functions
@@ -24,23 +24,43 @@ enum WireType ipfs_node_link_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIR
  * @Param size: Size of the link (size_t)
  * @Param ahash: An Qmhash
  */
-int ipfs_node_link_new(char * name, unsigned char * ahash, size_t hash_size, struct NodeLink** node_link)
+int ipfs_node_link_create(char * name, unsigned char * ahash, size_t hash_size, struct NodeLink** node_link)
 {
 	*node_link = malloc(sizeof(struct NodeLink));
 	if (*node_link == NULL)
 		return 0;
-	(*node_link)->name = malloc(strlen(name) + 1);
-	if ( (*node_link)->name == NULL) {
-		free(*node_link);
+
+	struct NodeLink* link = *node_link;
+	// hash
+	link->hash_size = hash_size;
+	link->hash = (unsigned char*)malloc(hash_size);
+	memcpy(link->hash, ahash, hash_size);
+	// name
+	link->name = malloc(strlen(name) + 1);
+	if ( link->name == NULL) {
+		free(link);
 		return 0;
 	}
-	strcpy((*node_link)->name, name);
-	(*node_link)->next = NULL;
-	int ver = 0;
-	if (ipfs_cid_new(ver, ahash, hash_size, CID_PROTOBUF, &(*node_link)->cid) == 0) {
-		free(*node_link);
+	strcpy(link->name, name);
+	// t_size
+	link->t_size = 0;
+	// other, non-protobuffed data
+	link->next = NULL;
+
+	return 1;
+}
+
+int ipfs_node_link_new(struct NodeLink** node_link) {
+	*node_link = malloc(sizeof(struct NodeLink));
+	if (*node_link == NULL)
 		return 0;
-	}
+
+	struct NodeLink* link = *node_link;
+	link->hash = NULL;
+	link->hash_size = 0;
+	link->name = NULL;
+	link->next = NULL;
+	link->t_size = 0;
 	return 1;
 }
 
@@ -50,8 +70,8 @@ int ipfs_node_link_new(char * name, unsigned char * ahash, size_t hash_size, str
 int ipfs_node_link_free(struct NodeLink * node_link)
 {
 	if (node_link != NULL) {
-		if (node_link->cid != NULL)
-			ipfs_cid_free(node_link->cid);
+		if (node_link->hash != NULL)
+			free(node_link->hash);
 		if (node_link->name != NULL)
 			free(node_link->name);
 		free(node_link);
@@ -59,49 +79,83 @@ int ipfs_node_link_free(struct NodeLink * node_link)
 	return 1;
 }
 
+/***
+ * Find length of encoded version of NodeLink
+ * @param link the link to examine
+ * @returns the maximum length of the encoded NodeLink
+ */
 size_t ipfs_node_link_protobuf_encode_size(struct NodeLink* link) {
 	if (link == NULL)
 		return 0;
-
+	// hash, name, tsize
 	size_t size = 0;
-	size += 11 + strlen(link->name);
-	size += ipfs_cid_protobuf_encode_size(link->cid);
+	if (link->hash_size > 0) {
+		size += 11 + link->hash_size;
+	}
+	if (link->name != NULL && strlen(link->name) > 0) {
+		size += 11 + strlen(link->name);
+	}
+	if (link->t_size > 0) {
+		size += 22;
+	}
 	return size;
 }
 
+/**
+ * Encode a NodeLink in protobuf format
+ * @param link the link to work with
+ * @param buffer the buffer to fill
+ * @param max_buffer_length the length of the buffer
+ * @param bytes_written the number of bytes written to buffer
+ * @returns true(1) on success
+ */
 int ipfs_node_link_protobuf_encode(struct NodeLink* link, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written) {
+	// 3 fields, hash (length delimited), name (length delimited), tsize (varint)
 	size_t bytes_used = 0;
 	int retVal = 0;
 	*bytes_written = 0;
-	retVal = protobuf_encode_length_delimited(1, ipfs_node_link_message_fields[0], link->name, strlen(link->name), &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
-	if (retVal == 0)
-		return 0;
-	*bytes_written += bytes_used;
-	// cid
-	size_t cid_size = ipfs_cid_protobuf_encode_size(link->cid);
-	unsigned char cid_buffer[cid_size];
-	retVal = ipfs_cid_protobuf_encode(link->cid, cid_buffer, cid_size, &bytes_used);
-	if (retVal == 0)
-		return 0;
-	retVal = protobuf_encode_length_delimited(2, ipfs_node_link_message_fields[1], (char*)&cid_buffer[0], bytes_used, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
-	if (retVal == 0)
-		return 0;
-	*bytes_written += bytes_used;
+	// hash
+	if (link->hash_size > 0) {
+		retVal = protobuf_encode_length_delimited(1, ipfs_node_link_message_fields[0], (char*)link->hash, link->hash_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		if (retVal == 0)
+			return 0;
+		*bytes_written += bytes_used;
+	}
+	// name
+	if (link->name != NULL && strlen(link->name) > 0) {
+		retVal = protobuf_encode_string(2, ipfs_node_link_message_fields[1], link->name, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		if (retVal == 0)
+			return 0;
+		*bytes_written += bytes_used;
+	}
+	// tsize
+	if (link->t_size > 0) {
+		retVal = protobuf_encode_varint(3, ipfs_node_link_message_fields[2], link->t_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		if (retVal == 0)
+			return 0;
+		*bytes_written += bytes_used;
+	}
 	return 1;
 }
 
-int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct NodeLink** link, size_t* bytes_read) {
+/**
+ * Turn a protobuf encoded byte array into a NodeLink object
+ * @param buffer the buffer to look in
+ * @param buffer_length the length of the buffer
+ * @param link the link to fill
+ * @returns true(1) on success
+ */
+int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct NodeLink** node_link) {
 	size_t pos = 0;
 	int retVal = 0;
-	*link = (struct NodeLink*)malloc(sizeof(struct NodeLink));
-	(*link)->cid = NULL;
-	(*link)->name = NULL;
-	(*link)->next = NULL;
-	unsigned char* temp_buffer = NULL;
-	size_t temp_size;
+	struct NodeLink* link = NULL;
 
-	if (*link == NULL)
+	// allocate memory for object
+	if (ipfs_node_link_new(node_link) == 0)
 		goto exit;
+
+	link = *node_link;
+
 	while(pos < buffer_length) {
 		size_t bytes_read = 0;
 		int field_no;
@@ -111,19 +165,24 @@ int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, 
 		}
 		pos += bytes_read;
 		switch(field_no) {
-			case (1):
-				if (protobuf_decode_string(&buffer[pos], buffer_length - pos, &((*link)->name), &bytes_read) == 0)
+			case (1): { // hash
+				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&link->hash, &link->hash_size, &bytes_read) == 0)
 					goto exit;
 				pos += bytes_read;
 				break;
-			case (2):
-				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&temp_buffer, &temp_size, &bytes_read) == 0)
+			}
+			case (2): { // name
+				if (protobuf_decode_string(&buffer[pos], buffer_length - pos, &link->name, &bytes_read) == 0)
 					goto exit;
-				ipfs_cid_protobuf_decode(temp_buffer, temp_size, &((*link)->cid));
 				pos += bytes_read;
-				free(temp_buffer);
-				temp_buffer = NULL;
 				break;
+			}
+			case (3): { // t_size
+				if (protobuf_decode_varint(&buffer[pos], buffer_length - pos, (unsigned long long*)&link->t_size, &bytes_read) == 0)
+					goto exit;
+				pos += bytes_read;
+				break;
+			}
 		}
 	}
 
@@ -132,10 +191,8 @@ int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, 
 exit:
 	if (retVal == 0) {
 		if (link != NULL)
-			ipfs_node_link_free(*link);
+			ipfs_node_link_free(link);
 	}
-	if (temp_buffer != NULL)
-		free(temp_buffer);
 
 	return retVal;
 }
@@ -145,20 +202,15 @@ exit:
  */
 size_t ipfs_node_protobuf_encode_size(struct Node* node) {
 	size_t size = 0;
-	// data
-	size += 11 + node->data_size;
-	// encoded
-	size += 11;
-	if (node->encoded != NULL)
-		size += strlen((const char*)node->encoded);
-	// cid (a.k.a. cached)
-	size += 11 + ipfs_cid_protobuf_encode_size(node->cached);
 	// links
-	size += 11;
 	struct NodeLink* current = node->head_link;
 	while(current != NULL) {
-		size += 11 + strlen(current->name) + ipfs_cid_protobuf_encode_size(current->cid);
+		size += 11 + ipfs_node_link_protobuf_encode_size(current);
 		current = current->next;
+	}
+	// data
+	if (node->data_size > 0) {
+		size += 11 + node->data_size;
 	}
 	return size;
 }
@@ -172,43 +224,29 @@ size_t ipfs_node_protobuf_encode_size(struct Node* node) {
  * @returns true(1) on success
  */
 int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written) {
-	// data & data_size
 	size_t bytes_used = 0;
 	*bytes_written = 0;
 	int retVal = 0;
-	retVal = protobuf_encode_length_delimited(1, ipfs_node_message_fields[0], (char*)node->data, node->data_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
-	if (retVal == 0)
-		return 0;
-	*bytes_written += bytes_used;
-	int sz = 0;
-	if (node->encoded != NULL)
-		sz = strlen((char*)node->encoded);
-	retVal = protobuf_encode_length_delimited(2, ipfs_node_message_fields[1], (char*)node->encoded, sz, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
-	if (retVal == 0)
-		return 0;
-	*bytes_written += bytes_used;
-	// cid
-	size_t cid_size = ipfs_cid_protobuf_encode_size(node->cached);
-	unsigned char cid[cid_size];
-	retVal = ipfs_cid_protobuf_encode(node->cached, cid, cid_size, &cid_size);
-	if (retVal == 0)
-		return 0;
-	retVal = protobuf_encode_length_delimited(3, ipfs_node_message_fields[2], (char*)cid, cid_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
-	if (retVal == 0)
-		return 0;
-	*bytes_written += bytes_used;
 	// links
 	struct NodeLink* current = node->head_link;
-	while(current != NULL) {
-		// size + name + cid
-		size_t link_buffer_size = 11 + ipfs_node_link_protobuf_encode_size(current);
-		unsigned char link_buffer[link_buffer_size];
-		retVal = ipfs_node_link_protobuf_encode(current, link_buffer, link_buffer_size, &link_buffer_size);
+	while (current != NULL) {
+		size_t temp_size = ipfs_node_link_protobuf_encode_size(current);
+		unsigned char temp[temp_size];
+		retVal = ipfs_node_link_protobuf_encode(current, temp, temp_size, &bytes_used);
 		if (retVal == 0)
 			return 0;
-		protobuf_encode_length_delimited(4, ipfs_node_message_fields[3], (char*)link_buffer, link_buffer_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		retVal = protobuf_encode_length_delimited(1, ipfs_node_message_fields[0], (char*)temp, bytes_used, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		if (retVal == 0)
+			return 0;
 		*bytes_written += bytes_used;
 		current = current->next;
+	}
+	// data
+	if (node->data_size > 0) {
+		retVal = protobuf_encode_length_delimited(2, ipfs_node_message_fields[1], (char*)node->data, node->data_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		if (retVal == 0)
+			return 0;
+		*bytes_written += bytes_used;
 	}
 
 	return 1;
@@ -223,10 +261,8 @@ int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t m
  */
 int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Node** node) {
 	/*
-	 * Field 0: data
-	 * Field 1: encoded
-	 * Field 3: cid
-	 * Field 4: links array
+	 * Field 0: link
+	 * Field 1: data
 	 */
 	size_t pos = 0;
 	int retVal = 0;
@@ -246,35 +282,23 @@ int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struc
 		}
 		pos += bytes_read;
 		switch(field_no) {
-			case (1): // data
-				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&((*node)->data), &((*node)->data_size), &bytes_read) == 0)
-					goto exit;
-				pos += bytes_read;
-				break;
-			case (2): // encoded
-				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&((*node)->encoded), &temp_size, &bytes_read) == 0)
-					goto exit;
-				pos += bytes_read;
-				break;
-			case (3): // cid
+			case (1): {// links
 				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&temp_buffer, &temp_size, &bytes_read) == 0)
 					goto exit;
 				pos += bytes_read;
-				if (ipfs_cid_protobuf_decode(temp_buffer, temp_size, &((*node)->cached)) == 0)
-					goto exit;
-				free(temp_buffer);
-				temp_buffer = NULL;
-				break;
-			case (4): // links
-				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&temp_buffer, &temp_size, &bytes_read) == 0)
-					goto exit;
-				pos += bytes_read;
-				if (ipfs_node_link_protobuf_decode(temp_buffer, temp_size, &temp_link, &bytes_read) == 0)
+				if (ipfs_node_link_protobuf_decode(temp_buffer, temp_size, &temp_link) == 0)
 					goto exit;
 				free(temp_buffer);
 				temp_buffer = NULL;
 				ipfs_node_add_link(*node, temp_link);
 				break;
+			}
+			case (2): { // data
+				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&((*node)->data), &((*node)->data_size), &bytes_read) == 0)
+					goto exit;
+				pos += bytes_read;
+				break;
+			}
 		}
 	}
 
@@ -302,7 +326,8 @@ int ipfs_node_new(struct Node** node)
 	*node = (struct Node *)malloc(sizeof(struct Node));
 	if (*node == NULL)
 		return 0;
-	(*node)->cached = NULL;
+	(*node)->hash = NULL;
+	(*node)->hash_size = 0;
 	(*node)->data = NULL;
 	(*node)->data_size = 0;
 	(*node)->encoded = NULL;
@@ -316,11 +341,25 @@ int ipfs_node_new(struct Node** node)
  * @param cid the Cid to be copied into the Node->cached element
  * @returns true(1) on success
  */
-int ipfs_node_set_cached(struct Node* node, const struct Cid* cid)
+int ipfs_node_set_hash(struct Node* node, const unsigned char* hash, size_t hash_size)
 {
-	if (node->cached != NULL)
-		ipfs_cid_free(node->cached);
-	return ipfs_cid_new(cid->version, cid->hash, cid->hash_length, cid->codec, &(node->cached));
+	// don't reallocate if it is the same size
+	if (node->hash != NULL && hash_size != node->hash_size) {
+		free(node->hash);
+		node->hash = NULL;
+		node->hash_size = 0;
+	}
+	// we must reallocate
+	if (node->hash == NULL && hash_size > 0) {
+		node->hash = (unsigned char*)malloc(hash_size);
+		if (node->hash == NULL)
+			return 0;
+	}
+	if (hash_size > 0) { // don't bother if there is nothing to copy
+		memcpy(node->hash, hash, hash_size);
+		node->hash_size = hash_size;
+	}
+	return 1;
 }
 
 /*ipfs_node_set_data
@@ -337,7 +376,8 @@ int ipfs_node_set_data(struct Node * N, unsigned char * Data, size_t data_size)
 		return 0;
 	}
 	N->encoded = NULL;
-	N->cached = NULL;
+	N->hash = NULL;
+	N->hash_size = 0;
 	N->data = malloc(sizeof(unsigned char) * data_size);
 	if (N->data == NULL)
 		return 0;
@@ -425,9 +465,11 @@ int ipfs_node_free(struct Node * N)
 			current = current->next;
 			ipfs_node_remove_link(N, toDelete);
 		}
-		if(N->cached)
+		if(N->hash != NULL)
 		{
-			ipfs_cid_free(N->cached);
+			free(N->hash);
+			N->hash = NULL;
+			N->hash_size = 0;
 		}
 		if (N->data) {
 			free(N->data);
@@ -525,7 +567,8 @@ int ipfs_node_new_from_link(struct NodeLink * mylink, struct Node** node)
 		return 0;
 	(*node)->head_link = NULL;
 	ipfs_node_add_link(*node, mylink);
-	(*node)->cached = NULL;
+	(*node)->hash = NULL;
+	(*node)->hash_size = 0;
 	(*node)->data = NULL;
 	(*node)->data_size = 0;
 	(*node)->encoded = NULL;

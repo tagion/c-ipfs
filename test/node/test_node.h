@@ -5,7 +5,7 @@ int test_node() {
 	char * name = "Alex";
 	unsigned char * ahash = (unsigned char*)"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
 	struct NodeLink * mylink;
-	int retVal = ipfs_node_link_new(name,ahash, strlen((char*)ahash), &mylink);
+	int retVal = ipfs_node_link_create(name,ahash, strlen((char*)ahash), &mylink);
 	if (retVal == 0)
 		return 0;
 
@@ -13,7 +13,7 @@ int test_node() {
 	char * name2 = "Simo";
 	unsigned char * ahash2 = (unsigned char*)"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnSimo";
 	struct NodeLink * mylink2;
-	retVal = ipfs_node_link_new(name2, ahash2, strlen((char*)ahash2), &mylink2);
+	retVal = ipfs_node_link_create(name2, ahash2, strlen((char*)ahash2), &mylink2);
 
 	//Nodes
 	struct Node * Mynode;
@@ -32,19 +32,11 @@ int compare_link(struct NodeLink* link1, struct NodeLink* link2) {
 		printf("Link Names are different %s vs. %s\n", link1->name, link2->name);
 		return 0;
 	}
-	if (link1->cid->codec != link2->cid->codec) {
-		printf("Link cid codecs are different. Expected %02x but got %02x\n", link1->cid->codec, link2->cid->codec);
+	if (link1->hash_size != link2->hash_size) {
+		printf("Link cid hash lengths are different. Expected %d but got %d\n", (int)link1->hash_size, (int)link2->hash_size);
 		return 0;
 	}
-	if (link1->cid->hash_length != link2->cid->hash_length) {
-		printf("Link cid hash lengths are different. Expected %d but got %d\n", (int)link1->cid->hash_length, (int)link2->cid->hash_length);
-		return 0;
-	}
-	if (link1->cid->version != link2->cid->version) {
-		printf("Link cid versions are different. Expected %d but got %d\n", link1->cid->version, link2->cid->version);
-		return 0;
-	}
-	if (memcmp(link1->cid->hash, link2->cid->hash, link1->cid->hash_length) != 0) {
+	if (memcmp(link1->hash, link2->hash, link1->hash_size) != 0) {
 		printf("compare_link: The values of the hashes are different\n");
 		return 0;
 	}
@@ -59,7 +51,7 @@ int test_node_link_encode_decode() {
 	int retVal = 0;
 
 	// make a NodeLink
-	if (ipfs_node_link_new("My Name", (unsigned char*)"QmMyHash", 8, &control) == 0)
+	if (ipfs_node_link_create("My Name", (unsigned char*)"QmMyHash", 8, &control) == 0)
 		goto l_exit;
 
 	// encode it
@@ -72,7 +64,7 @@ int test_node_link_encode_decode() {
 	}
 
 	// decode it
-	if (ipfs_node_link_protobuf_decode(buffer, nl_size, &results, &nl_size) == 0) {
+	if (ipfs_node_link_protobuf_decode(buffer, nl_size, &results) == 0) {
 		goto l_exit;
 	}
 
@@ -107,14 +99,14 @@ int test_node_encode_decode() {
 		goto ed_exit;
 
 	// first link
-	if (ipfs_node_link_new((char*)"Link1", (unsigned char*)"QmLink1", 7, &link1) == 0)
+	if (ipfs_node_link_create((char*)"Link1", (unsigned char*)"QmLink1", 7, &link1) == 0)
 		goto ed_exit;
 
 	if ( ipfs_node_add_link(control, link1) == 0)
 		goto ed_exit;
 
 	// second link
-	if (ipfs_node_link_new((char*)"Link2", (unsigned char*)"QmLink2", 7, &link2) == 0)
+	if (ipfs_node_link_create((char*)"Link2", (unsigned char*)"QmLink2", 7, &link2) == 0)
 		goto ed_exit;
 	if ( ipfs_node_add_link(control, link2) == 0)
 		goto ed_exit;

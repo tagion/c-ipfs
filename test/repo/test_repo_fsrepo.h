@@ -68,7 +68,7 @@ int test_repo_fsrepo_write_read_block() {
 
 	// retrieve the block
 	struct Block* results;
-	retVal = ipfs_repo_fsrepo_block_read(block->cid, &results, fs_repo);
+	retVal = ipfs_repo_fsrepo_block_read(block->cid->hash, block->cid->hash_length, &results, fs_repo);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_blocks_block_free(block);

@@ -15,18 +15,23 @@
 
 struct NodeLink
 {
+	size_t hash_size;
+	unsigned char* hash;
 	char* name;
-	struct Cid * cid;
+	size_t t_size;
 	struct NodeLink* next;
 };
 
 struct Node
 {
-	unsigned char* data;
+	// saved in protobuf
 	size_t data_size;
-	unsigned char* encoded;
-	struct Cid* cached;
+	unsigned char* data;
 	struct NodeLink* head_link;
+	// not saved in protobuf
+	unsigned char* encoded;
+	unsigned char* hash;
+	size_t hash_size;
 };
 
 /*====================================================================================
@@ -46,7 +51,14 @@ struct Node
  * @param node_link a pointer to the new struct NodeLink
  * @returns true(1) on success
  */
-int ipfs_node_link_new(char * name, unsigned char * ahash, size_t hash_size, struct NodeLink** node_link);
+int ipfs_node_link_create(char * name, unsigned char * ahash, size_t hash_size, struct NodeLink** node_link);
+
+/****
+ * Allocate memory for a new NodeLink
+ * @param node_link a pointer to the newly allocated memory
+ * @returns true(1) on success
+ */
+int ipfs_node_link_new(struct NodeLink** node_link);
 
 /* ipfs_node_link_free
  * @param L: Free the link you have allocated.
@@ -82,7 +94,7 @@ int ipfs_node_link_protobuf_encode(struct NodeLink* link, unsigned char* buffer,
  * @param bytes_read the amount of bytes read by this function
  * @returns true(1) on success
  */
-int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct NodeLink** link, size_t* bytes_read);
+int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct NodeLink** link);
 
 
 /***
@@ -127,7 +139,7 @@ int ipfs_node_new(struct Node** node);
  * @param cid the cid
  * @returns true(1) on success
  */
-int ipfs_node_set_cached(struct Node* node, const struct Cid* cid);
+int ipfs_node_set_hash(struct Node* node, const unsigned char* hash, size_t hash_size);
 
 /*ipfs_node_set_data
  * Sets the data of a node

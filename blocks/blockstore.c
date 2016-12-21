@@ -40,6 +40,20 @@ unsigned char* ipfs_blockstore_cid_to_base32(const struct Cid* cid) {
 	return buffer;
 }
 
+unsigned char* ipfs_blockstore_hash_to_base32(const unsigned char* hash, size_t hash_size) {
+	size_t key_length = libp2p_crypto_encoding_base32_encode_size(hash_size);
+	unsigned char* buffer = (unsigned char*)malloc(key_length + 1);
+	if (buffer == NULL)
+		return NULL;
+	int retVal = ipfs_datastore_helper_ds_key_from_binary(hash, hash_size, &buffer[0], key_length, &key_length);
+	if (retVal == 0) {
+		free(buffer);
+		return NULL;
+	}
+	buffer[key_length] = 0;
+	return buffer;
+}
+
 char* ipfs_blockstore_path_get(const struct FSRepo* fs_repo, const char* filename) {
 	int filepath_size = strlen(fs_repo->path) +  12;
 	char filepath[filepath_size];
@@ -60,9 +74,9 @@ char* ipfs_blockstore_path_get(const struct FSRepo* fs_repo, const char* filenam
  * @param block where to put the data to be returned
  * @returns true(1) on success
  */
-int ipfs_blockstore_get(const struct Cid* cid, struct Block** block, const struct FSRepo* fs_repo) {
+int ipfs_blockstore_get(const unsigned char* hash, size_t hash_size, struct Block** block, const struct FSRepo* fs_repo) {
 	// get datastore key, which is a base32 key of the multihash
-	unsigned char* key = ipfs_blockstore_cid_to_base32(cid);
+	unsigned char* key = ipfs_blockstore_hash_to_base32(hash, hash_size);
 
 	char* filename = ipfs_blockstore_path_get(fs_repo, (char*)key);
 

@@ -554,18 +554,18 @@ int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_re
 	return 1;
 }
 
-int ipfs_repo_fsrepo_block_read(const struct Cid* cid, struct Block** block, const struct FSRepo* fs_repo) {
+int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, struct Block** block, const struct FSRepo* fs_repo) {
 	int retVal = 0;
 
 	// get the base32 hash from the database
 	// We do this only to see if it is in the database
 	size_t fs_key_length = 100;
 	unsigned char fs_key[fs_key_length];
-	retVal = fs_repo->config->datastore->datastore_get((char*)cid->hash, cid->hash_length, fs_key, fs_key_length, &fs_key_length, fs_repo->config->datastore);
+	retVal = fs_repo->config->datastore->datastore_get((const char*)hash, hash_length, fs_key, fs_key_length, &fs_key_length, fs_repo->config->datastore);
 	if (retVal == 0) // maybe it doesn't exist?
 		return 0;
 	// now get the block from the blockstore
-	retVal = ipfs_blockstore_get(cid, block, fs_repo);
+	retVal = ipfs_blockstore_get(hash, hash_length, block, fs_repo);
 	return retVal;
 }
 

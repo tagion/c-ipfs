@@ -52,7 +52,7 @@ int test_merkledag_get_data() {
 
 	// now retrieve it
 	struct Node* results_node;
-	retVal = ipfs_merkledag_get(node1->cached, &results_node, fs_repo);
+	retVal = ipfs_merkledag_get(node1->hash, node1->hash_size, &results_node, fs_repo);
 	if (retVal == 0) {
 		ipfs_node_free(node1);
 		ipfs_node_free(results_node);
@@ -112,7 +112,7 @@ int test_merkledag_add_data() {
 	}
 
 	// make sure everything is correct
-	if (node1->cached == NULL)
+	if (node1->hash == NULL)
 		return 0;
 
 	int first_add_size = os_utils_file_size("/tmp/.ipfs/datastore/data.mdb");
@@ -132,13 +132,13 @@ int test_merkledag_add_data() {
 	}
 
 	// make sure everything is correct
-	if (node2->cached == NULL) {
+	if (node2->hash == NULL) {
 		ipfs_node_free(node1);
 		ipfs_node_free(node2);
 		return 0;
 	}
-	for(int i = 0; i < node1->cached->hash_length; i++) {
-		if (node1->cached->hash[i] != node2->cached->hash[i]) {
+	for(int i = 0; i < node1->hash_size; i++) {
+		if (node1->hash[i] != node2->hash[i]) {
 			printf("hash of node1 does not match node2 at position %d\n", i);
 			ipfs_node_free(node1);
 			ipfs_node_free(node2);
@@ -169,7 +169,7 @@ int test_merkledag_add_data() {
 	}
 
 	// make sure everything is correct
-	if (node3->cached == NULL) {
+	if (node3->hash == NULL) {
 		ipfs_node_free(node1);
 		ipfs_node_free(node2);
 		ipfs_node_free(node3);
@@ -237,7 +237,7 @@ int test_merkledag_add_node_with_links() {
 	}
 
 	// make link
-	retVal = ipfs_node_link_new("", (unsigned char*)"abc123", 6, &link);
+	retVal = ipfs_node_link_create("", (unsigned char*)"abc123", 6, &link);
 	if (retVal == 0) {
 		printf("Unable to make new link\n");
 		ipfs_repo_fsrepo_free(fs_repo);
@@ -259,7 +259,7 @@ int test_merkledag_add_node_with_links() {
 	}
 
 	// now look for it
-	retVal = ipfs_merkledag_get(node1->cached, &node2, fs_repo);
+	retVal = ipfs_merkledag_get(node1->hash, node1->hash_size, &node2, fs_repo);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(node1);
@@ -269,16 +269,16 @@ int test_merkledag_add_node_with_links() {
 	struct NodeLink* node1_link = node1->head_link;
 	struct NodeLink* node2_link = node2->head_link;
 
-	if (node1_link->cid->hash_length != node2_link->cid->hash_length) {
-		printf("Hashes are not of the same length. Hash1: %lu, Hash2: %lu\n", node1_link->cid->hash_length, node2_link->cid->hash_length);
+	if (node1_link->hash_size != node2_link->hash_size) {
+		printf("Hashes are not of the same length. Hash1: %lu, Hash2: %lu\n", node1_link->hash_size, node2_link->hash_size);
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(node1);
 		ipfs_node_free(node2);
 		return 0;
 	}
 	while(node1_link != NULL) {
-		for(int i = 0; i < node1_link->cid->hash_length; i++) {
-			if(node1_link->cid->hash[i] != node2_link->cid->hash[i]) {
+		for(int i = 0; i < node1_link->hash_size; i++) {
+			if(node1_link->hash[i] != node2_link->hash[i]) {
 				printf("Hashes do not match for node %s\n", node1_link->name);
 				ipfs_repo_fsrepo_free(fs_repo);
 				ipfs_node_free(node1);

@@ -24,7 +24,7 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 
 	// find block
 	struct Node* read_node = NULL;
-	if (ipfs_merkledag_get(cid, &read_node, fs_repo) == 0) {
+	if (ipfs_merkledag_get(cid->hash, cid->hash_length, &read_node, fs_repo) == 0) {
 		ipfs_cid_free(cid);
 		return 0;
 	}
@@ -47,7 +47,7 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 	struct NodeLink* link = read_node->head_link;
 	struct Node* link_node = NULL;
 	while (link != NULL) {
-		if ( ipfs_merkledag_get(link->cid, &link_node, fs_repo) == 0) {
+		if ( ipfs_merkledag_get(link->hash, link->hash_size, &link_node, fs_repo) == 0) {
 			fclose(file);
 			ipfs_node_free(read_node);
 			return 0;

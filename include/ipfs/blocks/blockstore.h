@@ -28,7 +28,7 @@ int ipfs_blockstore_has(struct Cid* cid, struct FSRepo* fs_repo);
  * @param block where to put the data to be returned
  * @returns true(1) on success
  */
-int ipfs_blockstore_get(const struct Cid* cid, struct Block** block, const struct FSRepo* fs_repo);
+int ipfs_blockstore_get(const unsigned char* hash, size_t hash_length, struct Block** block, const struct FSRepo* fs_repo);
 
 /***
  * Put a block in the blockstore

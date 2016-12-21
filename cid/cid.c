@@ -180,17 +180,18 @@ int ipfs_cid_decode_hash_from_base58(const unsigned char* incoming, size_t incom
 }
 
 /**
- * Turn a cid into a base 58
- * @param cid the cid to work with
+ * Turn a cid hash into a base 58
+ * @param hash the hash to work with
+ * @param hash_length the length of the existing hash
  * @param buffer where to put the results
  * @param max_buffer_length the maximum space reserved for the results
  * @returns true(1) on success
  */
-int ipfs_cid_hash_to_base58(struct Cid* cid, unsigned char* buffer, size_t max_buffer_length) {
+int ipfs_cid_hash_to_base58(const unsigned char* hash, size_t hash_length, unsigned char* buffer, size_t max_buffer_length) {
 
-	int multihash_len = cid->hash_length + 2;
+	int multihash_len = hash_length + 2;
 	unsigned char multihash[multihash_len];
-	if (mh_new(multihash, MH_H_SHA2_256, cid->hash, cid->hash_length) < 0) {
+	if (mh_new(multihash, MH_H_SHA2_256, hash, hash_length) < 0) {
 		return 0;
 	}
 

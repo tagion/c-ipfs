@@ -85,7 +85,7 @@ int ipfs_cid_decode_hash_from_base58(const unsigned char* incoming, size_t incom
  * @param max_buffer_length the maximum space reserved for the results
  * @returns true(1) on success
  */
-int ipfs_cid_hash_to_base58(struct Cid* cid, unsigned char* buffer, size_t max_buffer_length);
+int ipfs_cid_hash_to_base58(const unsigned char* hash, size_t hash_length, unsigned char* buffer, size_t max_buffer_length);
 
 /***
  * Turn a multibase decoded string of bytes into a Cid struct

@@ -51,19 +51,18 @@ int test_import_large_file() {
 	}
 
 	// cid should be the same each time
-	unsigned char cid_test[10] = { 0xec ,0x79 ,0x18 ,0x4c, 0xe8, 0xb0, 0x66, 0x39, 0xaa, 0xed };
+	unsigned char cid_test[10] = { 0x2c ,0x8e ,0x20 ,0x1b, 0xc7, 0xcc, 0x4d, 0x8f, 0x7e, 0x77 };
 
 	/*
 	for (int i = 0; i < 10; i++) {
-		printf(" %02x ", write_node->cached->hash[i]);
+		printf(" %02x ", write_node->hash[i]);
 	}
 	printf("\n");
 	*/
 
-
 	for(int i = 0; i < 10; i++) {
-		if (write_node->cached->hash[i] != cid_test[i]) {
-			printf("Hashes should be the same each time, and do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->cached->hash[i]);
+		if (write_node->hash[i] != cid_test[i]) {
+			printf("Hashes should be the same each time, and do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->hash[i]);
 			ipfs_repo_fsrepo_free(fs_repo);
 			return 0;
 		}
@@ -71,7 +70,7 @@ int test_import_large_file() {
 
 	// make sure all went okay
 	struct Node* read_node;
-	if (ipfs_merkledag_get(write_node->cached, &read_node, fs_repo) == 0) {
+	if (ipfs_merkledag_get(write_node->hash, write_node->hash_size, &read_node, fs_repo) == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(write_node);
 		return 0;
@@ -79,7 +78,7 @@ int test_import_large_file() {
 
 	// the second block should be there
 	struct Node* read_node2;
-	if (ipfs_merkledag_get(read_node->head_link->cid, &read_node2, fs_repo) == 0) {
+	if (ipfs_merkledag_get(read_node->head_link->hash, read_node->head_link->hash_size, &read_node2, fs_repo) == 0) {
 		printf("Unable to find the linked node.\n");
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(write_node);
@@ -110,7 +109,7 @@ int test_import_large_file() {
 	// convert cid to multihash
 	size_t base58_size = 55;
 	unsigned char base58[base58_size];
-	if ( ipfs_cid_hash_to_base58(read_node->cached, base58, base58_size) == 0) {
+	if ( ipfs_cid_hash_to_base58(read_node->hash, read_node->hash_size, base58, base58_size) == 0) {
 		printf("Unable to convert cid to multihash\n");
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(write_node);
@@ -199,17 +198,17 @@ int test_import_small_file() {
 	}
 
 	// cid should be the same each time
-	unsigned char cid_test[10] = { 0x47,0x51,0x40,0x0a, 0xdf, 0x62, 0xf9, 0xcc, 0x8d, 0xbb };
+	unsigned char cid_test[10] = { 0x94, 0x4f, 0x39, 0xa0, 0x33, 0x5d, 0x7f, 0xf2, 0xcd, 0x66 };
 
-	/**
+	/*
 	for (int i = 0; i < 10; i++) {
-		printf("%02x\n", write_node->cached->hash[i]);
+		printf("%02x\n", write_node->hash[i]);
 	}
 	*/
 
 	for(int i = 0; i < 10; i++) {
-		if (write_node->cached->hash[i] != cid_test[i]) {
-			printf("Hashes do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->cached->hash[i]);
+		if (write_node->hash[i] != cid_test[i]) {
+			printf("Hashes do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->hash[i]);
 			ipfs_repo_fsrepo_free(fs_repo);
 			return 0;
 		}
@@ -217,7 +216,7 @@ int test_import_small_file() {
 
 	// make sure all went okay
 	struct Node* read_node;
-	if (ipfs_merkledag_get(write_node->cached, &read_node, fs_repo) == 0) {
+	if (ipfs_merkledag_get(write_node->hash, write_node->hash_size, &read_node, fs_repo) == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(write_node);
 		return 0;

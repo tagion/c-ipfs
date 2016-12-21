@@ -71,6 +71,6 @@ int ipfs_repo_fsrepo_init(struct FSRepo* config);
  * @returns true(1) on success
  */
 int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_repo);
-int ipfs_repo_fsrepo_block_read(const struct Cid* cid, struct Block** block, const struct FSRepo* fs_repo);
+int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, struct Block** block, const struct FSRepo* fs_repo);
 
 #endif /* fs_repo_h */

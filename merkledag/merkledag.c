@@ -32,7 +32,7 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
 		return 0;
 	}
 
-	ipfs_node_set_cached(node, block->cid);
+	ipfs_node_set_hash(node, block->cid->hash, block->cid->hash_length);
 
 	if (block != NULL)
 		ipfs_blocks_block_free(block);
@@ -48,7 +48,7 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
  * @param fs_repo the repository
  * @returns true(1) on success
  */
-int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct FSRepo* fs_repo) {
+int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node** node, const struct FSRepo* fs_repo) {
 	int retVal = 1;
 	struct Block* block;
 	size_t key_length = 100;
@@ -56,12 +56,12 @@ int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct F
 
 	// look for the node in the datastore. If it is not there, it is not a node.
 	// If it exists, it is only a block.
-	retVal = fs_repo->config->datastore->datastore_get((char*)cid->hash, cid->hash_length, key, key_length, &key_length, fs_repo->config->datastore);
+	retVal = fs_repo->config->datastore->datastore_get((char*)hash, hash_size, key, key_length, &key_length, fs_repo->config->datastore);
 	if (retVal == 0)
 		return 0;
 
 	// we have the record from the db. Go get the block from the blockstore
-	retVal = ipfs_repo_fsrepo_block_read(cid, &block, fs_repo);
+	retVal = ipfs_repo_fsrepo_block_read(hash, hash_size, &block, fs_repo);
 	if (retVal == 0) {
 		return 0;
 	}
@@ -73,7 +73,7 @@ int ipfs_merkledag_get(const struct Cid* cid, struct Node** node, const struct F
 	}
 
 	// set the cid on the node
-	if (ipfs_node_set_cached(*node, cid) == 0) {
+	if (ipfs_node_set_hash(*node, hash, hash_size) == 0) {
 		ipfs_blocks_block_free(block);
 		ipfs_node_free(*node);
 		return 0;

@@ -13,7 +13,7 @@
  * @param results_length the length of the generated key
  * @returns true(1) on success
  */
-int ipfs_datastore_helper_ds_key_from_binary(unsigned char* binary_array, size_t array_length,
+int ipfs_datastore_helper_ds_key_from_binary(const unsigned char* binary_array, size_t array_length,
 		unsigned char* results, size_t max_results_length, size_t* results_length) {
 
 	size_t encoded_length = libp2p_crypto_encoding_base32_encode_size(array_length);
@@ -39,7 +39,7 @@ int ipfs_datastore_helper_ds_key_from_binary(unsigned char* binary_array, size_t
  * @param completed_binary_array_length the length of what was written to the binary_array
  * @returns true(1) on success
  */
-int ipfs_datastore_helper_binary_from_ds_key(unsigned char* ds_key, size_t key_length, unsigned char* binary_array,
+int ipfs_datastore_helper_binary_from_ds_key(const unsigned char* ds_key, size_t key_length, unsigned char* binary_array,
 		size_t max_binary_array_length, size_t* completed_binary_array_length) {
 
 	size_t decoded_length = libp2p_crypto_encoding_base32_decode_size(key_length);
