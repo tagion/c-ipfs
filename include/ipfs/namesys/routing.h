@@ -10,7 +10,7 @@
     struct cacheEntry {
         char *key;
         char *value;
-        struct stime eol;
+        struct timespec eol;
     };
 
     struct routingResolver {
@@ -29,7 +29,8 @@
     // ipfs_namesys_routing_resolve_once implements resolver. Uses the IPFS
     // routing system to resolve SFS-like names.
     int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char *prefix, struct namesys_pb *pb);
-    int ipfs_namesys_routing_check_EOL (struct stime *st, struct namesys_pb *pb);
+    int ipfs_namesys_routing_check_EOL (struct timespec *ts, struct namesys_pb *pb);
+
     int ipfs_namesys_routing_get_value (char*, char*);
     int ipfs_namesys_routing_getpublic_key (char*, struct MultiHash*);
 #endif // IPNS_NAMESYS_ROUTING_H
