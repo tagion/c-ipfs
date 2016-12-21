@@ -2,6 +2,7 @@
 
 #include "ipfs/importer/importer.h"
 #include "ipfs/merkledag/merkledag.h"
+#include "ipfs/repo/fsrepo/fs_repo.h"
 
 #define MAX_DATA_SIZE 262144 // 1024 * 256;
 
@@ -62,4 +63,46 @@ int ipfs_import_file(const char* fileName, struct Node** node, struct FSRepo* fs
 	fclose(file);
 
 	return 1;
+}
+
+/**
+ * called from the command line
+ * @param argc the number of arguments
+ * @param argv the arguments
+ */
+int ipfs_import(int argc, char** argv) {
+	/*
+	 * Param 0: ipfs
+	 * param 1: add
+	 * param 2: filename
+	 */
+	struct Node* node = NULL;
+	struct FSRepo* fs_repo = NULL;
+
+	// open the repo
+	int retVal = ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo);
+	if (retVal == 0) {
+		return 0;
+	}
+	retVal = ipfs_repo_fsrepo_open(fs_repo);
+
+	// import the file(s)
+	retVal = ipfs_import_file(argv[2], &node, fs_repo);
+
+	// give some results to the user
+	int buffer_len = 100;
+	unsigned char buffer[buffer_len];
+	retVal = ipfs_cid_hash_to_base58(node->hash, node->hash_size, buffer, buffer_len);
+	if (retVal == 0) {
+		printf("Unable to generate hash\n");
+		return 0;
+	}
+	printf("added %s %s\n", buffer, argv[2]);
+
+	if (node != NULL)
+		ipfs_node_free(node);
+	if (fs_repo != NULL)
+		ipfs_repo_fsrepo_free(fs_repo);
+
+	return retVal;
 }

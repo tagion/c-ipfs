@@ -6,7 +6,7 @@ CFLAGS += -g3
 endif
 
 DEPS = 
-OBJS =  
+OBJS = init.c
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

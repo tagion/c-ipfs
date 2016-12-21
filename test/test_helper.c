@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
+#include "ipfs/repo/init.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/os/utils.h"
 
@@ -67,10 +68,9 @@ int remove_directory(const char *path)
    return r;
 }
 
-int make_ipfs_repository(const char* path) {
-	int retVal;
-	char currDirectory[1024];
-	struct RepoConfig* repo_config;
+int drop_and_build_repository(const char* path) {
+	int retVal = 0;
+	char currDirectory[strlen(path) + 20];
 
 	if (os_utils_file_exists(path)) {
 		retVal = os_utils_filepath_join(path, "config", currDirectory, 1024);
@@ -89,37 +89,7 @@ int make_ipfs_repository(const char* path) {
 		mkdir(path, S_IRWXU);
 	}
 
-	// build a default repo config
-	retVal = ipfs_repo_config_new(&repo_config);
-	if (retVal == 0)
-		return 0;
-	retVal = ipfs_repo_config_init(repo_config, 2048, path);
-	if (retVal == 0)
-		return 0;
-	// now the fs_repo
-	struct FSRepo* fs_repo;
-	retVal = ipfs_repo_fsrepo_new(path, repo_config, &fs_repo);
-	if (retVal == 0)
-		return 0;
-	// this builds a new repo
-	retVal = ipfs_repo_fsrepo_init(fs_repo);
-	if (retVal == 0) {
-		ipfs_repo_fsrepo_free(fs_repo);
-		return 0;
-	}
 
-	// clean up
-	ipfs_repo_fsrepo_free(fs_repo);
-
-	// make sure the repository exists
-	retVal = os_utils_filepath_join(path, "config", currDirectory, 1024);
-	if (retVal == 0)
-		return 0;
-	retVal = os_utils_file_exists(currDirectory);
-	return retVal;
-}
-
-int drop_and_build_repository(const char* path) {
 	return make_ipfs_repository(path);
 }
 

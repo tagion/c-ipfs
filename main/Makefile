@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -O0 -I../include -I../../c-libp2p/include -I../../c-multihash/include -I../../c-multiaddr/ -I../../c-protobuf -g3 -Wall
 LFLAGS = -L../../c-libp2p -L../../c-multihash -L../../c-multiaddr -lp2p -lm -lmultihash -lmultiaddr -lpthread
 DEPS = cmd/ipfs/test_init.h repo/test_repo_bootstrap_peers.h repo/test_repo_config.h repo/test_repo_identity.h cid/test_cid.h
-OBJS = testit.o test_helper.o \
+OBJS = main.o \
 	../blocks/block.o ../blocks/blockstore.o \
 	../cid/cid.o \
 	../cmd/ipfs/init.o \
@@ -27,11 +27,11 @@ OBJS = testit.o test_helper.o \
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-test_ipfs: $(OBJS)
+ipfs: $(OBJS)
 	$(CC) -o $@ $^ $(LFLAGS) ../../lmdb/libraries/liblmdb/liblmdb.a
 
-all: test_ipfs
+all: ipfs
 
 clean:
 	rm -f *.o
-	rm -f test_ipfs
+	rm -f ipfs

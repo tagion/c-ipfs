@@ -12,4 +12,11 @@
  */
 int ipfs_import_file(const char* fileName, struct Node** node, struct FSRepo* fs_repo);
 
+/**
+ * called from the command line
+ * @param argc the number of arguments
+ * @param argv the arguments
+ */
+int ipfs_import(int argc, char** argv);
+
 #endif /* INCLUDE_IPFS_IMPORTER_IMPORTER_H_ */
