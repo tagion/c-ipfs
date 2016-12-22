@@ -3,6 +3,7 @@
 
 #include "ipfs/repo/init.h"
 #include "ipfs/importer/importer.h"
+#include "ipfs/importer/exporter.h"
 
 void stripit(int argc, char** argv) {
 	char tmp[strlen(argv[argc])];
@@ -22,6 +23,7 @@ void strip_quotes(int argc, char** argv) {
 
 #define INIT 1
 #define ADD 2
+#define OBJECT_GET 3
 
 /***
  * Basic parsing of command line arguments to figure out where the user wants to go
@@ -36,6 +38,9 @@ int parse_arguments(int argc, char** argv) {
 	}
 	if (strcmp("add", argv[1]) == 0) {
 		return ADD;
+	}
+	if (strcmp("object", argv[1]) == 0 && argc > 2 && strcmp("get", argv[2]) == 0) {
+		return OBJECT_GET;
 	}
 	return -1;
 }
@@ -52,6 +57,9 @@ int main(int argc, char** argv) {
 		break;
 	case (ADD):
 		ipfs_import(argc, argv);
+		break;
+	case (OBJECT_GET):
+		ipfs_exporter_object_get(argc, argv);
 		break;
 	}
 }

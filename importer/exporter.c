@@ -70,3 +70,71 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 
 	return 1;
 }
+
+/**
+ * get a file by its hash, and write the data to a file
+ * @param hash the base58 multihash of the cid
+ * @param file_name the file name to write to
+ * @returns true(1) on success
+ */
+int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_repo) {
+	// convert hash to cid
+	struct Cid* cid = NULL;
+	if ( ipfs_cid_decode_hash_from_base58(hash, strlen((char*)hash), &cid) == 0) {
+		return 0;
+	}
+
+	// find block
+	struct Node* read_node = NULL;
+	if (ipfs_merkledag_get(cid->hash, cid->hash_length, &read_node, fs_repo) == 0) {
+		ipfs_cid_free(cid);
+		return 0;
+	}
+
+	// no longer need the cid
+	ipfs_cid_free(cid);
+
+	// process blocks
+	struct NodeLink* link = read_node->head_link;
+	printf("Links:[");
+	while (link != NULL) {
+		unsigned char b58[100];
+		ipfs_cid_hash_to_base58(link->hash, link->hash_size, b58, 100);
+		printf("{\"Name\":\"%s\",\"Hash\":\"%s\",\"Size\":%lu}", (link->name != NULL ? link->name : ""), (char*)b58, link->t_size);
+		link = link->next;
+	}
+	printf("],\"Data\":\"");
+	for(size_t i = 0LU; i < read_node->data_size; i++) {
+		printf("%02x", read_node->data[i]);
+	}
+	printf("\"}\n");
+
+	if (read_node != NULL)
+		ipfs_node_free(read_node);
+
+	return 1;
+}
+
+
+/***
+ * Called from the command line with ipfs object get [hash]. Retrieves the object pointed to by hash, and displays its block data (links and data elements)
+ * @param argc number of arguments
+ * @param argv arguments
+ * @returns true(1) on success
+ */
+int ipfs_exporter_object_get(int argc, char** argv) {
+	struct FSRepo* fs_repo = NULL;
+
+	// open the repo
+	int retVal = ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo);
+	if (retVal == 0) {
+		return 0;
+	}
+	retVal = ipfs_repo_fsrepo_open(fs_repo);
+	if (retVal == 0) {
+		return 0;
+	}
+	// find hash
+	retVal = ipfs_exporter_to_console((unsigned char*)argv[3], fs_repo);
+	return retVal;
+}

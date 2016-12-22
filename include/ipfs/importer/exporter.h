@@ -7,3 +7,6 @@
  * @returns true(1) on success
  */
 int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, const struct FSRepo* fs_repo);
+
+int ipfs_exporter_object_get(int argc, char** argv);
+

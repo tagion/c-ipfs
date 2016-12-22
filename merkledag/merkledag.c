@@ -42,8 +42,9 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
 }
 
 /***
- * Retrieves a node from the datastore based on the cid
- * @param cid the key to look for
+ * Retrieves a node from the datastore based on the hash
+ * @param hash the key to look for
+ * @param hash_size the length of the key
  * @param node the node to be created
  * @param fs_repo the repository
  * @returns true(1) on success
