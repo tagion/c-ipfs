@@ -1,7 +1,7 @@
 #ifndef DNSLINK_H
    #define DNSLINK_H
 
-   #include "ipfs/errs.h"
+   #include "ipfs/util/errs.h"
 
    // DefaultDepthLimit controls how many dns links to resolve through before
    // returning. Users can override this default.
@@ -17,6 +17,7 @@
       extern int (*ipfs_dnslink_lookup_txt)(char ***, char *);
    #endif // IPFS_DNSLINK_C
 
+   int ipfs_dns (int argc, char **argv);
    int ipfs_dnslink_resolve (char **p, char *domain);
    int ipfs_dnslink_resolve_n (char **p, char *d, int depth);
    int ipfs_dnslink_resolv_lookupTXT(char ***txt, char *domain);

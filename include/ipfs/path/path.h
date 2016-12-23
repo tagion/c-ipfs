@@ -1,7 +1,7 @@
 #ifndef IPFS_PATH_H
    #define IPFS_PATH_H
 
-   #include "ipfs/errs.h"
+   #include "ipfs/util/errs.h"
 
    char* ipfs_path_from_cid (struct Cid *c);
    char** ipfs_path_split_n (char *p, char *delim, int n);

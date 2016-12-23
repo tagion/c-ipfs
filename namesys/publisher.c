@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "ipfs/errs.h"
+#include "ipfs/util/errs.h"
 #include "ipfs/util/time.h"
 #include "ipfs/namesys/pb.h"
 #include "ipfs/namesys/publisher.h"

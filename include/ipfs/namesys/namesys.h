@@ -3,7 +3,7 @@
 
     #define DefaultDepthLimit 32
 
-    #include "ipfs/errs.h"
+    #include "ipfs/util/errs.h"
 
     typedef struct s_resolvers {
         char *protocol;
