@@ -15,6 +15,7 @@ int test_unixfs_encode_decode() {
 
 	retVal = ipfs_unixfs_protobuf_encode(unixfs, buffer, buffer_size, &bytes_written);
 	if (retVal == 0) {
+		ipfs_unixfs_free(unixfs);
 		return 0;
 	}
 
@@ -22,18 +23,25 @@ int test_unixfs_encode_decode() {
 	struct UnixFS* results = NULL;
 	retVal = ipfs_unixfs_protobuf_decode(buffer, bytes_written, &results);
 	if (retVal == 0) {
+		ipfs_unixfs_free(unixfs);
 		return 0;
 	}
 
 	// compare
 	if (results->data_type != unixfs->data_type) {
+		ipfs_unixfs_free(unixfs);
+		ipfs_unixfs_free(results);
 		return 0;
 	}
 
 	if (results->block_size_head != unixfs->block_size_head) {
+		ipfs_unixfs_free(unixfs);
+		ipfs_unixfs_free(results);
 		return 0;
 	}
 
+	ipfs_unixfs_free(unixfs);
+	ipfs_unixfs_free(results);
 	return 1;
 }
 
@@ -71,15 +79,21 @@ int test_unixfs_encode_smallfile() {
 	size_t bytes_written;
 	ipfs_unixfs_protobuf_encode(unixfs, protobuf, protobuf_size, &bytes_written);
 
+	int retVal = 1;
+
 	if (bytes_written != 41) {
 		printf("Length should be %lu, but is %lu\n", 41LU, bytes_written);
+		retVal = 0;
 	}
 
 	for(int i = 0; i < bytes_written; i++) {
 		if (expected_results[i] != protobuf[i]) {
 			printf("Byte at position %d should be %02x but is %02x\n", i, expected_results[i], protobuf[i]);
+			retVal = 0;
 		}
 	}
 
-	return 1;
+	ipfs_unixfs_free(unixfs);
+
+	return retVal;
 }

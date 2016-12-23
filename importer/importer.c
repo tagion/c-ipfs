@@ -23,31 +23,59 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 	unsigned char buffer[MAX_DATA_SIZE];
 	size_t bytes_read = fread(buffer, 1, MAX_DATA_SIZE, file);
 
-	// put the file bits into a new UnixFS file
+	// structs used by this method
 	struct UnixFS* new_unixfs = NULL;
-	ipfs_unixfs_new(&new_unixfs);
+	struct Node* new_node = NULL;
+	struct NodeLink* new_link = NULL;
+
+	// put the file bits into a new UnixFS file
+	if (ipfs_unixfs_new(&new_unixfs) == 0)
+		return 0;
 	new_unixfs->data_type = UNIXFS_FILE;
-	ipfs_unixfs_add_data(&buffer[0], bytes_read, new_unixfs);
+	if (ipfs_unixfs_add_data(&buffer[0], bytes_read, new_unixfs) == 0) {
+		ipfs_unixfs_free(new_unixfs);
+		return 0;
+	}
 	// protobuf the UnixFS
 	size_t protobuf_size = ipfs_unixfs_protobuf_encode_size(new_unixfs);
+	if (protobuf_size == 0) {
+		ipfs_unixfs_free(new_unixfs);
+		return 0;
+	}
 	unsigned char protobuf[protobuf_size];
 	size_t bytes_written = 0;
-	ipfs_unixfs_protobuf_encode(new_unixfs, protobuf, protobuf_size, &bytes_written);
-	// we're done with the object
-	ipfs_unixfs_free(new_unixfs);
+	if (ipfs_unixfs_protobuf_encode(new_unixfs, protobuf, protobuf_size, &bytes_written) == 0) {
+		ipfs_unixfs_free(new_unixfs);
+		return 0;
+	}
 	// create a new node
-	struct Node* new_node = NULL;
-	ipfs_node_new_from_data(protobuf, bytes_written, &new_node);
-	ipfs_node_set_hash(new_node, new_unixfs->hash, new_unixfs->hash_length);
+	if (ipfs_node_new_from_data(protobuf, bytes_written, &new_node) == 0) {
+		return 0;
+	}
+	if (ipfs_node_set_hash(new_node, new_unixfs->hash, new_unixfs->hash_length) == 0) {
+		ipfs_node_free(new_node);
+		return 0;
+	}
+	// we're done with the UnixFS object
+	ipfs_unixfs_free(new_unixfs);
 	// persist
 	size_t size_of_node = 0;
-	ipfs_merkledag_add(new_node, fs_repo, &size_of_node);
+	if (ipfs_merkledag_add(new_node, fs_repo, &size_of_node) == 0) {
+		ipfs_node_free(new_node);
+		return 0;
+	}
 	// put link in parent node
-	struct NodeLink* new_link = NULL;
-	ipfs_node_link_create("", new_node->hash, new_node->hash_size, &new_link);
+	if (ipfs_node_link_create("", new_node->hash, new_node->hash_size, &new_link) == 0) {
+		ipfs_node_free(new_node);
+		return 0;
+	}
 	new_link->t_size = size_of_node;
 	*total_size += new_link->t_size;
-	ipfs_node_add_link(parent_node, new_link);
+	// NOTE: disposal of this link object happens when the parent is disposed
+	if (ipfs_node_add_link(parent_node, new_link) == 0) {
+		ipfs_node_free(new_node);
+		return 0;
+	}
 	ipfs_node_free(new_node);
 	if (bytes_read != MAX_DATA_SIZE) {
 		// We have read everything, now save the parent_node,
@@ -138,6 +166,8 @@ int ipfs_import(int argc, char** argv) {
 	retVal = ipfs_cid_hash_to_base58(directory_node->hash, directory_node->hash_size, buffer, buffer_len);
 	if (retVal == 0) {
 		printf("Unable to generate hash\n");
+		ipfs_node_free(directory_node);
+		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
 	printf("added %s %s\n", buffer, argv[2]);

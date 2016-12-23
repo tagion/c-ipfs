@@ -7,3 +7,4 @@
 *.o
 .settings/language.settings.xml
 test/test_ipfs
+main/ipfs

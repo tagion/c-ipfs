@@ -60,5 +60,6 @@ int ipfs_blockstore_get_unixfs(const unsigned char* hash, size_t hash_length, st
  * Put a struct Node in the blockstore
  */
 int ipfs_blockstore_put_node(const struct Node* node, const struct FSRepo* fs_repo, size_t* bytes_written);
+int ipfs_blockstore_get_node(const unsigned char* hash, size_t hash_length, struct Node** node, const struct FSRepo* fs_repo);
 
 #endif

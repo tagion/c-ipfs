@@ -375,9 +375,6 @@ int ipfs_node_set_data(struct Node * N, unsigned char * Data, size_t data_size)
 	{
 		return 0;
 	}
-	N->encoded = NULL;
-	N->hash = NULL;
-	N->hash_size = 0;
 	N->data = malloc(sizeof(unsigned char) * data_size);
 	if (N->data == NULL)
 		return 0;

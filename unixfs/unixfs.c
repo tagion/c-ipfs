@@ -53,6 +53,12 @@ int ipfs_unixfs_new(struct UnixFS** obj) {
 
 int ipfs_unixfs_free(struct UnixFS* obj) {
 	if (obj != NULL) {
+		if (obj->hash != NULL) {
+			free(obj->hash);
+		}
+		if (obj->bytes != NULL) {
+			free(obj->bytes);
+		}
 		free(obj);
 		obj = NULL;
 	}

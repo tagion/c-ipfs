@@ -277,3 +277,33 @@ int ipfs_blockstore_put_node(const struct Node* node, const struct FSRepo* fs_re
 	free(filename);
 	return 1;
 }
+
+/***
+ * Find a UnixFS struct based on its hash
+ * @param hash the hash to look for
+ * @param hash_length the length of the hash
+ * @param unix_fs the struct to fill
+ * @param fs_repo where to look for the data
+ * @returns true(1) on success
+ */
+int ipfs_blockstore_get_node(const unsigned char* hash, size_t hash_length, struct Node** node, const struct FSRepo* fs_repo) {
+	// get datastore key, which is a base32 key of the multihash
+	unsigned char* key = ipfs_blockstore_hash_to_base32(hash, hash_length);
+
+	char* filename = ipfs_blockstore_path_get(fs_repo, (char*)key);
+
+	size_t file_size = os_utils_file_size(filename);
+	unsigned char buffer[file_size];
+
+	FILE* file = fopen(filename, "rb");
+	size_t bytes_read = fread(buffer, 1, file_size, file);
+	fclose(file);
+
+	int retVal = ipfs_node_protobuf_decode(buffer, bytes_read, node);
+
+	free(key);
+	free(filename);
+
+	return retVal;
+}
+

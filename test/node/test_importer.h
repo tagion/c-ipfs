@@ -64,6 +64,7 @@ int test_import_large_file() {
 		if (write_node->hash[i] != cid_test[i]) {
 			printf("Hashes should be the same each time, and do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->hash[i]);
 			ipfs_repo_fsrepo_free(fs_repo);
+			ipfs_node_free(write_node);
 			return 0;
 		}
 	}
@@ -210,6 +211,7 @@ int test_import_small_file() {
 		if (write_node->hash[i] != cid_test[i]) {
 			printf("Hashes do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->hash[i]);
 			ipfs_repo_fsrepo_free(fs_repo);
+			ipfs_node_free(write_node);
 			return 0;
 		}
 	}
