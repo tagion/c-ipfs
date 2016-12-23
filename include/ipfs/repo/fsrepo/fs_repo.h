@@ -5,8 +5,10 @@
 #define fs_repo_h
 
 #include <stdio.h>
-#include "ipfs/repo/config/config.h"
 
+#include "ipfs/repo/config/config.h"
+#include "ipfs/unixfs/unixfs.h"
+#include "ipfs/merkledag/node.h"
 
 /**
  * a structure to hold the repo info
@@ -72,5 +74,24 @@ int ipfs_repo_fsrepo_init(struct FSRepo* config);
  */
 int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_repo);
 int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, struct Block** block, const struct FSRepo* fs_repo);
+
+/***
+ * Write a unixfs to the datastore and blockstore
+ * @param unix_fs the struct to write
+ * @param fs_repo the repo to write to
+ * @returns true(1) on success
+ */
+int ipfs_repo_fsrepo_unixfs_write(const struct UnixFS* unix_fs, const struct FSRepo* fs_repo, size_t* bytes_written);
+int ipfs_repo_fsrepo_unixfs_read(const unsigned char* hash, size_t hash_length, struct UnixFS** unix_fs, const struct FSRepo* fs_repo);
+
+/***
+ * Write a struct Node to the datastore and blockstore
+ * @param node the struct to write
+ * @param fs_repo the repo to write to
+ * @returns true(1) on success
+ */
+int ipfs_repo_fsrepo_node_write(const struct Node* unix_fs, const struct FSRepo* fs_repo, size_t* bytes_written);
+int ipfs_repo_fsrepo_node_read(const unsigned char* hash, size_t hash_length, struct Node** node, const struct FSRepo* fs_repo);
+
 
 #endif /* fs_repo_h */

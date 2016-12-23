@@ -65,7 +65,6 @@ int test_unixfs_encode_smallfile() {
 	memcpy(unixfs->bytes, bytes, 35);
 	unixfs->bytes_size = 35;
 	unixfs->data_type = UNIXFS_FILE;
-	unixfs->file_size = 35;
 
 	size_t protobuf_size = 43;
 	unsigned char protobuf[protobuf_size];

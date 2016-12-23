@@ -4,7 +4,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "libp2p/crypto/sha256.h"
 #include "ipfs/unixfs/unixfs.h"
 #include "protobuf.h"
 #include "varint.h"
@@ -43,8 +45,9 @@ int ipfs_unixfs_new(struct UnixFS** obj) {
 	(*obj)->bytes = 0;
 	(*obj)->bytes_size = 0;
 	(*obj)->data_type = UNIXFS_RAW;
-	(*obj)->file_size = 0;
 	(*obj)->block_size_head = NULL;
+	(*obj)->hash = NULL;
+	(*obj)->hash_length = 0;
 	return 1;
 }
 
@@ -55,6 +58,40 @@ int ipfs_unixfs_free(struct UnixFS* obj) {
 	}
 	return 1;
 }
+
+/***
+ * Write data to data section of a UnixFS stuct. NOTE: this also calculates a sha256 hash
+ * @param data the data to write
+ * @param data_length the length of the data
+ * @param unix_fs the struct to add to
+ * @returns true(1) on success
+ */
+int ipfs_unixfs_add_data(unsigned char* data, size_t data_length, struct UnixFS* unix_fs) {
+
+	unix_fs->bytes_size = data_length;
+	unix_fs->bytes = malloc(sizeof(unsigned char) * data_length);
+	if ( unix_fs->bytes == NULL) {
+		return 0;
+	}
+	memcpy( unix_fs->bytes, data, data_length);
+
+	// now compute the hash
+	unix_fs->hash_length = 32;
+	unix_fs->hash = (unsigned char*)malloc(unix_fs->hash_length);
+	if (unix_fs->hash == NULL) {
+		free(unix_fs->bytes);
+		return 0;
+	}
+	if (libp2p_crypto_hashing_sha256(data, data_length, &unix_fs->hash[0]) == 0) {
+		free(unix_fs->bytes);
+		free(unix_fs->hash);
+		return 0;
+	}
+
+	return 1;
+
+}
+
 
 /**
  * Protobuf functions
@@ -68,7 +105,7 @@ enum WireType ipfs_unixfs_message_fields[] = { WIRETYPE_VARINT, WIRETYPE_LENGTH_
  * @param obj what will be encoded
  * @returns the size of the buffer necessary to encode the object
  */
-size_t ipfs_unixfs_protobuf_encode_size(struct UnixFS* obj) {
+size_t ipfs_unixfs_protobuf_encode_size(const struct UnixFS* obj) {
 	size_t sz = 0;
 	// bytes
 	sz += obj->bytes_size + 11;
@@ -111,8 +148,8 @@ int ipfs_unixfs_protobuf_encode(const struct UnixFS* incoming, unsigned char* ou
 			*bytes_written += bytes_used;
 		}
 		// file size (optional)
-		if (incoming->file_size > 0) {
-			retVal = protobuf_encode_varint(3, ipfs_unixfs_message_fields[2], incoming->file_size, &outgoing[*bytes_written], max_buffer_size - (*bytes_written), &bytes_used);
+		if (incoming->data_type == UNIXFS_FILE && incoming->bytes_size > 0) {
+			retVal = protobuf_encode_varint(3, ipfs_unixfs_message_fields[2], incoming->bytes_size, &outgoing[*bytes_written], max_buffer_size - (*bytes_written), &bytes_used);
 			if (retVal == 0)
 				return 0;
 			*bytes_written += bytes_used;
@@ -168,7 +205,7 @@ int ipfs_unixfs_protobuf_decode(unsigned char* incoming, size_t incoming_size, s
 				pos += bytes_read;
 				break;
 			case (3): // file size
-				result->file_size = varint_decode(&incoming[pos], incoming_size - pos, &bytes_read);
+				result->bytes_size = varint_decode(&incoming[pos], incoming_size - pos, &bytes_read);
 				pos += bytes_read;
 				break;
 			case (4): { // block sizes (linked list from varint)

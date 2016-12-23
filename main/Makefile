@@ -9,14 +9,14 @@ OBJS = main.o \
 	../commands/argument.o ../commands/command_option.o ../commands/command.o ../commands/cli/parse.o \
 	../core/builder.o \
 	../datastore/ds_helper.o \
+	../dnslink/dnslink.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o \
 	../importer/exporter.o \
-	../dnslink/dnslink.o \
 	../path/path.o \
-	../namesys/isdomain.o \
 	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \
+	../namesys/isdomain.o \
 	../os/utils.o \
 	../repo/init.o \
 	../repo/fsrepo/fs_repo.o ../repo/fsrepo/jsmn.o ../repo/fsrepo/lmdb_datastore.o \

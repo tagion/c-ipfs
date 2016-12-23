@@ -42,8 +42,8 @@ int test_merkledag_get_data() {
 	// create a node
 	struct Node* node1;
 	retVal = ipfs_node_new_from_data(binary_data, binary_data_size, &node1);
-
-	retVal = ipfs_merkledag_add(node1, fs_repo);
+	size_t bytes_written = 0;
+	retVal = ipfs_merkledag_add(node1, fs_repo, &bytes_written);
 	if (retVal == 0) {
 		ipfs_node_free(node1);
 		ipfs_repo_fsrepo_free(fs_repo);
@@ -105,7 +105,8 @@ int test_merkledag_add_data() {
 	struct Node* node1;
 	retVal = ipfs_node_new_from_data(binary_data, binary_data_size, &node1);
 
-	retVal = ipfs_merkledag_add(node1, fs_repo);
+	size_t bytes_written = 0;
+	retVal = ipfs_merkledag_add(node1, fs_repo, &bytes_written);
 	if (retVal == 0) {
 		ipfs_node_free(node1);
 		return 0;
@@ -124,7 +125,7 @@ int test_merkledag_add_data() {
 	// adding the same binary again should do nothing (the hash should be the same)
 	struct Node* node2;
 	retVal = ipfs_node_new_from_data(binary_data, binary_data_size, &node2);
-	retVal = ipfs_merkledag_add(node2, fs_repo);
+	retVal = ipfs_merkledag_add(node2, fs_repo, &bytes_written);
 	if (retVal == 0) {
 		ipfs_node_free(node1);
 		ipfs_node_free(node2);
@@ -160,7 +161,7 @@ int test_merkledag_add_data() {
 	struct Node* node3;
 	retVal = ipfs_node_new_from_data(binary_data, binary_data_size, &node3);
 
-	retVal = ipfs_merkledag_add(node3, fs_repo);
+	retVal = ipfs_merkledag_add(node3, fs_repo, &bytes_written);
 	if (retVal == 0) {
 		ipfs_node_free(node1);
 		ipfs_node_free(node2);
@@ -207,7 +208,8 @@ int test_merkledag_add_node() {
 		return 0;
 	}
 
-	retVal = ipfs_merkledag_add(node1, fs_repo);
+	size_t bytes_written = 0;
+	retVal = ipfs_merkledag_add(node1, fs_repo, &bytes_written);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(node1);
@@ -250,7 +252,8 @@ int test_merkledag_add_node_with_links() {
 		return 0;
 	}
 
-	retVal = ipfs_merkledag_add(node1, fs_repo);
+	size_t bytes_written = 0;
+	retVal = ipfs_merkledag_add(node1, fs_repo, &bytes_written);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(node1);

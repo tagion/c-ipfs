@@ -40,12 +40,12 @@ unsigned char* ipfs_blockstore_cid_to_base32(const struct Cid* cid) {
 	return buffer;
 }
 
-unsigned char* ipfs_blockstore_hash_to_base32(const unsigned char* hash, size_t hash_size) {
-	size_t key_length = libp2p_crypto_encoding_base32_encode_size(hash_size);
+unsigned char* ipfs_blockstore_hash_to_base32(const unsigned char* hash, size_t hash_length) {
+	size_t key_length = libp2p_crypto_encoding_base32_encode_size(hash_length);
 	unsigned char* buffer = (unsigned char*)malloc(key_length + 1);
 	if (buffer == NULL)
 		return NULL;
-	int retVal = ipfs_datastore_helper_ds_key_from_binary(hash, hash_size, &buffer[0], key_length, &key_length);
+	int retVal = ipfs_datastore_helper_ds_key_from_binary(hash, hash_length, &buffer[0], key_length, &key_length);
 	if (retVal == 0) {
 		free(buffer);
 		return NULL;
@@ -140,6 +140,138 @@ int ipfs_blockstore_put(struct Block* block, struct FSRepo* fs_repo) {
 
 	// send to Put with key (this is now done separately)
 	//fs_repo->config->datastore->datastore_put(key, key_length, block->data, block->data_length, fs_repo->config->datastore);
+
+	free(key);
+	free(filename);
+	return 1;
+}
+
+/***
+ * Put a struct UnixFS in the blockstore
+ * @param unix_fs the structure
+ * @param fs_repo the repo to place the strucure in
+ * @param bytes_written the number of bytes written to the blockstore
+ * @returns true(1) on success
+ */
+int ipfs_blockstore_put_unixfs(const struct UnixFS* unix_fs, const struct FSRepo* fs_repo, size_t* bytes_written) {
+	// from blockstore.go line 118
+	int retVal = 0;
+
+	// Get Datastore key, which is a base32 key of the multihash,
+	unsigned char* key = ipfs_blockstore_hash_to_base32(unix_fs->hash, unix_fs->hash_length);
+	if (key == NULL) {
+		free(key);
+		return 0;
+	}
+
+	//TODO: put this in subdirectories
+
+	// turn the block into a binary array
+	size_t protobuf_len = ipfs_unixfs_protobuf_encode_size(unix_fs);
+	unsigned char protobuf[protobuf_len];
+	retVal = ipfs_unixfs_protobuf_encode(unix_fs, protobuf, protobuf_len, &protobuf_len);
+	if (retVal == 0) {
+		free(key);
+		return 0;
+	}
+
+	// now write byte array to file
+	char* filename = ipfs_blockstore_path_get(fs_repo, (char*)key);
+	if (filename == NULL) {
+		free(key);
+		return 0;
+	}
+
+	FILE* file = fopen(filename, "wb");
+	*bytes_written = fwrite(protobuf, 1, protobuf_len, file);
+	fclose(file);
+	if (*bytes_written != protobuf_len) {
+		free(key);
+		free(filename);
+		return 0;
+	}
+
+	// send to Put with key (this is now done separately)
+	//fs_repo->config->datastore->datastore_put(key, key_length, block->data, block->data_length, fs_repo->config->datastore);
+
+	free(key);
+	free(filename);
+	return 1;
+}
+
+/***
+ * Find a UnixFS struct based on its hash
+ * @param hash the hash to look for
+ * @param hash_length the length of the hash
+ * @param unix_fs the struct to fill
+ * @param fs_repo where to look for the data
+ * @returns true(1) on success
+ */
+int ipfs_blockstore_get_unixfs(const unsigned char* hash, size_t hash_length, struct UnixFS** block, const struct FSRepo* fs_repo) {
+	// get datastore key, which is a base32 key of the multihash
+	unsigned char* key = ipfs_blockstore_hash_to_base32(hash, hash_length);
+
+	char* filename = ipfs_blockstore_path_get(fs_repo, (char*)key);
+
+	size_t file_size = os_utils_file_size(filename);
+	unsigned char buffer[file_size];
+
+	FILE* file = fopen(filename, "rb");
+	size_t bytes_read = fread(buffer, 1, file_size, file);
+	fclose(file);
+
+	int retVal = ipfs_unixfs_protobuf_decode(buffer, bytes_read, block);
+
+	free(key);
+	free(filename);
+
+	return retVal;
+}
+
+/***
+ * Put a struct Node in the blockstore
+ * @param node the structure
+ * @param fs_repo the repo to place the strucure in
+ * @param bytes_written the number of bytes written to the blockstore
+ * @returns true(1) on success
+ */
+int ipfs_blockstore_put_node(const struct Node* node, const struct FSRepo* fs_repo, size_t* bytes_written) {
+	// from blockstore.go line 118
+	int retVal = 0;
+
+	// Get Datastore key, which is a base32 key of the multihash,
+	unsigned char* key = ipfs_blockstore_hash_to_base32(node->hash, node->hash_size);
+	if (key == NULL) {
+		free(key);
+		return 0;
+	}
+
+	//TODO: put this in subdirectories
+
+	// turn the block into a binary array
+	size_t protobuf_len = ipfs_node_protobuf_encode_size(node);
+	unsigned char protobuf[protobuf_len];
+	retVal = ipfs_node_protobuf_encode(node, protobuf, protobuf_len, &protobuf_len);
+	if (retVal == 0) {
+		free(key);
+		return 0;
+	}
+
+	// now write byte array to file
+	char* filename = ipfs_blockstore_path_get(fs_repo, (char*)key);
+	if (filename == NULL) {
+		free(key);
+		return 0;
+	}
+
+	FILE* file = fopen(filename, "wb");
+	*bytes_written = fwrite(protobuf, 1, protobuf_len, file);
+	fclose(file);
+	if (*bytes_written != protobuf_len) {
+		free(key);
+		free(filename);
+		return 0;
+	}
 
 	free(key);
 	free(filename);

@@ -554,6 +554,69 @@ int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_re
 	return 1;
 }
 
+/***
+ * Write a unixfs to the datastore and blockstore
+ * @param unix_fs the struct to write
+ * @param fs_repo the repo to write to
+ * @param bytes_written number of bytes written to the repo
+ * @returns true(1) on success
+ */
+int ipfs_repo_fsrepo_unixfs_write(const struct UnixFS* unix_fs, const struct FSRepo* fs_repo, size_t* bytes_written) {
+	/**
+	 * What is put in the blockstore is the block.
+	 * What is put in the datastore is the multihash (the Cid) as the key,
+	 * and the base32 encoded multihash as the value.
+	 */
+	int retVal = 1;
+	retVal = ipfs_blockstore_put_unixfs(unix_fs, fs_repo, bytes_written);
+	if (retVal == 0)
+		return 0;
+	// take the hash, base32 it, and send both to the datastore
+	size_t fs_key_length = 100;
+	unsigned char fs_key[fs_key_length];
+	retVal = ipfs_datastore_helper_ds_key_from_binary(unix_fs->hash, unix_fs->hash_length, fs_key, fs_key_length, &fs_key_length);
+	if (retVal == 0)
+		return 0;
+	retVal = fs_repo->config->datastore->datastore_put(unix_fs->hash, unix_fs->hash_length, fs_key, fs_key_length, fs_repo->config->datastore);
+	if (retVal == 0)
+		return 0;
+	return 1;
+}
+
+/***
+ * Write a unixfs to the datastore and blockstore
+ * @param unix_fs the struct to write
+ * @param fs_repo the repo to write to
+ * @param bytes_written number of bytes written to the repo
+ * @returns true(1) on success
+ */
+int ipfs_repo_fsrepo_node_write(const struct Node* node, const struct FSRepo* fs_repo, size_t* bytes_written) {
+	/**
+	 * What is put in the blockstore is the node.
+	 * What is put in the datastore is the multihash as the key,
+	 * and the base32 encoded multihash as the value.
+	 */
+	int retVal = 1;
+	retVal = ipfs_blockstore_put_node(node, fs_repo, bytes_written);
+	if (retVal == 0)
+		return 0;
+	// take the hash, base32 it, and send both to the datastore
+	size_t fs_key_length = 100;
+	unsigned char fs_key[fs_key_length];
+	retVal = ipfs_datastore_helper_ds_key_from_binary(node->hash, node->hash_size, fs_key, fs_key_length, &fs_key_length);
+	if (retVal == 0)
+		return 0;
+	retVal = fs_repo->config->datastore->datastore_put(node->hash, node->hash_size, fs_key, fs_key_length, fs_repo->config->datastore);
+	if (retVal == 0)
+		return 0;
+	return 1;
+}
+
+int ipfs_repo_fsrepo_node_read(const unsigned char* hash, size_t hash_length, struct Node** node, const struct FSRepo* fs_repo) {
+	 return 0;
+}
+
+
 int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, struct Block** block, const struct FSRepo* fs_repo) {
 	int retVal = 0;
 
@@ -566,6 +629,21 @@ int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, s
 		return 0;
 	// now get the block from the blockstore
 	retVal = ipfs_blockstore_get(hash, hash_length, block, fs_repo);
+	return retVal;
+}
+
+int ipfs_repo_fsrepo_unixfs_read(const unsigned char* hash, size_t hash_length, struct UnixFS** unix_fs, const struct FSRepo* fs_repo) {
+	int retVal = 0;
+
+	// get the base32 hash from the database
+	// We do this only to see if it is in the database
+	size_t fs_key_length = 100;
+	unsigned char fs_key[fs_key_length];
+	retVal = fs_repo->config->datastore->datastore_get((const char*)hash, hash_length, fs_key, fs_key_length, &fs_key_length, fs_repo->config->datastore);
+	if (retVal == 0) // maybe it doesn't exist?
+		return 0;
+	// now get the block from the blockstore
+	retVal = ipfs_blockstore_get_unixfs(hash, hash_length, unix_fs, fs_repo);
 	return retVal;
 }
 

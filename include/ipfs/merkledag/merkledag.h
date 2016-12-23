@@ -10,10 +10,11 @@
 /***
  * Adds a node to the dagService and blockService
  * @param node the node to add
- * @param cid the resultant cid that was added
+ * @param fs_repo the repo to add to
+ * @param bytes_written the number of bytes written
  * @returns true(1) on success
  */
-int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo);
+int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo, size_t* bytes_written);
 
 /***
  * Retrieves a node from the datastore based on the cid

@@ -1,4 +1,4 @@
-enum UnixFSFormatType { RAW, FILE, DIRECTORY, METADATA, SYMLINK };
+enum UnixFSFormatType { RAW, UNIXFS_FILE, DIRECTORY, METADATA, SYMLINK };
 
 struct UnixFSData {
 	enum UnixFSFormatType type;

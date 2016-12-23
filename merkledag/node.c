@@ -10,7 +10,7 @@
 
 #include "ipfs/merkledag/node.h"
 
-// for protobuf Node (all fields optional)  links (repeated node_link)   data (optional bytes)
+// for protobuf Node (all fields optional)    data (optional bytes)      links (repeated node_link)
 enum WireType ipfs_node_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED };
 // for protobuf NodeLink (all fields optional)       hash                            name                     tsize
 enum WireType ipfs_node_link_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIRETYPE_LENGTH_DELIMITED, WIRETYPE_VARINT };
@@ -84,7 +84,7 @@ int ipfs_node_link_free(struct NodeLink * node_link)
  * @param link the link to examine
  * @returns the maximum length of the encoded NodeLink
  */
-size_t ipfs_node_link_protobuf_encode_size(struct NodeLink* link) {
+size_t ipfs_node_link_protobuf_encode_size(const struct NodeLink* link) {
 	if (link == NULL)
 		return 0;
 	// hash, name, tsize
@@ -109,7 +109,7 @@ size_t ipfs_node_link_protobuf_encode_size(struct NodeLink* link) {
  * @param bytes_written the number of bytes written to buffer
  * @returns true(1) on success
  */
-int ipfs_node_link_protobuf_encode(struct NodeLink* link, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written) {
+int ipfs_node_link_protobuf_encode(const struct NodeLink* link, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written) {
 	// 3 fields, hash (length delimited), name (length delimited), tsize (varint)
 	size_t bytes_used = 0;
 	int retVal = 0;
@@ -200,7 +200,7 @@ exit:
 /***
  * return an approximate size of the encoded node
  */
-size_t ipfs_node_protobuf_encode_size(struct Node* node) {
+size_t ipfs_node_protobuf_encode_size(const struct Node* node) {
 	size_t size = 0;
 	// links
 	struct NodeLink* current = node->head_link;
@@ -223,10 +223,17 @@ size_t ipfs_node_protobuf_encode_size(struct Node* node) {
  * @param bytes_written how much of buffer was used
  * @returns true(1) on success
  */
-int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written) {
+int ipfs_node_protobuf_encode(const struct Node* node, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written) {
 	size_t bytes_used = 0;
 	*bytes_written = 0;
 	int retVal = 0;
+	// data
+	if (node->data_size > 0) {
+		retVal = protobuf_encode_length_delimited(1, ipfs_node_message_fields[0], (char*)node->data, node->data_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		if (retVal == 0)
+			return 0;
+		*bytes_written += bytes_used;
+	}
 	// links
 	struct NodeLink* current = node->head_link;
 	while (current != NULL) {
@@ -235,18 +242,11 @@ int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t m
 		retVal = ipfs_node_link_protobuf_encode(current, temp, temp_size, &bytes_used);
 		if (retVal == 0)
 			return 0;
-		retVal = protobuf_encode_length_delimited(1, ipfs_node_message_fields[0], (char*)temp, bytes_used, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
+		retVal = protobuf_encode_length_delimited(2, ipfs_node_message_fields[1], (char*)temp, bytes_used, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
 		if (retVal == 0)
 			return 0;
 		*bytes_written += bytes_used;
 		current = current->next;
-	}
-	// data
-	if (node->data_size > 0) {
-		retVal = protobuf_encode_length_delimited(2, ipfs_node_message_fields[1], (char*)node->data, node->data_size, &buffer[*bytes_written], max_buffer_length - *bytes_written, &bytes_used);
-		if (retVal == 0)
-			return 0;
-		*bytes_written += bytes_used;
 	}
 
 	return 1;
@@ -261,8 +261,8 @@ int ipfs_node_protobuf_encode(struct Node* node, unsigned char* buffer, size_t m
  */
 int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Node** node) {
 	/*
-	 * Field 0: link
 	 * Field 1: data
+	 * Field 2: link
 	 */
 	size_t pos = 0;
 	int retVal = 0;
@@ -282,7 +282,13 @@ int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struc
 		}
 		pos += bytes_read;
 		switch(field_no) {
-			case (1): {// links
+			case (1): { // data
+				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&((*node)->data), &((*node)->data_size), &bytes_read) == 0)
+					goto exit;
+				pos += bytes_read;
+				break;
+			}
+			case (2): {// links
 				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&temp_buffer, &temp_size, &bytes_read) == 0)
 					goto exit;
 				pos += bytes_read;
@@ -291,12 +297,6 @@ int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struc
 				free(temp_buffer);
 				temp_buffer = NULL;
 				ipfs_node_add_link(*node, temp_link);
-				break;
-			}
-			case (2): { // data
-				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&((*node)->data), &((*node)->data_size), &bytes_read) == 0)
-					goto exit;
-				pos += bytes_read;
 				break;
 			}
 		}

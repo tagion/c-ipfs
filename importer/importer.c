@@ -23,27 +23,43 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 	unsigned char buffer[MAX_DATA_SIZE];
 	size_t bytes_read = fread(buffer, 1, MAX_DATA_SIZE, file);
 
+	// put the file bits into a new UnixFS file
+	struct UnixFS* new_unixfs = NULL;
+	ipfs_unixfs_new(&new_unixfs);
+	new_unixfs->data_type = UNIXFS_FILE;
+	ipfs_unixfs_add_data(&buffer[0], bytes_read, new_unixfs);
+	// protobuf the UnixFS
+	size_t protobuf_size = ipfs_unixfs_protobuf_encode_size(new_unixfs);
+	unsigned char protobuf[protobuf_size];
+	size_t bytes_written = 0;
+	ipfs_unixfs_protobuf_encode(new_unixfs, protobuf, protobuf_size, &bytes_written);
+	// we're done with the object
+	ipfs_unixfs_free(new_unixfs);
 	// create a new node
 	struct Node* new_node = NULL;
-	ipfs_node_new_from_data(buffer, bytes_read, &new_node);
+	ipfs_node_new_from_data(protobuf, bytes_written, &new_node);
+	ipfs_node_set_hash(new_node, new_unixfs->hash, new_unixfs->hash_length);
 	// persist
-	ipfs_merkledag_add(new_node, fs_repo);
+	size_t size_of_node = 0;
+	ipfs_merkledag_add(new_node, fs_repo, &size_of_node);
 	// put link in parent node
 	struct NodeLink* new_link = NULL;
 	ipfs_node_link_create("", new_node->hash, new_node->hash_size, &new_link);
-	new_link->t_size = new_node->data_size;
+	new_link->t_size = size_of_node;
 	*total_size += new_link->t_size;
 	ipfs_node_add_link(parent_node, new_link);
 	ipfs_node_free(new_node);
-	// save the parent_node if it is time...
 	if (bytes_read != MAX_DATA_SIZE) {
-		// build UnixFS for file
+		// We have read everything, now save the parent_node,
+		// which is a sort of "directory" entry
+		/*
+		// build UnixFS for the parent
 		struct UnixFS* unix_fs;
 		if (ipfs_unixfs_new(&unix_fs) == 0) {
 			return 0;
 		}
 		unix_fs->data_type = UNIXFS_FILE;
-		unix_fs->file_size = *total_size;
+		unix_fs->bytes_size = *total_size;
 		// now encode unixfs and put in parent_node->data
 		size_t temp_size = ipfs_unixfs_protobuf_encode_size(unix_fs);
 		unsigned char temp[temp_size];
@@ -59,8 +75,10 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 			return 0;
 		}
 		memcpy(parent_node->data, temp, bytes_written);
+		ipfs_unixfs_free(unix_fs);
+		*/
 		// persist the main node
-		ipfs_merkledag_add(parent_node, fs_repo);
+		ipfs_merkledag_add(parent_node, fs_repo, &bytes_written);
 	}
 	return bytes_read;
 }

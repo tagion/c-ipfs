@@ -1,6 +1,9 @@
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "ipfs/unixfs/format.h"
+
 
 /**
  * Copy data into a new struct
@@ -12,7 +15,7 @@
  */
 int ipfs_unixfs_format_new(enum UnixFSFormatType type, const unsigned char* data,
 		size_t data_length, struct UnixFSData** result) {
-	struct UnixFSData* new_struct = malloc(sizeof(struct UnixFSData));
+	struct UnixFSData* new_struct = (struct UnixFSData*)malloc(sizeof(struct UnixFSData));
 	if (new_struct == NULL)
 		return 0;
 

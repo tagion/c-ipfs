@@ -16,6 +16,7 @@ all:
 	cd flatfs; make all;
 	cd datastore; make all;
 	cd thirdparty; make all;
+	cd unixfs; make all;
 	cd main; make all;
 	cd test; make all;
 	
@@ -33,6 +34,7 @@ clean:
 	cd flatfs; make clean;
 	cd datastore; make clean;
 	cd thirdparty; make clean;
+	cd unixfs; make clean;
 	cd main; make clean;
 	cd test; make clean;
 

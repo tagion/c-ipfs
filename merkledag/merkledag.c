@@ -1,41 +1,46 @@
 /**
  * A basic storage building block of the IPFS system
  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "libp2p/crypto/sha256.h"
 #include "ipfs/merkledag/merkledag.h"
+#include "ipfs/unixfs/unixfs.h"
 
 /***
  * Adds a node to the dagService and blockService
  * @param node the node to add
- * @param cid the resultant cid that was added
+ * @param fs_repo the repo to add to
+ * @param bytes_written the number of bytes written
  * @returns true(1) on success
  */
-int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
+int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo, size_t* bytes_written) {
 	// taken from merkledag.go line 59
+	int retVal = 0;
 
-	struct Block* block = NULL;
+	// compute the hash
+	size_t protobuf_size = ipfs_node_protobuf_encode_size(node);
+	unsigned char protobuf[protobuf_size];
+	size_t bytes_encoded;
+	retVal = ipfs_node_protobuf_encode(node, protobuf, protobuf_size, &bytes_encoded);
 
-	// protobuf the node
-	size_t protobuf_len = ipfs_node_protobuf_encode_size(node);
-	size_t bytes_written = 0;
-	unsigned char protobuf[protobuf_len];
-	ipfs_node_protobuf_encode(node, protobuf, protobuf_len, &bytes_written);
-
-	// turn the node into a block
-	ipfs_blocks_block_new(&block);
-	ipfs_blocks_block_add_data(protobuf, bytes_written, block);
-
-	// write to block store & datastore
-	int retVal = ipfs_repo_fsrepo_block_write(block, fs_repo);
-	if (retVal == 0) {
-		ipfs_blocks_block_free(block);
+	node->hash_size = 32;
+	node->hash = (unsigned char*)malloc(node->hash_size);
+	if (node->hash == NULL) {
+		return 0;
+	}
+	if (libp2p_crypto_hashing_sha256(protobuf, bytes_encoded, &node->hash[0]) == 0) {
+		free(node->hash);
 		return 0;
 	}
 
-	ipfs_node_set_hash(node, block->cid->hash, block->cid->hash_length);
-
-	if (block != NULL)
-		ipfs_blocks_block_free(block);
+	// write to block store & datastore
+	retVal = ipfs_repo_fsrepo_node_write(node, fs_repo, bytes_written);
+	if (retVal == 0) {
+		return 0;
+	}
 
 	// TODO: call HasBlock (unsure why as yet)
 	return 1;
@@ -51,7 +56,8 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo) {
  */
 int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node** node, const struct FSRepo* fs_repo) {
 	int retVal = 1;
-	struct Block* block;
+	//struct Block* block;
+	struct UnixFS* unix_fs;
 	size_t key_length = 100;
 	unsigned char key[key_length];
 
@@ -61,27 +67,27 @@ int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node*
 	if (retVal == 0)
 		return 0;
 
-	// we have the record from the db. Go get the block from the blockstore
-	retVal = ipfs_repo_fsrepo_block_read(hash, hash_size, &block, fs_repo);
+	// we have the record from the db. Go get the UnixFS from the blockstore
+	retVal = ipfs_repo_fsrepo_unixfs_read(hash, hash_size, &unix_fs, fs_repo);
 	if (retVal == 0) {
 		return 0;
 	}
 
 	// now convert the block into a node
-	if (ipfs_node_protobuf_decode(block->data, block->data_length, node) == 0) {
-		ipfs_blocks_block_free(block);
+	if (ipfs_node_protobuf_decode(unix_fs->bytes, unix_fs->bytes_size, node) == 0) {
+		ipfs_unixfs_free(unix_fs);
 		return 0;
 	}
 
 	// set the cid on the node
 	if (ipfs_node_set_hash(*node, hash, hash_size) == 0) {
-		ipfs_blocks_block_free(block);
+		ipfs_unixfs_free(unix_fs);
 		ipfs_node_free(*node);
 		return 0;
 	}
 
 	// free resources
-	ipfs_blocks_block_free(block);
+	ipfs_unixfs_free(unix_fs);
 
 	return 1;
 }

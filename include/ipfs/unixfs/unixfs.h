@@ -43,8 +43,10 @@ struct UnixFS {
 	enum UnixFSDataType data_type;
 	size_t bytes_size; // the size of the bytes array
 	unsigned char* bytes; // an array of bytes
-	size_t file_size; // the file size
+	// size_t file_size; // the file size - I mimick this one
 	struct UnixFSBlockSizeNode* block_size_head; // a linked list of block sizes
+	unsigned char* hash; // not saved
+	size_t hash_length; // not saved
 };
 
 struct UnixFSMetaData {
@@ -65,6 +67,15 @@ int ipfs_unixfs_new(struct UnixFS** obj);
  */
 int ipfs_unixfs_free(struct UnixFS* obj);
 
+/***
+ * Write data to data section of a UnixFS stuct. NOTE: this also calculates a sha256 hash
+ * @param data the data to write
+ * @param data_length the length of the data
+ * @param unix_fs the struct to add to
+ * @returns true(1) on success
+ */
+int ipfs_unixfs_add_data(unsigned char* data, size_t data_length, struct UnixFS* unix_fs);
+
 /**
  * Protobuf functions
  */
@@ -74,7 +85,7 @@ int ipfs_unixfs_free(struct UnixFS* obj);
  * @param obj what will be encoded
  * @returns the size of the buffer necessary to encode the object
  */
-size_t ipfs_unixfs_protobuf_encode_size(struct UnixFS* obj);
+size_t ipfs_unixfs_protobuf_encode_size(const struct UnixFS* obj);
 
 /***
  * Encode a UnixFS object into protobuf format
