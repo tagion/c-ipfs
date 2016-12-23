@@ -7,7 +7,7 @@
 char* ipfs_path_from_cid (struct Cid *c)
 {
    const char prefix[] = "/ipfs/";
-   char *rpath, *cidstr = CidString(c);
+   char *rpath, *cidstr;// = CidString(c);
    int l;
 
    l = sizeof(prefix) + strlen(cidstr);
@@ -224,7 +224,7 @@ int ipfs_path_parse_from_cid (char *dst, char *txt)
 
    if (!txt || txt[0] == '\0') return ErrNoComponents;
 
-   c = cidDecode(txt);
+   //c = cidDecode(txt);
 
    if (!c) {
       return ErrCidDecode;
