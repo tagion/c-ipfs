@@ -115,7 +115,6 @@ int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_
 	return 1;
 }
 
-
 /***
  * Called from the command line with ipfs object get [hash]. Retrieves the object pointed to by hash, and displays its block data (links and data elements)
  * @param argc number of arguments
@@ -137,4 +136,66 @@ int ipfs_exporter_object_get(int argc, char** argv) {
 	// find hash
 	retVal = ipfs_exporter_to_console((unsigned char*)argv[3], fs_repo);
 	return retVal;
+}
+
+int ipfs_exporter_cat_node(struct Node* node, const struct FSRepo* fs_repo) {
+	// process this block, then move on to the links
+	for(size_t i = 0LU; i < node->data_size; i++) {
+		printf("%c", node->data[i]);
+	}
+	// process links
+	struct NodeLink* current = node->head_link;
+	while (current != NULL) {
+		// find the node
+		struct Node* child_node = NULL;
+		if (ipfs_merkledag_get(current->hash, current->hash_size, &child_node, fs_repo) == 0) {
+			return 0;
+		}
+		ipfs_exporter_cat_node(child_node, fs_repo);
+		ipfs_node_free(child_node);
+		current = current->next;
+	}
+
+	return 1;
+}
+
+/***
+ * Called from the command line with ipfs cat [hash]. Retrieves the object pointed to by hash, and displays its block data (links and data elements)
+ * @param argc number of arguments
+ * @param argv arguments
+ * @returns true(1) on success
+ */
+int ipfs_exporter_object_cat(int argc, char** argv) {
+	struct FSRepo* fs_repo = NULL;
+
+	// open the repo
+	int retVal = ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo);
+	if (retVal == 0) {
+		return 0;
+	}
+	retVal = ipfs_repo_fsrepo_open(fs_repo);
+	if (retVal == 0) {
+		return 0;
+	}
+	// find hash
+	// convert hash to cid
+	struct Cid* cid = NULL;
+	if ( ipfs_cid_decode_hash_from_base58((unsigned char*)argv[2], strlen(argv[2]), &cid) == 0) {
+		return 0;
+	}
+
+	// find block
+	struct Node* read_node = NULL;
+	if (ipfs_merkledag_get(cid->hash, cid->hash_length, &read_node, fs_repo) == 0) {
+		ipfs_cid_free(cid);
+		return 0;
+	}
+	// no longer need the cid
+	ipfs_cid_free(cid);
+
+	ipfs_exporter_cat_node(read_node, fs_repo);
+	ipfs_node_free(read_node);
+
+	return retVal;
+
 }

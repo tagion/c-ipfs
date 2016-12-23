@@ -26,6 +26,7 @@ void strip_quotes(int argc, char** argv) {
 #define ADD 2
 #define OBJECT_GET 3
 #define DNS 4
+#define CAT 5
 
 /***
  * Basic parsing of command line arguments to figure out where the user wants to go
@@ -43,6 +44,9 @@ int parse_arguments(int argc, char** argv) {
 	}
 	if (strcmp("object", argv[1]) == 0 && argc > 2 && strcmp("get", argv[2]) == 0) {
 		return OBJECT_GET;
+	}
+	if (strcmp("cat", argv[1]) == 0) {
+		return CAT;
 	}
 	if (strcmp("dns", argv[1]) == 0) {
 		return DNS;
@@ -65,6 +69,9 @@ int main(int argc, char** argv) {
 		break;
 	case (OBJECT_GET):
 		ipfs_exporter_object_get(argc, argv);
+		break;
+	case (CAT):
+		ipfs_exporter_object_cat(argc, argv);
 		break;
 	case (DNS):
 		ipfs_dns(argc, argv);

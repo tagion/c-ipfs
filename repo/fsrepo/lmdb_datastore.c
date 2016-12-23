@@ -106,9 +106,6 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	db_key.mv_size = key_size;
 	db_key.mv_data = (char*)key;
 
-	// JMJ debugging
-	//printf("Saving key of %lu bytes that starts with %02x and ends with %02x\n", db_key.mv_size, ((char*)db_key.mv_data)[0], ((char*)db_key.mv_data)[db_key.mv_size-1]);
-
 	// write
 	db_value.mv_size = data_size;
 	db_value.mv_data = data;

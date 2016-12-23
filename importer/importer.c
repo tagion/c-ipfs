@@ -48,66 +48,71 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 		ipfs_unixfs_free(new_unixfs);
 		return 0;
 	}
-	// create a new node
-	if (ipfs_node_new_from_data(protobuf, bytes_written, &new_node) == 0) {
-		return 0;
-	}
-	if (ipfs_node_set_hash(new_node, new_unixfs->hash, new_unixfs->hash_length) == 0) {
-		ipfs_node_free(new_node);
-		return 0;
-	}
 	// we're done with the UnixFS object
 	ipfs_unixfs_free(new_unixfs);
-	// persist
-	size_t size_of_node = 0;
-	if (ipfs_merkledag_add(new_node, fs_repo, &size_of_node) == 0) {
-		ipfs_node_free(new_node);
-		return 0;
-	}
-	// put link in parent node
-	if (ipfs_node_link_create("", new_node->hash, new_node->hash_size, &new_link) == 0) {
-		ipfs_node_free(new_node);
-		return 0;
-	}
-	new_link->t_size = size_of_node;
-	*total_size += new_link->t_size;
-	// NOTE: disposal of this link object happens when the parent is disposed
-	if (ipfs_node_add_link(parent_node, new_link) == 0) {
-		ipfs_node_free(new_node);
-		return 0;
-	}
-	ipfs_node_free(new_node);
-	if (bytes_read != MAX_DATA_SIZE) {
-		// We have read everything, now save the parent_node,
-		// which is a sort of "directory" entry
-		/*
-		// build UnixFS for the parent
-		struct UnixFS* unix_fs;
-		if (ipfs_unixfs_new(&unix_fs) == 0) {
+
+	// if there is more to read, create a new node.
+	if (bytes_read == MAX_DATA_SIZE) {
+		// create a new node
+		if (ipfs_node_new_from_data(protobuf, bytes_written, &new_node) == 0) {
 			return 0;
 		}
-		unix_fs->data_type = UNIXFS_FILE;
-		unix_fs->bytes_size = *total_size;
-		// now encode unixfs and put in parent_node->data
-		size_t temp_size = ipfs_unixfs_protobuf_encode_size(unix_fs);
-		unsigned char temp[temp_size];
-		size_t bytes_written;
-		if (ipfs_unixfs_protobuf_encode(unix_fs, temp, temp_size, &bytes_written) == 0) {
-			ipfs_unixfs_free(unix_fs);
+		// persist
+		size_t size_of_node = 0;
+		if (ipfs_merkledag_add(new_node, fs_repo, &size_of_node) == 0) {
+			ipfs_node_free(new_node);
 			return 0;
 		}
-		parent_node->data_size = bytes_written;
-		parent_node->data = (unsigned char*)malloc(bytes_written);
-		if (parent_node->data == NULL) {
-			ipfs_unixfs_free(unix_fs);
+
+		// put link in parent node
+		if (ipfs_node_link_create("", new_node->hash, new_node->hash_size, &new_link) == 0) {
+			ipfs_node_free(new_node);
 			return 0;
 		}
-		memcpy(parent_node->data, temp, bytes_written);
-		ipfs_unixfs_free(unix_fs);
-		*/
+		new_link->t_size = size_of_node;
+		*total_size += new_link->t_size;
+		// NOTE: disposal of this link object happens when the parent is disposed
+		if (ipfs_node_add_link(parent_node, new_link) == 0) {
+			ipfs_node_free(new_node);
+			return 0;
+		}
+		ipfs_node_free(new_node);
+	} else {
+		// if there are no existing links, put what we pulled from the file into parent_node
+		// otherwise, add it as a link
+		if (parent_node->head_link == NULL) {
+			ipfs_node_set_data(parent_node, protobuf, bytes_written);
+		} else {
+			// there are existing links. put the data in a new node, save it, then put the link in parent_node
+			// create a new node
+			if (ipfs_node_new_from_data(protobuf, bytes_written, &new_node) == 0) {
+				return 0;
+			}
+			// persist
+			size_t size_of_node = 0;
+			if (ipfs_merkledag_add(new_node, fs_repo, &size_of_node) == 0) {
+				ipfs_node_free(new_node);
+				return 0;
+			}
+
+			// put link in parent node
+			if (ipfs_node_link_create("", new_node->hash, new_node->hash_size, &new_link) == 0) {
+				ipfs_node_free(new_node);
+				return 0;
+			}
+			new_link->t_size = size_of_node;
+			*total_size += new_link->t_size;
+			// NOTE: disposal of this link object happens when the parent is disposed
+			if (ipfs_node_add_link(parent_node, new_link) == 0) {
+				ipfs_node_free(new_node);
+				return 0;
+			}
+			ipfs_node_free(new_node);
+		}
 		// persist the main node
 		ipfs_merkledag_add(parent_node, fs_repo, &bytes_written);
-	}
+	} // add to parent vs add as link
+
 	return bytes_read;
 }
 
@@ -131,6 +136,7 @@ int ipfs_import_file(const char* fileName, struct Node** parent_node, struct FSR
 	while ( bytes_read == MAX_DATA_SIZE) {
 		bytes_read = ipfs_import_chunk(file, *parent_node, fs_repo, &total_size);
 	}
+
 	fclose(file);
 
 	return 1;
