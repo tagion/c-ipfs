@@ -48,6 +48,7 @@ int ipfs_unixfs_new(struct UnixFS** obj) {
 	(*obj)->block_size_head = NULL;
 	(*obj)->hash = NULL;
 	(*obj)->hash_length = 0;
+	(*obj)->file_size = 0;
 	return 1;
 }
 
@@ -96,6 +97,26 @@ int ipfs_unixfs_add_data(unsigned char* data, size_t data_length, struct UnixFS*
 
 	return 1;
 
+}
+
+int ipfs_unixfs_add_blocksize(const struct UnixFSBlockSizeNode* blocksize, struct UnixFS* unix_fs) {
+	struct UnixFSBlockSizeNode* last = unix_fs->block_size_head;
+
+	if (last == NULL) {
+		// we're the first one
+		unix_fs->block_size_head = (struct UnixFSBlockSizeNode*)malloc(sizeof(struct UnixFSBlockSizeNode));
+		unix_fs->block_size_head->block_size = blocksize->block_size;
+	} else {
+		// find the last one
+		while (last->next != NULL) {
+			last = last->next;
+		}
+		last->next = (struct UnixFSBlockSizeNode*)malloc(sizeof(struct UnixFSBlockSizeNode));
+		last->next->block_size = blocksize->block_size;
+	}
+
+
+	return 1;
 }
 
 
@@ -154,8 +175,8 @@ int ipfs_unixfs_protobuf_encode(const struct UnixFS* incoming, unsigned char* ou
 			*bytes_written += bytes_used;
 		}
 		// file size (optional)
-		if (incoming->data_type == UNIXFS_FILE && incoming->bytes_size > 0) {
-			retVal = protobuf_encode_varint(3, ipfs_unixfs_message_fields[2], incoming->bytes_size, &outgoing[*bytes_written], max_buffer_size - (*bytes_written), &bytes_used);
+		if (incoming->file_size > 0) {
+			retVal = protobuf_encode_varint(3, ipfs_unixfs_message_fields[2], incoming->file_size, &outgoing[*bytes_written], max_buffer_size - (*bytes_written), &bytes_used);
 			if (retVal == 0)
 				return 0;
 			*bytes_written += bytes_used;
@@ -164,6 +185,7 @@ int ipfs_unixfs_protobuf_encode(const struct UnixFS* incoming, unsigned char* ou
 		struct UnixFSBlockSizeNode* currNode = incoming->block_size_head;
 		while (currNode != NULL) {
 			retVal = protobuf_encode_varint(4, ipfs_unixfs_message_fields[3], currNode->block_size, &outgoing[*bytes_written], max_buffer_size - (*bytes_written), &bytes_used);
+			*bytes_written += bytes_used;
 			currNode = currNode->next;
 		}
 	}
@@ -211,7 +233,7 @@ int ipfs_unixfs_protobuf_decode(unsigned char* incoming, size_t incoming_size, s
 				pos += bytes_read;
 				break;
 			case (3): // file size
-				result->bytes_size = varint_decode(&incoming[pos], incoming_size - pos, &bytes_read);
+				result->file_size = varint_decode(&incoming[pos], incoming_size - pos, &bytes_read);
 				pos += bytes_read;
 				break;
 			case (4): { // block sizes (linked list from varint)

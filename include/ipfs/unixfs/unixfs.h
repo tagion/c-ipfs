@@ -43,7 +43,7 @@ struct UnixFS {
 	enum UnixFSDataType data_type;
 	size_t bytes_size; // the size of the bytes array
 	unsigned char* bytes; // an array of bytes
-	// size_t file_size; // the file size - I mimick this one
+	size_t file_size; // when saving files that have been chunked
 	struct UnixFSBlockSizeNode* block_size_head; // a linked list of block sizes
 	unsigned char* hash; // not saved
 	size_t hash_length; // not saved
@@ -75,6 +75,8 @@ int ipfs_unixfs_free(struct UnixFS* obj);
  * @returns true(1) on success
  */
 int ipfs_unixfs_add_data(unsigned char* data, size_t data_length, struct UnixFS* unix_fs);
+
+int ipfs_unixfs_add_blocksize(const struct UnixFSBlockSizeNode* blocksize, struct UnixFS* unix_fs);
 
 /**
  * Protobuf functions

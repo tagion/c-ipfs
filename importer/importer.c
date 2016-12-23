@@ -13,6 +13,58 @@
  * Imports OS files into the datastore
  */
 
+/***
+ * adds a blocksize to the UnixFS structure stored in the data
+ * element of a Node
+ * @param node the node to work with
+ * @param blocksize the blocksize to add
+ * @returns true(1) on success
+ */
+int ipfs_importer_add_filesize_to_data_section(struct Node* node, size_t bytes_read) {
+	// now add to the data section
+	struct UnixFS* data_section = NULL;
+	if (node->data == NULL) {
+		// nothing in data section yet, create new UnixFS
+		ipfs_unixfs_new(&data_section);
+		data_section->data_type = UNIXFS_FILE;
+	} else {
+		ipfs_unixfs_protobuf_decode(node->data, node->data_size, &data_section);
+	}
+	struct UnixFSBlockSizeNode bs;
+	bs.block_size = bytes_read;
+	ipfs_unixfs_add_blocksize(&bs, data_section);
+	data_section->file_size += bytes_read;
+	// put the new data back in the data section
+	size_t protobuf_size = ipfs_unixfs_protobuf_encode_size(data_section); //delay bytes_size entry
+	unsigned char protobuf[protobuf_size];
+	ipfs_unixfs_protobuf_encode(data_section, protobuf, protobuf_size, &protobuf_size);
+	ipfs_unixfs_free(data_section);
+	ipfs_node_set_data(node, protobuf, protobuf_size);
+	return 1;
+}
+
+int test_hash(unsigned char* protobuf, size_t protobuf_length) {
+	size_t hash_size = 32;
+	unsigned char* hash = (unsigned char*)malloc(hash_size);
+	if (hash == NULL) {
+		return 0;
+	}
+	if (libp2p_crypto_hashing_sha256(protobuf, protobuf_length, hash) == 0) {
+		return 0;
+	}
+
+	// turn it into base58
+	size_t buffer_len = 100;
+	unsigned char buffer[buffer_len];
+	int retVal = ipfs_cid_hash_to_base58(hash, hash_size, buffer, buffer_len);
+	if (retVal == 0) {
+		printf("Unable to generate hash\n");
+		return 0;
+	}
+	printf(" hash generated from %lu: %s\n", protobuf_length, buffer);
+	return 1;
+}
+
 /**
  * read the next chunk of bytes, create a node, and add a link to the node in the passed-in node
  * @param file the file handle
@@ -28,10 +80,15 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 	struct Node* new_node = NULL;
 	struct NodeLink* new_link = NULL;
 
+	//JMJ
+	printf("Raw from the file");
+	test_hash(buffer, bytes_read);
+
 	// put the file bits into a new UnixFS file
 	if (ipfs_unixfs_new(&new_unixfs) == 0)
 		return 0;
 	new_unixfs->data_type = UNIXFS_FILE;
+	new_unixfs->file_size = bytes_read;
 	if (ipfs_unixfs_add_data(&buffer[0], bytes_read, new_unixfs) == 0) {
 		ipfs_unixfs_free(new_unixfs);
 		return 0;
@@ -48,6 +105,9 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 		ipfs_unixfs_free(new_unixfs);
 		return 0;
 	}
+	//JMJ
+	printf("unixfs protobuf");
+	test_hash(protobuf, protobuf_size);
 	// we're done with the UnixFS object
 	ipfs_unixfs_free(new_unixfs);
 
@@ -76,6 +136,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 			ipfs_node_free(new_node);
 			return 0;
 		}
+		ipfs_importer_add_filesize_to_data_section(parent_node, bytes_read);
 		ipfs_node_free(new_node);
 	} else {
 		// if there are no existing links, put what we pulled from the file into parent_node
@@ -107,6 +168,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 				ipfs_node_free(new_node);
 				return 0;
 			}
+			ipfs_importer_add_filesize_to_data_section(parent_node, bytes_read);
 			ipfs_node_free(new_node);
 		}
 		// persist the main node

@@ -96,7 +96,7 @@ int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_
 
 	// process blocks
 	struct NodeLink* link = read_node->head_link;
-	printf("Links:[");
+	printf("{Links:[");
 	while (link != NULL) {
 		unsigned char b58[100];
 		ipfs_cid_hash_to_base58(link->hash, link->hash_size, b58, 100);
@@ -139,9 +139,13 @@ int ipfs_exporter_object_get(int argc, char** argv) {
 }
 
 int ipfs_exporter_cat_node(struct Node* node, const struct FSRepo* fs_repo) {
-	// process this block, then move on to the links
-	for(size_t i = 0LU; i < node->data_size; i++) {
-		printf("%c", node->data[i]);
+	// process this node, then move on to the links
+
+	// build the unixfs
+	struct UnixFS* unix_fs;
+	ipfs_unixfs_protobuf_decode(node->data, node->data_size, &unix_fs);
+	for(size_t i = 0LU; i < unix_fs->bytes_size; i++) {
+		printf("%c", unix_fs->bytes[i]);
 	}
 	// process links
 	struct NodeLink* current = node->head_link;
