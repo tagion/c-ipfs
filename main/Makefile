@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -O0 -I../include -I../../c-libp2p/include -I../../c-multihash/include -I../../c-multiaddr/ -I../../c-protobuf -g3 -Wall
-LFLAGS = -L../../c-libp2p -L../../c-multihash -L../../c-multiaddr -lp2p -lm -lmultihash -lmultiaddr -lpthread
+LFLAGS = -L../../c-libp2p -L../../c-multihash -L../../c-multiaddr -lp2p -lm -lmultihash -lmultiaddr -lpthread -lresolv
 DEPS = cmd/ipfs/test_init.h repo/test_repo_bootstrap_peers.h repo/test_repo_config.h repo/test_repo_identity.h cid/test_cid.h
 OBJS = main.o \
 	../blocks/block.o ../blocks/blockstore.o \
@@ -12,6 +12,9 @@ OBJS = main.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o \
 	../importer/exporter.o \
+	../dnslink/dnslink.o \
+	../path/path.o \
+	../namesys/isdomain.o \
 	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \
 	../os/utils.o \

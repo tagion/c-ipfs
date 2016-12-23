@@ -55,6 +55,35 @@ Expect these resolutions:
 #include "ipfs/cid/cid.h"
 #include "ipfs/path/path.h"
 
+int ipfs_dns (int argc, char **argv)
+{
+    int err;
+    char **txt, *path;
+
+    if (argc != 3) {
+        fprintf (stderr, "usage: ipfs dns dns.name.com\n");
+        return -1;
+    }
+
+    err = ipfs_dnslink_resolv_lookupTXT (&txt, argv[2]);
+    if (err) {
+        fprintf (stderr, "dns lookupTXT: %s\n", Err[err]);
+        return err;
+    }
+
+    err = ipfs_dnslink_parse_txt(&path, *txt);
+    if (err) {
+        fprintf (stderr, "dns parse_txt: %s\n", Err[err]);
+        return err;
+    }
+    free (*txt);
+    free (txt);
+    fprintf (stdout, "%s\n", path);
+    free (path);
+
+    return 0;
+}
+
 // ipfs_dnslink_resolve resolves the dnslink at a particular domain. It will
 // recursively keep resolving until reaching the defaultDepth of Resolver. If
 // the depth is reached, ipfs_dnslink_resolve will return the last value
