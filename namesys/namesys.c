@@ -4,6 +4,7 @@
 #include "ipfs/cid/cid.h"
 #include "ipfs/path/path.h"
 #include "ipfs/namesys/namesys.h"
+#include "ipfs/dnslink/dnslink.h"
 
 /* mpns (a multi-protocol NameSystem) implements generic IPFS naming.
  *
@@ -31,7 +32,7 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 	}
 }*/
 
-const DefaultResolverCacheTTL = time.Minute;
+const DefaultResolverCacheTTL = 60;
 
 // ipfs_namesys_resolve implements Resolver.
 int ipfs_namesys_resolve(char **path, char *name)
@@ -94,10 +95,13 @@ int ipfs_namesys_resolve_once (char **path, char *name)
     char *ptr = NULL;
     char **segs;
     int i, err = 0;
+    struct DNSResolver dnsr;
 
     if (!name) { // NULL pointer.
         return ErrNULLPointer;
     }
+
+    dnsr.lookupTXT = ipfs_dnslink_resolv_lookupTXT;
 
     if (memcmp (name, ipns_prefix, strlen(ipns_prefix)) == 0) { // prefix missing.
         i = strlen(name) + sizeof(ipns_prefix);

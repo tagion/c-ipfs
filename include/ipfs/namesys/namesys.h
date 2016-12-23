@@ -59,10 +59,11 @@
 
     typedef struct s_DNSResolver {
         // TODO
+        int (*lookupTXT) (char ***, char *);
     } DNSResolver;
 
-    int ipfs_dns_resolver_resolve_once (DNSResolver *r, char **path, char *name);
+    int ipfs_dns_resolver_resolve_once (char **path, char *name);
     int ipfs_dns_work_domain (int output, DNSResolver *r, char *name);
-    int ipfs_dns_parse_entry (char **Path, char *txt);
-    int ipfs_dns_try_parse_dns_link (char **Path, char *txt);
+    int ipfs_dns_parse_entry (char **path, char *txt);
+    int ipfs_dns_try_parse_dns_link(char **path, char *txt);
 #endif //NAMESYS_H
