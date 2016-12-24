@@ -52,6 +52,40 @@ int ipfs_unixfs_new(struct UnixFS** obj) {
 	return 1;
 }
 
+struct UnixFSBlockSizeNode* ipfs_unixfs_get_last_block_size(struct UnixFS* obj) {
+	struct UnixFSBlockSizeNode* current = obj->block_size_head;
+	if (current != NULL) {
+		while (current->next != NULL)
+			current = current->next;
+	}
+	return current;
+}
+
+int ipfs_unixfs_remove_blocksize(struct UnixFS* obj, struct UnixFSBlockSizeNode* to_delete) {
+	struct UnixFSBlockSizeNode* current = obj->block_size_head;
+	struct UnixFSBlockSizeNode* previous = NULL;
+	while (current != NULL && current != to_delete) {
+		previous = current;
+		current = current->next;
+	}
+	if (previous == NULL) {
+		free(obj->block_size_head);
+		obj->block_size_head = NULL;
+	} else {
+		struct UnixFSBlockSizeNode* holder = NULL;
+		if (current != NULL && current->next != NULL) {
+			// we need to delete from the middle
+			holder = current->next;
+		}
+		free(previous->next);
+		if (holder == NULL)
+			previous->next = NULL;
+		else
+			previous->next = holder;
+	}
+	return 1;
+}
+
 int ipfs_unixfs_free(struct UnixFS* obj) {
 	if (obj != NULL) {
 		if (obj->hash != NULL) {
@@ -59,6 +93,13 @@ int ipfs_unixfs_free(struct UnixFS* obj) {
 		}
 		if (obj->bytes != NULL) {
 			free(obj->bytes);
+		}
+		if (obj->block_size_head != NULL) {
+			struct UnixFSBlockSizeNode* current = ipfs_unixfs_get_last_block_size(obj);
+			while(current != NULL) {
+				ipfs_unixfs_remove_blocksize(obj, current);
+				current = ipfs_unixfs_get_last_block_size(obj);
+			}
 		}
 		free(obj);
 		obj = NULL;
@@ -106,6 +147,7 @@ int ipfs_unixfs_add_blocksize(const struct UnixFSBlockSizeNode* blocksize, struc
 		// we're the first one
 		unix_fs->block_size_head = (struct UnixFSBlockSizeNode*)malloc(sizeof(struct UnixFSBlockSizeNode));
 		unix_fs->block_size_head->block_size = blocksize->block_size;
+		unix_fs->block_size_head->next = NULL;
 	} else {
 		// find the last one
 		while (last->next != NULL) {
@@ -113,6 +155,7 @@ int ipfs_unixfs_add_blocksize(const struct UnixFSBlockSizeNode* blocksize, struc
 		}
 		last->next = (struct UnixFSBlockSizeNode*)malloc(sizeof(struct UnixFSBlockSizeNode));
 		last->next->block_size = blocksize->block_size;
+		last->next->next = NULL;
 	}
 
 
@@ -237,20 +280,11 @@ int ipfs_unixfs_protobuf_decode(unsigned char* incoming, size_t incoming_size, s
 				pos += bytes_read;
 				break;
 			case (4): { // block sizes (linked list from varint)
-				struct UnixFSBlockSizeNode* currNode = (struct UnixFSBlockSizeNode*)malloc(sizeof(struct UnixFSBlockSizeNode));
-				if (currNode == NULL)
-					return 0;
-				currNode->next = NULL;
-				currNode->block_size = varint_decode(&incoming[pos], incoming_size - pos, &bytes_read);
+				struct UnixFSBlockSizeNode bs;
+				bs.next = NULL;
+				bs.block_size = varint_decode(&incoming[pos], incoming_size - pos, &bytes_read);
+				ipfs_unixfs_add_blocksize(&bs, result);
 				pos += bytes_read;
-				if (result->block_size_head == NULL) {
-					result->block_size_head = currNode;
-				} else {
-					struct UnixFSBlockSizeNode* last = result->block_size_head;
-					while (last->next != NULL)
-						last = last->next;
-					last->next = currNode;
-				}
 				break;
 			}
 		}

@@ -183,10 +183,10 @@ int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, 
 				unsigned char* hash;
 				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&hash, &hash_size, &bytes_read) == 0)
 					goto exit;
-				link->hash = (unsigned char*)malloc(hash_size - 2);
 				link->hash_size = hash_size - 2;
+				link->hash = (unsigned char*)malloc(link->hash_size);
 				strncpy((char*)link->hash, (char*)hash, link->hash_size);
-				link->hash[hash_size-1] = 0;
+				link->hash[link->hash_size-1] = 0;
 				free(hash);
 				pos += bytes_read;
 				break;

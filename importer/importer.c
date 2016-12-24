@@ -45,11 +45,11 @@ int ipfs_importer_add_filesize_to_data_section(struct Node* node, size_t bytes_r
 
 int test_hash(unsigned char* protobuf, size_t protobuf_length) {
 	size_t hash_size = 32;
-	unsigned char* hash = (unsigned char*)malloc(hash_size);
+	unsigned char hash[32];
 	if (hash == NULL) {
 		return 0;
 	}
-	if (libp2p_crypto_hashing_sha256(protobuf, protobuf_length, hash) == 0) {
+	if (libp2p_crypto_hashing_sha256(protobuf, protobuf_length, &hash[0]) == 0) {
 		return 0;
 	}
 
@@ -107,7 +107,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 	}
 	//JMJ
 	printf("unixfs protobuf");
-	test_hash(protobuf, protobuf_size);
+	test_hash(protobuf, bytes_written);
 	// we're done with the UnixFS object
 	ipfs_unixfs_free(new_unixfs);
 
