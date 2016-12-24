@@ -30,7 +30,7 @@ enum WireType ipfs_node_link_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIR
  */
 int ipfs_node_link_create(char * name, unsigned char * ahash, size_t hash_size, struct NodeLink** node_link)
 {
-	*node_link = malloc(sizeof(struct NodeLink));
+	ipfs_node_link_new(node_link);
 	if (*node_link == NULL)
 		return 0;
 
@@ -40,12 +40,14 @@ int ipfs_node_link_create(char * name, unsigned char * ahash, size_t hash_size, 
 	link->hash = (unsigned char*)malloc(hash_size);
 	memcpy(link->hash, ahash, hash_size);
 	// name
-	link->name = malloc(strlen(name) + 1);
-	if ( link->name == NULL) {
-		free(link);
-		return 0;
+	if (name != NULL && strlen(name) > 0) {
+		link->name = malloc(strlen(name) + 1);
+		if ( link->name == NULL) {
+			free(link);
+			return 0;
+		}
+		strcpy(link->name, name);
 	}
-	strcpy(link->name, name);
 	// t_size
 	link->t_size = 0;
 	// other, non-protobuffed data
@@ -185,8 +187,7 @@ int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, 
 					goto exit;
 				link->hash_size = hash_size - 2;
 				link->hash = (unsigned char*)malloc(link->hash_size);
-				strncpy((char*)link->hash, (char*)hash, link->hash_size);
-				link->hash[link->hash_size-1] = 0;
+				memcpy((char*)link->hash, (char*)&hash[2], link->hash_size);
 				free(hash);
 				pos += bytes_read;
 				break;

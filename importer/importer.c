@@ -43,28 +43,6 @@ int ipfs_importer_add_filesize_to_data_section(struct Node* node, size_t bytes_r
 	return 1;
 }
 
-int test_hash(unsigned char* protobuf, size_t protobuf_length) {
-	size_t hash_size = 32;
-	unsigned char hash[32];
-	if (hash == NULL) {
-		return 0;
-	}
-	if (libp2p_crypto_hashing_sha256(protobuf, protobuf_length, &hash[0]) == 0) {
-		return 0;
-	}
-
-	// turn it into base58
-	size_t buffer_len = 100;
-	unsigned char buffer[buffer_len];
-	int retVal = ipfs_cid_hash_to_base58(hash, hash_size, buffer, buffer_len);
-	if (retVal == 0) {
-		printf("Unable to generate hash\n");
-		return 0;
-	}
-	printf(" hash generated from %lu: %s\n", protobuf_length, buffer);
-	return 1;
-}
-
 /**
  * read the next chunk of bytes, create a node, and add a link to the node in the passed-in node
  * @param file the file handle
@@ -79,10 +57,6 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 	struct UnixFS* new_unixfs = NULL;
 	struct Node* new_node = NULL;
 	struct NodeLink* new_link = NULL;
-
-	//JMJ
-	printf("Raw from the file");
-	test_hash(buffer, bytes_read);
 
 	// put the file bits into a new UnixFS file
 	if (ipfs_unixfs_new(&new_unixfs) == 0)
@@ -105,9 +79,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 		ipfs_unixfs_free(new_unixfs);
 		return 0;
 	}
-	//JMJ
-	printf("unixfs protobuf");
-	test_hash(protobuf, bytes_written);
+
 	// we're done with the UnixFS object
 	ipfs_unixfs_free(new_unixfs);
 
@@ -125,7 +97,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 		}
 
 		// put link in parent node
-		if (ipfs_node_link_create("", new_node->hash, new_node->hash_size, &new_link) == 0) {
+		if (ipfs_node_link_create(NULL, new_node->hash, new_node->hash_size, &new_link) == 0) {
 			ipfs_node_free(new_node);
 			return 0;
 		}
@@ -157,7 +129,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 			}
 
 			// put link in parent node
-			if (ipfs_node_link_create("", new_node->hash, new_node->hash_size, &new_link) == 0) {
+			if (ipfs_node_link_create(NULL, new_node->hash, new_node->hash_size, &new_link) == 0) {
 				ipfs_node_free(new_node);
 				return 0;
 			}
