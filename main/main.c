@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
 		return ipfs_repo_init(argc, argv);
 		break;
 	case (ADD):
-		ipfs_import(argc, argv);
+		ipfs_import_files(argc, argv);
 		break;
 	case (OBJECT_GET):
 		ipfs_exporter_object_get(argc, argv);

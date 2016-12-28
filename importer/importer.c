@@ -151,44 +151,89 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 }
 
 /**
- * Creates a node based on an incoming file
- * @param file_name the file to import
- * @param parent_node the root node (has links to others)
+ * Creates a node based on an incoming file or directory
+ * NOTE: this can be called recursively for directories
+ * @param file_name the file (or directory) to import
+ * @param parent_node the root node (has links to others in case this is a large file and is split)
  * @returns true(1) on success
  */
 int ipfs_import_file(const char* fileName, struct Node** parent_node, struct FSRepo* fs_repo) {
+	/**
+	 * NOTE: When this function completes, parent_node will be either:
+	 * 1) the complete file, in the case of a small file (<256k-ish)
+	 * 2) a node with links to the various pieces of a large file
+	 * 3) a node with links to files and directories if 'fileName' is a directory
+	 */
 	int retVal = 1;
 	int bytes_read = MAX_DATA_SIZE;
 	size_t total_size = 0;
+	unsigned int isDirectory = 0;
 
-	FILE* file = fopen(fileName, "rb");
-	retVal = ipfs_node_new(parent_node);
-	if (retVal == 0)
-		return 0;
+	//TODO: determine if this file is actually a directory
+	if (isDirectory) {
+		// get list of files
+		// process each file
+		// add file as link to parent_node
+	} else {
+		// process this file
+		FILE* file = fopen(fileName, "rb");
+		retVal = ipfs_node_new(parent_node);
+		if (retVal == 0)
+			return 0;
 
-	// add all nodes
-	while ( bytes_read == MAX_DATA_SIZE) {
-		bytes_read = ipfs_import_chunk(file, *parent_node, fs_repo, &total_size);
+		// add all nodes (will be called multiple times for large files)
+		while ( bytes_read == MAX_DATA_SIZE) {
+			bytes_read = ipfs_import_chunk(file, *parent_node, fs_repo, &total_size);
+		}
+		fclose(file);
 	}
-
-	fclose(file);
 
 	return 1;
 }
 
+
+// a linked list to store filenames
+struct FileList {
+	char* file_name;
+	struct FileList* next;
+};
+
 /**
- * called from the command line
+ * called from the command line to import multiple files or directories
  * @param argc the number of arguments
  * @param argv the arguments
  */
-int ipfs_import(int argc, char** argv) {
+int ipfs_import_files(int argc, char** argv) {
 	/*
 	 * Param 0: ipfs
 	 * param 1: add
-	 * param 2: filename
+	 * param 2: -r (optional)
+	 * param 3: directoryname
 	 */
-	struct Node* directory_node = NULL;
 	struct FSRepo* fs_repo = NULL;
+	struct FileList* first = NULL;
+	struct FileList* last = NULL;
+	int recursive = 0; // false
+
+	// parse the command line
+	for (int i = 2; i < argc; i++) {
+		if (strcmp(argv[i], "-r") == 0) {
+			recursive = 1;
+		} else {
+			struct FileList* current = (struct FileList*)malloc(sizeof(struct FileList));
+			current->next = NULL;
+			current->file_name = argv[i];
+			// now wire it in
+			if (first == NULL) {
+				first = current;
+			}
+			if (last != NULL) {
+				last->next = current;
+			}
+			// now set last to current
+			last = current;
+		}
+	}
 
 	// open the repo
 	int retVal = ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo);
@@ -198,24 +243,36 @@ int ipfs_import(int argc, char** argv) {
 	retVal = ipfs_repo_fsrepo_open(fs_repo);
 
 	// import the file(s)
-	retVal = ipfs_import_file(argv[2], &directory_node, fs_repo);
+	struct FileList* current = first;
+	while (current != NULL) {
+		struct Node* directory_entry = NULL;
+		retVal = ipfs_import_file(current->file_name, &directory_entry, fs_repo);
 
-	// give some results to the user
-	int buffer_len = 100;
-	unsigned char buffer[buffer_len];
-	retVal = ipfs_cid_hash_to_base58(directory_node->hash, directory_node->hash_size, buffer, buffer_len);
-	if (retVal == 0) {
-		printf("Unable to generate hash\n");
-		ipfs_node_free(directory_node);
-		ipfs_repo_fsrepo_free(fs_repo);
-		return 0;
+		// give some results to the user
+		int buffer_len = 100;
+		unsigned char buffer[buffer_len];
+		retVal = ipfs_cid_hash_to_base58(directory_entry->hash, directory_entry->hash_size, buffer, buffer_len);
+		if (retVal == 0) {
+			printf("Unable to generate hash\n");
+			ipfs_node_free(directory_entry);
+			ipfs_repo_fsrepo_free(fs_repo);
+			return 0;
+		}
+		printf("added %s %s\n", buffer, current->file_name);
+		//TODO: cleanup
+		ipfs_node_free(directory_entry);
+		current = current->next;
 	}
-	printf("added %s %s\n", buffer, argv[2]);
 
-	if (directory_node != NULL)
-		ipfs_node_free(directory_node);
 	if (fs_repo != NULL)
 		ipfs_repo_fsrepo_free(fs_repo);
+	// free file list
+	current = first;
+	while (current != NULL) {
+		first = current->next;
+		free(current);
+		current = first;
+	}
 
 	return retVal;
 }
