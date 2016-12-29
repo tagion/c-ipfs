@@ -57,27 +57,61 @@ Expect these resolutions:
 
 int ipfs_dns (int argc, char **argv)
 {
-    int err;
-    char **txt, *path;
+    int err, r=0, i;
+    char **txt, *path, *param;
+
+    if (argc == 4 && strcmp ("-r", argv[2])==0) {
+        r = 1;
+        argc--; argv++;
+    }
 
     if (argc != 3) {
-        fprintf (stderr, "usage: ipfs dns dns.name.com\n");
+        fprintf (stderr, "usage: ipfs dns [-r] dns.name.com\n");
         return -1;
     }
 
-    err = ipfs_dnslink_resolv_lookupTXT (&txt, argv[2]);
-    if (err) {
-        fprintf (stderr, "dns lookupTXT: %s\n", Err[err]);
-        return err;
+    param = malloc (strlen (argv[2]) + 1);
+    if (!param) {
+        fprintf (stderr, "memory allocation failed.\n");
+        return 1;
     }
+    strcpy (param, argv[2]);
 
-    err = ipfs_dnslink_parse_txt(&path, *txt);
-    if (err) {
-        fprintf (stderr, "dns parse_txt: %s\n", Err[err]);
-        return err;
-    }
-    free (*txt);
-    free (txt);
+    for (i = 0 ; i < DefaultDepthLimit ; i++) {
+        if (memcmp(param, "/ipns/", 6) == 0) {
+            err = ipfs_dnslink_resolv_lookupTXT (&txt, param+6);
+        } else {
+            err = ipfs_dnslink_resolv_lookupTXT (&txt, param);
+        }
+        if (err) {
+            fprintf (stderr, "param: %s\n", param);
+            fprintf (stderr, "dns lookupTXT: %s\n", Err[err]);
+            return err;
+        }
+
+        err = ipfs_dnslink_parse_txt(&path, *txt);
+        if (err) {
+            free (*txt);
+            free (txt);
+            fprintf (stderr, "dns parse_txt: %s\n", Err[err]);
+            return err;
+        }
+
+        free (*txt);
+        free (txt);
+        free (param);
+
+        if (! r) {
+            // not recursive.
+            break;
+        }
+
+        if (memcmp(path, "/ipfs/", 6) == 0) {
+            break;
+        }
+
+        param = path;
+    } while (--r);
     fprintf (stdout, "%s\n", path);
     free (path);
 
