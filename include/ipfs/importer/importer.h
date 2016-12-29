@@ -10,7 +10,7 @@
  * @param node the root node (could have links to others)
  * @returns true(1) on success
  */
-int ipfs_import_file(const char* fileName, struct Node** node, struct FSRepo* fs_repo);
+int ipfs_import_file(const char* root, const char* fileName, struct Node** node, struct FSRepo* fs_repo, size_t* bytes_written);
 
 /**
  * called from the command line

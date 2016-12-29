@@ -64,6 +64,19 @@ int os_utils_is_directory(const char* file_name) {
 	return S_ISDIR(path_stat.st_mode) != 0;
 }
 
+int os_utils_split_filename(const char* in, char** path, char** filename) {
+	int len = strlen(in);
+	char* pos = strrchr(in, '/');
+	pos++;
+	*path = (char*)malloc((pos - in) + 1);
+	*filename = (char*)malloc(len - (pos-in) + 1);
+	strncpy(*path, in, pos-in-1);
+	(*path)[pos-in-1] = 0;
+	strcpy(*filename, pos);
+	(*filename)[len - (pos-in)] = 0;
+	return 1;
+}
+
 struct FileList* os_utils_list_directory(const char* path) {
 	DIR* dp;
 	struct dirent *ep;

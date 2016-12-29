@@ -45,7 +45,8 @@ int test_import_large_file() {
 
 	// write to ipfs
 	struct Node* write_node;
-	if (ipfs_import_file(fileName, &write_node, fs_repo) == 0) {
+	size_t bytes_written;
+	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written) == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
@@ -193,7 +194,8 @@ int test_import_small_file() {
 
 	// write to ipfs
 	struct Node* write_node;
-	if (ipfs_import_file(fileName, &write_node, fs_repo) == 0) {
+	size_t bytes_written;
+	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written) == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}

@@ -16,9 +16,29 @@ struct FileList {
 	struct FileList* next;
 };
 
+/**
+ * Builds a list of files within a directory
+ * @param path the path to examine
+ * @returns a FileList struct of the first file
+ */
 struct FileList* os_utils_list_directory(const char* path);
-// frees memory used by creating a FileList linked list
+
+/**
+ * Cleans up memory used by a FileList struct
+ * @param first the struct to free
+ * @returns true(1)
+ */
 int os_utils_free_file_list(struct FileList* first);
+
+/**
+ * Split the filename from the path
+ * @param in the full path and filename
+ * @param path only the path part
+ * @param filename only the file name
+ * @returns true(1)
+ */
+int os_utils_split_filename(const char* in, char** path, char** filename);
+
 
 /**
  * get an environment varible from the os
