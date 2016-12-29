@@ -356,6 +356,35 @@ int ipfs_node_new(struct Node** node)
 	return 1;
 }
 
+/***
+ * Allocates memory for a node, and sets the data section to indicate
+ * that this node is a directory
+ * @param node the node to initialize
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_node_create_directory(struct Node** node) {
+	// initialize parent_node
+	if (ipfs_node_new(node) == 0)
+		return 0;
+	// put a UnixFS protobuf in the data section
+	struct UnixFS* unix_fs;
+	if (ipfs_unixfs_new(&unix_fs) == 0) {
+		ipfs_node_free(*node);
+		return 0;
+	}
+	unix_fs->data_type = UNIXFS_DIRECTORY;
+	size_t protobuf_len = ipfs_unixfs_protobuf_encode_size(unix_fs);
+	unsigned char protobuf[protobuf_len];
+	if (ipfs_unixfs_protobuf_encode(unix_fs, protobuf, protobuf_len, &protobuf_len) == 0) {
+		ipfs_node_free(*node);
+		ipfs_unixfs_free(unix_fs);
+		return 0;
+	}
+	ipfs_unixfs_free(unix_fs);
+	ipfs_node_set_data(*node, protobuf, protobuf_len);
+	return 1;
+}
+
 /**
  * Set the cached struct element
  * @param node the node to be modified

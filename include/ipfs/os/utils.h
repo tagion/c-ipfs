@@ -9,6 +9,18 @@
 #include <unistd.h>
 
 /**
+ * a linked list to store filenames
+ */
+struct FileList {
+	char* file_name;
+	struct FileList* next;
+};
+
+struct FileList* os_utils_list_directory(const char* path);
+// frees memory used by creating a FileList linked list
+int os_utils_free_file_list(struct FileList* first);
+
+/**
  * get an environment varible from the os
  * @param variable the variable to look for
  * @returns the results
@@ -37,5 +49,12 @@ int os_utils_file_size(const char* file_name);
 int os_utils_directory_writeable(const char* path);
 
 int os_utils_directory_exists(const char* path);
+
+/**
+ * Determine if the path presented is actually a directory
+ * @param file_name the path to examine
+ * @returns true(1) if file_name is actually a directory
+ */
+int os_utils_is_directory(const char* file_name);
 
 #endif /* utils_h */

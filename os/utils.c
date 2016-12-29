@@ -2,9 +2,11 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <pwd.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <dirent.h>
 
 /**
  * get an environment varible from the os
@@ -55,6 +57,58 @@ int os_utils_directory_exists(const char* directory_name) {
 		return 1;
 	return 0;
 }
+
+int os_utils_is_directory(const char* file_name) {
+	struct stat path_stat;
+	stat(file_name, &path_stat);
+	return S_ISDIR(path_stat.st_mode) != 0;
+}
+
+struct FileList* os_utils_list_directory(const char* path) {
+	DIR* dp;
+	struct dirent *ep;
+	struct FileList* first = NULL;
+	struct FileList* last = NULL;
+	struct FileList* next = NULL;
+
+	dp = opendir(path);
+	if (dp != NULL) {
+		while ( (ep = readdir(dp)) ) {
+			if (strcmp(ep->d_name, ".") != 0 && strcmp(ep->d_name, "..") != 0) {
+				// grab the data
+				next = (struct FileList*)malloc(sizeof(struct FileList));
+				next->file_name = malloc(strlen(ep->d_name) + 1);
+				strcpy(next->file_name, ep->d_name);
+				next->next = NULL;
+				// put it in the appropriate spot
+				if (first == NULL) {
+					first = next;
+					last = next;
+				} else {
+					last->next = next;
+					last = next;
+				}
+			} // not dealing with . or ..
+		} // while
+		closedir(dp);
+	}
+	return first;
+}
+
+int os_utils_free_file_list(struct FileList* first) {
+	if (first != NULL) {
+		struct FileList* next = first;
+		struct FileList* last = NULL;
+		while (next != NULL) {
+			last = next->next;
+			free(next);
+			next = last;
+		}
+	}
+	return 1;
+}
+
+
 
 int os_utils_directory_writeable(const char* path) {
 	int result = access(path, W_OK);

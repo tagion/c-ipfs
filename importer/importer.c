@@ -4,6 +4,7 @@
 
 #include "ipfs/importer/importer.h"
 #include "ipfs/merkledag/merkledag.h"
+#include "ipfs/os/utils.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/unixfs/unixfs.h"
 
@@ -151,6 +152,26 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 }
 
 /**
+ * Prints to the console the results of a node import
+ * @param node the node imported
+ * @param file_name the name of the file
+ * @returns true(1) if successful, false(0) if couldn't generate the MultiHash to be displayed
+ */
+int ipfs_import_print_node_results(const struct Node* node, const char* file_name) {
+	// give some results to the user
+	//TODO: if directory_entry is itself a directory, traverse and report files
+	int buffer_len = 100;
+	unsigned char buffer[buffer_len];
+	if (ipfs_cid_hash_to_base58(node->hash, node->hash_size, buffer, buffer_len) == 0) {
+		printf("Unable to generate hash for file %s.\n", file_name);
+		return 0;
+	}
+	printf("added %s %s\n", buffer, file_name);
+	return 1;
+}
+
+
+/**
  * Creates a node based on an incoming file or directory
  * NOTE: this can be called recursively for directories
  * @param file_name the file (or directory) to import
@@ -167,13 +188,42 @@ int ipfs_import_file(const char* fileName, struct Node** parent_node, struct FSR
 	int retVal = 1;
 	int bytes_read = MAX_DATA_SIZE;
 	size_t total_size = 0;
-	unsigned int isDirectory = 0;
 
-	//TODO: determine if this file is actually a directory
-	if (isDirectory) {
+	if (os_utils_is_directory(fileName)) {
+		// initialize parent_node as a directory
+		if (ipfs_node_create_directory(parent_node) == 0)
+			return 0;
 		// get list of files
-		// process each file
-		// add file as link to parent_node
+		struct FileList* first = os_utils_list_directory(fileName);
+		struct FileList* next = first;
+		while (next != NULL) {
+			// process each file. NOTE: could be an embedded directory
+			struct Node* file_node;
+			size_t filename_len = strlen(fileName) + strlen(next->file_name) + 2;
+			char full_file_name[filename_len];
+			os_utils_filepath_join(fileName, next->file_name, full_file_name, filename_len);
+			if (ipfs_import_file(full_file_name, &file_node, fs_repo) == 0) {
+				ipfs_node_free(*parent_node);
+				os_utils_free_file_list(first);
+				return 0;
+			}
+			// TODO: probably need to display what was imported
+			ipfs_import_print_node_results(file_node, next->file_name);
+			// TODO: Determine what needs to be done if this file_node is a file, a split file, or a directory
+			// Create link from file_node
+			struct NodeLink* file_node_link;
+			ipfs_node_link_create(next->file_name, file_node->hash, file_node->hash_size, &file_node_link);
+			file_node_link->t_size = file_node->data_size;
+			// add file_node as link to parent_node
+			ipfs_node_add_link(*parent_node, file_node_link);
+			// clean up file_node
+			ipfs_node_free(file_node);
+			// move to next file in list
+			next = next->next;
+		} // while going through files
+		// save the parent_node (the directory)
+		size_t bytes_written;
+		ipfs_merkledag_add(*parent_node, fs_repo, &bytes_written);
 	} else {
 		// process this file
 		FILE* file = fopen(fileName, "rb");
@@ -191,12 +241,6 @@ int ipfs_import_file(const char* fileName, struct Node** parent_node, struct FSR
 	return 1;
 }
 
-
-// a linked list to store filenames
-struct FileList {
-	char* file_name;
-	struct FileList* next;
-};
 
 /**
  * called from the command line to import multiple files or directories
@@ -248,18 +292,8 @@ int ipfs_import_files(int argc, char** argv) {
 		struct Node* directory_entry = NULL;
 		retVal = ipfs_import_file(current->file_name, &directory_entry, fs_repo);
 
-		// give some results to the user
-		int buffer_len = 100;
-		unsigned char buffer[buffer_len];
-		retVal = ipfs_cid_hash_to_base58(directory_entry->hash, directory_entry->hash_size, buffer, buffer_len);
-		if (retVal == 0) {
-			printf("Unable to generate hash\n");
-			ipfs_node_free(directory_entry);
-			ipfs_repo_fsrepo_free(fs_repo);
-			return 0;
-		}
-		printf("added %s %s\n", buffer, current->file_name);
-		//TODO: cleanup
+		ipfs_import_print_node_results(directory_entry, current->file_name);
+		// cleanup
 		ipfs_node_free(directory_entry);
 		current = current->next;
 	}
@@ -276,3 +310,4 @@ int ipfs_import_files(int argc, char** argv) {
 
 	return retVal;
 }
+

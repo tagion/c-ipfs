@@ -127,11 +127,20 @@ int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struc
  * Node Functions
  *===================================================================================*/
 
-/*ipfs_node_new
+/****
  * Creates an empty node, allocates the required memory
- * Returns a fresh new node with no data set in it.
+ * @param node the pointer to the memory allocated
+ * @returns true(1) on success, otherwise false(0)
  */
 int ipfs_node_new(struct Node** node);
+
+/***
+ * Allocates memory for a node, and sets the data section to indicate
+ * that this node is a directory
+ * @param node the node to initialize
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_node_create_directory(struct Node** node);
 
 /**
  * sets the Cid into the struct element titled cached
