@@ -29,4 +29,8 @@
     typedef int PinMode;
 
     int ipfs_pin_init ();
+    // Return pointer to string or NULL if invalid.
+    char *ipfs_pin_mode_to_string (PinMode mode);
+    // Return array index or -1 if fail.
+    PinMode ipfs_string_to_pin_mode (char *str);
 #endif // IPFS_PIN_H

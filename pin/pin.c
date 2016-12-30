@@ -41,3 +41,25 @@ int ipfs_pin_init ()
 
     return 0;
 }
+
+// Return pointer to string or NULL if invalid.
+char *ipfs_pin_mode_to_string (PinMode mode)
+{
+    if (mode < 0 || mode >= (sizeof (ipfs_pin_linkmap) / sizeof (void*))) {
+        return NULL;
+    }
+    return (char*)ipfs_pin_linkmap[mode];
+}
+
+// Return array index or -1 if fail.
+PinMode ipfs_string_to_pin_mode (char *str)
+{
+    PinMode pm;
+
+    for (pm = 0 ; pm < (sizeof (ipfs_pin_linkmap) / sizeof (void*)) ; pm++) {
+        if (strcmp(ipfs_pin_linkmap[pm], str) == 0) {
+            return pm;
+        }
+    }
+    return -1; // not found.
+}
