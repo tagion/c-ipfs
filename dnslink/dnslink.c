@@ -201,7 +201,7 @@ int ipfs_dnslink_resolv_lookupTXT(char ***txt, char *domain)
     u_char responseByte[4096];
 
     // Use res_query from libresolv to retrieve TXT record from DNS server.
-    if ((responseLength = res_query(domain,C_IN,T_TXT,responseByte,sizeof(responseByte))) < 0 ||
+    if ((responseLength = res_query(domain,ns_c_in,ns_t_txt,responseByte,sizeof(responseByte))) < 0 ||
         ns_initparse(responseByte,responseLength,&query_parse_msg) < 0) {
         return ErrResolveFailed;
     } else {
