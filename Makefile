@@ -12,6 +12,7 @@ all:
 	cd merkledag; make all;
 	cd multibase; make all;
 	cd os; make all;
+	cd pin; make all;
 	cd repo; make all;
 	cd flatfs; make all;
 	cd datastore; make all;
@@ -30,6 +31,7 @@ clean:
 	cd merkledag; make clean;
 	cd multibase; make clean;
 	cd os; make clean;
+	cd pin; make clean;
 	cd repo; make clean;
 	cd flatfs; make clean;
 	cd datastore; make clean;

@@ -26,6 +26,7 @@
         ErrResolveLimit,
         ErrInvalidSignature,
         ErrInvalidSignatureFmt,
-        ErrNoRecord
+        ErrNoRecord,
+        ErrCidDecodeFailed
     } ErrsIdx;
 #endif // IPFS_ERRS_H

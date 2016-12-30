@@ -28,5 +28,6 @@ char *Err[] = {
     "resolve depth exceeded",
     NULL,
     "Invalid value. Not signed by PrivateKey corresponding to %s",
-    "no usable records in given set"
+    "no usable records in given set",
+    "failed to decode empty key constant"
 };

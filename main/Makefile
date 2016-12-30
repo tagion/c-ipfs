@@ -9,6 +9,7 @@ OBJS = main.o \
 	../commands/argument.o ../commands/command_option.o ../commands/command.o ../commands/cli/parse.o \
 	../core/builder.o \
 	../datastore/ds_helper.o \
+	../datastore/key.o \
 	../dnslink/dnslink.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \
@@ -17,6 +18,7 @@ OBJS = main.o \
 	../multibase/multibase.o \
 	../namesys/isdomain.o \
 	../os/utils.o \
+	../pin/pin.o \
 	../repo/init.o \
 	../repo/fsrepo/fs_repo.o ../repo/fsrepo/jsmn.o ../repo/fsrepo/lmdb_datastore.o \
 	../repo/config/config.o ../repo/config/identity.o \
