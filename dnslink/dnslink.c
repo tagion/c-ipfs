@@ -84,7 +84,6 @@ int ipfs_dns (int argc, char **argv)
             err = ipfs_dnslink_resolv_lookupTXT (&txt, param);
         }
         if (err) {
-            fprintf (stderr, "param: %s\n", param);
             fprintf (stderr, "dns lookupTXT: %s\n", Err[err]);
             return err;
         }
