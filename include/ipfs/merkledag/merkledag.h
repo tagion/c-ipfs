@@ -25,4 +25,13 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo, size_t* bytes_
  */
 int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node** node, const struct FSRepo* fs_repo);
 
+/***
+ * Retrieves a node from the datastore based on the multihash
+ * @param multihash the base58 encoded multihash (should start with Qm) as a null terminated string
+ * @param node the node to be created
+ * @param fs_repo the repository
+ * @returns true(1) on success
+ */
+int ipfs_merkledag_get_by_multihash(const unsigned char* multihash, size_t multihash_length, struct Node** node, const struct FSRepo* fs_repo);
+
 #endif

@@ -10,8 +10,7 @@ OBJS = testit.o test_helper.o \
 	../core/builder.o \
 	../datastore/ds_helper.o \
 	../flatfs/flatfs.o \
-	../importer/importer.o \
-	../importer/exporter.o \
+	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \
 	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \
 	../os/utils.o \

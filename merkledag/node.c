@@ -385,6 +385,19 @@ int ipfs_node_create_directory(struct Node** node) {
 	return 1;
 }
 
+int ipfs_node_is_directory(struct Node* node) {
+	if (node->data_size < 2) {
+		return 0;
+	}
+	struct UnixFS* unix_fs;
+	if (ipfs_unixfs_protobuf_decode(node->data, node->data_size, &unix_fs) == 0) {
+		return 0;
+	}
+	int retVal = (unix_fs->data_type == UNIXFS_DIRECTORY);
+	ipfs_unixfs_free(unix_fs);
+	return retVal;
+}
+
 /**
  * Set the cached struct element
  * @param node the node to be modified

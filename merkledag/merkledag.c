@@ -78,3 +78,13 @@ int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node*
 
 	return 1;
 }
+
+int ipfs_merkledag_get_by_multihash(const unsigned char* multihash, size_t multihash_length, struct Node** node, const struct FSRepo* fs_repo) {
+	// convert to hash
+	size_t hash_size = 0;
+	unsigned char* hash = NULL;
+	if (mh_multihash_digest(multihash, multihash_length, &hash, &hash_size) < 0) {
+		return 0;
+	}
+	return ipfs_merkledag_get(hash, hash_size, node, fs_repo);
+}

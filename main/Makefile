@@ -11,8 +11,7 @@ OBJS = main.o \
 	../datastore/ds_helper.o \
 	../dnslink/dnslink.o \
 	../flatfs/flatfs.o \
-	../importer/importer.o \
-	../importer/exporter.o \
+	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \
 	../path/path.o \
 	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \

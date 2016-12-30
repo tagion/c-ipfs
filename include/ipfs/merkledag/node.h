@@ -142,6 +142,13 @@ int ipfs_node_new(struct Node** node);
  */
 int ipfs_node_create_directory(struct Node** node);
 
+/***
+ * Determine if this node is actually a directory
+ * @param node the node to examine
+ * @returns true(1) if this node is a directory. Otherwise, false(0)
+ */
+int ipfs_node_is_directory(struct Node* node);
+
 /**
  * sets the Cid into the struct element titled cached
  * @param node the node to work with

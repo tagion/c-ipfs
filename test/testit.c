@@ -4,6 +4,7 @@
 #include "merkledag/test_merkledag.h"
 #include "node/test_node.h"
 #include "node/test_importer.h"
+#include "node/test_resolver.h"
 #include "repo/test_repo_bootstrap_peers.h"
 #include "repo/test_repo_config.h"
 #include "repo/test_repo_fsrepo.h"
@@ -52,6 +53,7 @@ const char* names[] = {
 		"test_merkledag_get_data",
 		"test_merkledag_add_node",
 		"test_merkledag_add_node_with_links",
+		"test_resolver_get",
 		"test_unixfs_encode_decode",
 		"test_unixfs_encode_smallfile"
 };
@@ -85,6 +87,7 @@ int (*funcs[])(void) = {
 		test_merkledag_get_data,
 		test_merkledag_add_node,
 		test_merkledag_add_node_with_links,
+		test_resolver_get,
 		test_unixfs_encode_decode,
 		test_unixfs_encode_smallfile
 };
