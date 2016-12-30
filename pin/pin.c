@@ -63,3 +63,50 @@ PinMode ipfs_string_to_pin_mode (char *str)
     }
     return -1; // not found.
 }
+
+int ipfs_pin_is_pinned (struct Pinned *p)
+{
+    return (p->Mode != NotPinned);
+}
+
+char *ipfs_pin_pinned_msg (struct Pinned *p)
+{
+    char *ret, *ptr, *msg;
+
+    switch (p->Mode) {
+        case NotPinned:
+            msg = "not pinned";
+            ret = malloc(strlen (msg) + 1);
+            if (!ret) {
+                return NULL;
+            }
+            strcpy(ret, msg);
+            break;
+        case Indirect:
+            msg = "pinned via ";
+            ret = malloc(strlen (msg) + p->Via->hash_length + 1);
+            if (!ret) {
+                return NULL;
+            }
+            ptr = ret;
+            memcpy(ptr, msg, strlen(msg));
+            ptr += strlen(msg);
+            memcpy(ptr, p->Via->hash, p->Via->hash_length);
+            ptr += p->Via->hash_length;
+            *ptr = '\0';
+            break;
+        default:
+            ptr = ipfs_pin_mode_to_string (p->Mode);
+            if (!ptr) {
+                return NULL;
+            }
+            msg = "pinned: ";
+            ret = malloc(strlen (msg) + strlen (ptr) + 1);
+            if (!ret) {
+                return NULL;
+            }
+            strcpy(ret, msg);
+            strcat(ret, ptr);
+    }
+    return ret;
+}
