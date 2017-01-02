@@ -46,7 +46,7 @@ int os_utils_split_filename(const char* in, char** path, char** filename);
  * @returns the results
  */
 char* os_utils_getenv(const char* variable);
-
+int os_utils_setenv(const char* variable, const char* value, int overwrite);
 /**
  * get the user's home directory
  * @returns the user's home directory

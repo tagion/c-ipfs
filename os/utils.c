@@ -18,6 +18,17 @@ char* os_utils_getenv(const char* variable) {
 }
 
 /**
+ * set an environment variable in the os
+ * @param variable the variable to set
+ * @param value the value to assign to the variable
+ * @param overwrite passing a non-zero will allow an existing value to be overwritten
+ * @returns true(1) on success
+ */
+int os_utils_setenv(const char* variable, const char* value, int overwrite) {
+	return setenv(variable, value, overwrite);
+}
+
+/**
  * returns the user's home directory
  * @returns the home directory
  */

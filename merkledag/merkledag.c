@@ -76,6 +76,9 @@ int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node*
 		return 0;
 	}
 
+	// set the hash
+	ipfs_node_set_hash(*node, hash, hash_size);
+
 	return 1;
 }
 

@@ -1,6 +1,6 @@
 #ifndef test_repo_config_h
 #define test_repo_config_h
-
+#include <sys/stat.h>
 #include "ipfs/repo/config/config.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/os/utils.h"
@@ -63,6 +63,10 @@ int test_repo_config_init() {
  * test the writing of the config file
  */
 int test_repo_config_write() {
+	// make sure the directory is there
+	if (!os_utils_file_exists("/tmp/.ipfs")) {
+		mkdir("/tmp/.ipfs", S_IRWXU);
+	}
 	// first delete the existing one
 	unlink("/tmp/.ipfs/config");
 	

@@ -38,31 +38,43 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 		ipfs_node_free(read_node);
 		return 0;
 	}
-	size_t bytes_written = fwrite(read_node->data, 1, read_node->data_size, file);
-	if (bytes_written != read_node->data_size) {
-		fclose(file);
-		ipfs_node_free(read_node);
-		return 0;
-	}
-	struct NodeLink* link = read_node->head_link;
-	struct Node* link_node = NULL;
-	while (link != NULL) {
-		if ( ipfs_merkledag_get(link->hash, link->hash_size, &link_node, fs_repo) == 0) {
-			fclose(file);
-			ipfs_node_free(read_node);
-			return 0;
-		}
-		bytes_written = fwrite(link_node->data, 1, link_node->data_size, file);
-		if (bytes_written != link_node->data_size) {
-			ipfs_node_free(link_node);
-			fclose(file);
-			ipfs_node_free(read_node);
-			return 0;
-		}
-		ipfs_node_free(link_node);
-		link = link->next;
-	}
 
+	if (read_node->head_link == NULL) {
+		// convert the node's data into a UnixFS data block
+		struct UnixFS* unix_fs;
+		ipfs_unixfs_protobuf_decode(read_node->data, read_node->data_size, &unix_fs);
+		size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file);
+		if (bytes_written != unix_fs->bytes_size) {
+			fclose(file);
+			ipfs_node_free(read_node);
+			ipfs_unixfs_free(unix_fs);
+			return 0;
+		}
+		ipfs_unixfs_free(unix_fs);
+	} else {
+		struct NodeLink* link = read_node->head_link;
+		struct Node* link_node = NULL;
+		while (link != NULL) {
+			if ( ipfs_merkledag_get(link->hash, link->hash_size, &link_node, fs_repo) == 0) {
+				fclose(file);
+				ipfs_node_free(read_node);
+				return 0;
+			}
+			struct UnixFS* unix_fs;
+			ipfs_unixfs_protobuf_decode(link_node->data, link_node->data_size, &unix_fs);
+			size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file);
+			if (bytes_written != unix_fs->bytes_size) {
+				ipfs_node_free(link_node);
+				fclose(file);
+				ipfs_node_free(read_node);
+				ipfs_unixfs_free(unix_fs);
+				return 0;
+			}
+			ipfs_node_free(link_node);
+			ipfs_unixfs_free(unix_fs);
+			link = link->next;
+		}
+	}
 	fclose(file);
 
 	if (read_node != NULL)

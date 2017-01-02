@@ -116,15 +116,27 @@ int ipfs_repo_fsrepo_new(const char* repo_path, struct RepoConfig* config, struc
 
 	if (repo_path == NULL) {
 		// get the user's home directory
-		char* home_dir = os_utils_get_homedir();
+		char* ipfs_path = os_utils_getenv("IPFS_PATH");
+		if (ipfs_path == NULL)
+			ipfs_path = os_utils_get_homedir();
 		char* default_subdir = "/.ipfs";
-		unsigned long newPathLen = strlen(home_dir) + strlen(default_subdir) + 2;  // 1 for slash and 1 for end
+		unsigned long newPathLen = 0;
+		if (strstr(ipfs_path, default_subdir) != NULL) {
+			newPathLen = strlen(ipfs_path) + 1;
+		} else {
+			// add /.ipfs to the string
+			newPathLen = strlen(ipfs_path) + strlen(default_subdir) + 2;  // 1 for slash and 1 for end
+		}
 		(*repo)->path = malloc(sizeof(char) * newPathLen);
 		if ((*repo)->path == NULL) {
 			free( (*repo));
 			return 0;
 		}
-		os_utils_filepath_join(os_utils_get_homedir(), default_subdir, (*repo)->path, newPathLen);
+		if (strstr(ipfs_path, default_subdir) != NULL) {
+			strcpy((*repo)->path, ipfs_path);
+		} else {
+			os_utils_filepath_join(os_utils_get_homedir(), default_subdir, (*repo)->path, newPathLen);
+		}
 	} else {
 		int len = strlen(repo_path) + 1;
 		(*repo)->path = (char*)malloc(len);

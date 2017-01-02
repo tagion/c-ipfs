@@ -46,13 +46,13 @@ int test_import_large_file() {
 	// write to ipfs
 	struct Node* write_node;
 	size_t bytes_written;
-	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written) == 0) {
+	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written, 1) == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
 
 	// cid should be the same each time
-	unsigned char cid_test[10] = { 0x2c ,0x8e ,0x20 ,0x1b, 0xc7, 0xcc, 0x4d, 0x8f, 0x7e, 0x77 };
+	unsigned char cid_test[10] = { 0xc1 ,0x69 ,0x68 ,0x22, 0xfa, 0x47, 0x16, 0xe2, 0x41, 0xa1 };
 
 	/*
 	for (int i = 0; i < 10; i++) {
@@ -195,13 +195,13 @@ int test_import_small_file() {
 	// write to ipfs
 	struct Node* write_node;
 	size_t bytes_written;
-	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written) == 0) {
+	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written, 1) == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
 
 	// cid should be the same each time
-	unsigned char cid_test[10] = { 0x94, 0x4f, 0x39, 0xa0, 0x33, 0x5d, 0x7f, 0xf2, 0xcd, 0x66 };
+	unsigned char cid_test[10] = { 0x1e, 0xcf, 0x04, 0xce, 0x6a, 0xe8, 0xbf, 0xc0, 0xeb, 0xe4 };
 
 	/*
 	for (int i = 0; i < 10; i++) {
@@ -227,7 +227,7 @@ int test_import_small_file() {
 	}
 
 	// compare data
-	if (write_node->data_size != bytes_size || write_node->data_size != read_node->data_size) {
+	if (write_node->data_size != bytes_size + 8 || write_node->data_size != read_node->data_size) {
 		printf("Data size of nodes are not equal or are incorrect. Should be %lu but are %lu\n", write_node->data_size, read_node->data_size);
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_node_free(write_node);

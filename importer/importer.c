@@ -178,11 +178,15 @@ int ipfs_import_print_node_results(const struct Node* node, const char* file_nam
 /**
  * Creates a node based on an incoming file or directory
  * NOTE: this can be called recursively for directories
+ * @param root_dir the directory for where to look for the file
  * @param file_name the file (or directory) to import
  * @param parent_node the root node (has links to others in case this is a large file and is split)
+ * @param fs_repo the ipfs repository
+ * @param bytes_written number of bytes written to disk
+ * @param recursive true if we should navigate directories
  * @returns true(1) on success
  */
-int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** parent_node, struct FSRepo* fs_repo, size_t* bytes_written) {
+int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** parent_node, struct FSRepo* fs_repo, size_t* bytes_written, int recursive) {
 	/**
 	 * NOTE: When this function completes, parent_node will be either:
 	 * 1) the complete file, in the case of a small file (<256k-ish)
@@ -194,44 +198,76 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 	size_t total_size = 0;
 
 	if (os_utils_is_directory(fileName)) {
+		// calculate the new root_dir
+		char* new_root_dir = (char*)root_dir;
+		char* path = NULL;
+		char* file = NULL;
+		os_utils_split_filename(fileName, &path, &file);
+		if (root_dir == NULL) {
+			new_root_dir = file;
+		} else {
+			free(path);
+			path = malloc(strlen(root_dir) + strlen(file) + 2);
+			os_utils_filepath_join(root_dir, file, path, strlen(root_dir) + strlen(file) + 2);
+			new_root_dir = path;
+		}
 		// initialize parent_node as a directory
-		if (ipfs_node_create_directory(parent_node) == 0)
+		if (ipfs_node_create_directory(parent_node) == 0) {
+			if (path != NULL)
+				free(path);
+			if (file != NULL)
+				free(file);
 			return 0;
+		}
 		// get list of files
 		struct FileList* first = os_utils_list_directory(fileName);
 		struct FileList* next = first;
-		while (next != NULL) {
-			// process each file. NOTE: could be an embedded directory
-			*bytes_written = 0;
-			struct Node* file_node;
-			size_t filename_len = strlen(fileName) + strlen(next->file_name) + 2;
-			char full_file_name[filename_len];
-			os_utils_filepath_join(fileName, next->file_name, full_file_name, filename_len);
-			if (ipfs_import_file(root_dir, full_file_name, &file_node, fs_repo, bytes_written) == 0) {
-				ipfs_node_free(*parent_node);
-				os_utils_free_file_list(first);
-				return 0;
-			}
-			// TODO: probably need to display what was imported
-			int len = strlen(next->file_name) + strlen(root_dir) + 2;
-			char full_path[len];
-			os_utils_filepath_join(root_dir, next->file_name, full_path, len);
-			ipfs_import_print_node_results(file_node, full_path);
-			// TODO: Determine what needs to be done if this file_node is a file, a split file, or a directory
-			// Create link from file_node
-			struct NodeLink* file_node_link;
-			ipfs_node_link_create(next->file_name, file_node->hash, file_node->hash_size, &file_node_link);
-			file_node_link->t_size = *bytes_written;
-			// add file_node as link to parent_node
-			ipfs_node_add_link(*parent_node, file_node_link);
-			// clean up file_node
-			ipfs_node_free(file_node);
-			// move to next file in list
-			next = next->next;
-		} // while going through files
+		if (recursive) {
+			while (next != NULL) {
+				// process each file. NOTE: could be an embedded directory
+				*bytes_written = 0;
+				struct Node* file_node;
+				// put the filename together from fileName, which is the directory, and next->file_name
+				// which is a file (or a directory) within the directory we just found.
+				size_t filename_len = strlen(fileName) + strlen(next->file_name) + 2;
+				char full_file_name[filename_len];
+				os_utils_filepath_join(fileName, next->file_name, full_file_name, filename_len);
+				// adjust root directory
+
+				if (ipfs_import_file(new_root_dir, full_file_name, &file_node, fs_repo, bytes_written, recursive) == 0) {
+					ipfs_node_free(*parent_node);
+					os_utils_free_file_list(first);
+					if (file != NULL)
+						free(file);
+					if (path != NULL)
+						free (path);
+					return 0;
+				}
+				// TODO: probably need to display what was imported
+				int len = strlen(next->file_name) + strlen(new_root_dir) + 2;
+				char full_path[len];
+				os_utils_filepath_join(new_root_dir, next->file_name, full_path, len);
+				ipfs_import_print_node_results(file_node, full_path);
+				// TODO: Determine what needs to be done if this file_node is a file, a split file, or a directory
+				// Create link from file_node
+				struct NodeLink* file_node_link;
+				ipfs_node_link_create(next->file_name, file_node->hash, file_node->hash_size, &file_node_link);
+				file_node_link->t_size = *bytes_written;
+				// add file_node as link to parent_node
+				ipfs_node_add_link(*parent_node, file_node_link);
+				// clean up file_node
+				ipfs_node_free(file_node);
+				// move to next file in list
+				next = next->next;
+			} // while going through files
+		}
 		// save the parent_node (the directory)
 		size_t bytes_written;
 		ipfs_merkledag_add(*parent_node, fs_repo, &bytes_written);
+		if (file != NULL)
+			free(file);
+		if (path != NULL)
+			free (path);
 	} else {
 		// process this file
 		FILE* file = fopen(fileName, "rb");
@@ -304,7 +340,7 @@ int ipfs_import_files(int argc, char** argv) {
 		char* filename;
 		os_utils_split_filename(current->file_name, &path, &filename);
 		size_t bytes_written = 0;
-		retVal = ipfs_import_file(filename, current->file_name, &directory_entry, fs_repo, &bytes_written);
+		retVal = ipfs_import_file(NULL, current->file_name, &directory_entry, fs_repo, &bytes_written, recursive);
 
 		ipfs_import_print_node_results(directory_entry, filename);
 		// cleanup

@@ -52,10 +52,16 @@ int make_ipfs_repository(const char* path) {
  * Initialize a repository
  */
 int ipfs_repo_init(int argc, char** argv) {
+	// the default is the user's home directory
 	char* home_directory = os_utils_get_homedir();
 	//allow user to pass directory on command line
 	if (argc > 2) {
 		home_directory = argv[2];
+	} else {
+		// check the IPFS_PATH
+		char* temp = os_utils_getenv("IPFS_PATH");
+		if (temp != NULL)
+			home_directory = temp;
 	}
 	// get the full path
 	int dir_len = strlen(home_directory) + 7;
