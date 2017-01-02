@@ -8,12 +8,18 @@ int test_resolver_get() {
 
 	drop_and_build_repository(ipfs_path);
 
+	// this should point to a test directory with files and directories
+	char* home_dir = os_utils_get_homedir();
+	char* test_dir = malloc(strlen(home_dir) + 10);
+
+	os_utils_filepath_join(home_dir, "ipfstest", test_dir, strlen(home_dir) + 10);
+
 	int argc = 4;
 	char* argv[argc];
 	argv[0] = "ipfs";
 	argv[1] = "add";
 	argv[2] = "-r";
-	argv[3] = "/Users/JohnJones/ipfstest";
+	argv[3] = test_dir;
 
 	ipfs_import_files(argc, (char**)argv);
 
@@ -24,6 +30,8 @@ int test_resolver_get() {
 	// find something that is already in the repository
 	struct Node* result = ipfs_resolver_get("/ipfs/QmbMecmXESf96ZNry7hRuzaRkEBhjqXpoYfPCwgFzVGDzB", NULL, fs_repo);
 	if (result == NULL) {
+		free(test_dir);
+		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
 
@@ -32,8 +40,14 @@ int test_resolver_get() {
 	// find something by path
 	result = ipfs_resolver_get("/ipfs/QmZBvycPAYScBoPEzm35zXHt6gYYV5t9PyWmr4sksLPNFS/hello_world.txt", NULL, fs_repo);
 	if (result == NULL) {
+		free(test_dir);
+		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
+
+	ipfs_node_free(result);
+	free(test_dir);
+	ipfs_repo_fsrepo_free(fs_repo);
 
 	return 1;
 }

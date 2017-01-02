@@ -125,6 +125,9 @@ int os_utils_free_file_list(struct FileList* first) {
 		struct FileList* last = NULL;
 		while (next != NULL) {
 			last = next->next;
+			if (next->file_name != NULL) {
+				free(next->file_name);
+			}
 			free(next);
 			next = last;
 		}

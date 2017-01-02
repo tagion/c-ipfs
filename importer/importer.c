@@ -268,12 +268,14 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 			free(file);
 		if (path != NULL)
 			free (path);
+		os_utils_free_file_list(first);
 	} else {
 		// process this file
 		FILE* file = fopen(fileName, "rb");
 		retVal = ipfs_node_new(parent_node);
-		if (retVal == 0)
+		if (retVal == 0) {
 			return 0;
+		}
 
 		// add all nodes (will be called multiple times for large files)
 		while ( bytes_read == MAX_DATA_SIZE) {
@@ -345,6 +347,8 @@ int ipfs_import_files(int argc, char** argv) {
 		ipfs_import_print_node_results(directory_entry, filename);
 		// cleanup
 		ipfs_node_free(directory_entry);
+		free(path);
+		free(filename);
 		current = current->next;
 	}
 

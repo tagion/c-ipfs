@@ -64,6 +64,13 @@ const char* ipfs_resolver_remove_path_prefix(const char* path) {
  * @returns what we are looking for, or NULL if it wasn't found
  */
 struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct FSRepo* fs_repo) {
+
+	/**
+	 * Memory management notes:
+	 * If we find what we're looking for, we clean up "from" and return the object
+	 * If we don't find what we're looking for, but we can continue the search, we clean up "from"
+	 * If we don't find what we're looking for, and we cannot continue, we do not clean up "from"
+	 */
 	// remove unnecessary stuff
 	if (from == NULL)
 		path = ipfs_resolver_remove_path_prefix(path);
@@ -90,10 +97,13 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 			// we have the root node, now see if we want this or something further down
 			int pos = strlen(path_section);
 			if (pos == strlen(path)) {
+				free(path_section);
 				return current_node;
 			} else {
 				// look on...
-				return ipfs_resolver_get(&path[pos+1], current_node, fs_repo); // the +1 is the slash
+				free(path_section);
+				struct Node* newNode = ipfs_resolver_get(&path[pos+1], current_node, fs_repo); // the +1 is the slash
+				return newNode;
 			}
 		} else {
 			// we don't have a current node, and we don't have a hash. Something is wrong
@@ -115,6 +125,7 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 					if (strlen(path_section) == strlen(path)) {
 						// we are at the end of our search
 						ipfs_node_free(from);
+						free(path_section);
 						return current_node;
 					} else {
 						char* next_path_section;
@@ -123,7 +134,8 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 						// if we're at the end of the path, return the node
 						// continue looking for the next part of the path
 						ipfs_node_free(from);
-						return ipfs_resolver_get(next_path_section, current_node, fs_repo);
+						struct Node* newNode = ipfs_resolver_get(next_path_section, current_node, fs_repo);
+						return newNode;
 					}
 				}
 				curr_link = curr_link->next;
