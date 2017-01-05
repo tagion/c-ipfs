@@ -1,11 +1,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ipfs/repo/fsrepo/fs_repo.h"
+
 #define IPFS_PIN_C
 #include "ipfs/pin/pin.h"
 
 #include "ipfs/cid/cid.h"
 #include "ipfs/datastore/key.h"
+#include "ipfs/merkledag/merkledag.h"
 #include "ipfs/util/errs.h"
 
 // package pin implements structures and methods to keep track of
@@ -109,4 +112,36 @@ char *ipfs_pin_pinned_msg (struct Pinned *p)
             strcat(ret, ptr);
     }
     return ret;
+}
+
+// Find out if the child is in the hash.
+int ipfs_pin_has_child (struct FSRepo *ds,
+                        unsigned char *hash,  size_t hash_size,
+                        unsigned char *child, size_t child_size)
+{
+    struct Node *node;
+    struct NodeLink *node_link;
+
+    if (ipfs_merkledag_get (hash, hash_size, &node, ds)) {
+        if (node) {
+            if ((node->hash_size == child_size) &&
+                (memcmp (node->hash, child, child_size) == 0)) {
+                return 1;
+            }
+            // browse the node links.
+            for (node_link = node->head_link ; node_link ; node_link = node_link->next) {
+                if ((node_link->hash_size == child_size) &&
+                    (memcmp (node_link->hash, child, child_size) != 0) &&
+                     ipfs_pin_has_child (ds, node_link->hash, node_link->hash_size,
+                                             child, child_size)) {
+                    return 1;
+                }
+                if ((node_link->hash_size == child_size) &&
+                    (memcmp (node_link->hash, child, child_size) == 0)) {
+                    return 1; // child is a child of the hash node.
+                }
+            }
+        }
+    }
+    return 0;
 }

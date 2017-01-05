@@ -40,4 +40,8 @@
     // Return array index or -1 if fail.
     PinMode ipfs_string_to_pin_mode (char *str);
     int ipfs_pin_is_pinned (struct Pinned *p);
+    // Find out if the child is in the hash.
+    int ipfs_pin_has_child (struct FSRepo *ds,
+                            unsigned char *hash,  size_t hash_size,
+                            unsigned char *child, size_t child_size);
 #endif // IPFS_PIN_H
