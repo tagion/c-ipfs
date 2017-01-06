@@ -15,7 +15,7 @@ void ipfs_cid_set_destroy (struct CidSet **set)
     if (set) {
         while (*set) {
             prev = *set;
-            *set = *set->next;
+            *set = (*set)->next;
             if (prev->cid) {
                 free (prev->cid);
             }
