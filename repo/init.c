@@ -74,7 +74,11 @@ int ipfs_repo_init(int argc, char** argv) {
 		return 0;
 	}
 	// make the directory
+#ifdef __MINGW32__
+	if (mkdir(dir) == -1) {
+#else
 	if (mkdir(dir, S_IRWXU) == -1) {
+#endif
 		printf("Unable to create the directory: %s\n", dir);
 		return 0;
 	}

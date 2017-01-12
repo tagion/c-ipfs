@@ -482,7 +482,11 @@ int ipfs_repo_fsrepo_blockstore_init(const struct FSRepo* fs_repo) {
 	if (retVal == 0)
 		return 0;
 
+#ifdef __MINGW32__
+	if (mkdir(full_path) != 0)
+#else
 	if (mkdir(full_path, S_IRWXU) != 0)
+#endif
 		return 0;
 	return 1;
 }
