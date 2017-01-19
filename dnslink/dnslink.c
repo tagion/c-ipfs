@@ -128,6 +128,8 @@ int ipfs_dns (int argc, char **argv)
             } else {
                 err = ipfs_dnslink_resolv_lookupTXT (&txt, param);
             }
+            free (param);
+
             if (err) {
                 fprintf (stderr, "dns lookupTXT: %s\n", Err[err]);
                 return err;
@@ -143,7 +145,6 @@ int ipfs_dns (int argc, char **argv)
 
             free (*txt);
             free (txt);
-            free (param);
             param = path;
 
             if (! r) {
