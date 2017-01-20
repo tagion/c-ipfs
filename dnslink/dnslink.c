@@ -128,6 +128,8 @@ int ipfs_dns (int argc, char **argv)
             } else {
                 err = ipfs_dnslink_resolv_lookupTXT (&txt, param);
             }
+            free (param);
+
             if (err) {
                 fprintf (stderr, "dns lookupTXT: %s\n", Err[err]);
                 return err;
@@ -143,7 +145,7 @@ int ipfs_dns (int argc, char **argv)
 
             free (*txt);
             free (txt);
-            free (param);
+            param = path;
 
             if (! r) {
                 // not recursive.
@@ -153,11 +155,9 @@ int ipfs_dns (int argc, char **argv)
             if (memcmp(path, "/ipfs/", 6) == 0) {
                 break;
             }
-
-            param = path;
         } while (--r);
-        fprintf (stdout, "%s\n", path);
-        free (path);
+        fprintf (stdout, "%s\n", param);
+        free (param);
 
         return 0;
     }
