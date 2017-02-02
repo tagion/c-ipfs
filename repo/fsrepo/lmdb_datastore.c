@@ -183,6 +183,10 @@ int repo_fsrepo_lmdb_cast(struct Datastore* datastore) {
  * @returns true(1) on success
  */
 int repo_fsrepo_lmdb_create_directory(struct Datastore* datastore) {
+#ifdef __MINGW32__
+	return mkdir(datastore->path) == 0;
+#else
 	return mkdir(datastore->path, S_IRWXU) == 0;
+#endif
 }
 

@@ -1,9 +1,12 @@
 #include "ipfs/os/utils.h"
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <pwd.h>
+#ifndef __MINGW32__
+	#include <pwd.h>
+#endif
 #include <unistd.h>
 #include <stdio.h>
 #include <dirent.h>
@@ -25,7 +28,11 @@ char* os_utils_getenv(const char* variable) {
  * @returns true(1) on success
  */
 int os_utils_setenv(const char* variable, const char* value, int overwrite) {
-	return setenv(variable, value, overwrite);
+#ifdef __MINGW32__
+	return 0;
+#else
+	setenv(variable, value, overwrite);
+#endif
 }
 
 /**
@@ -33,8 +40,11 @@ int os_utils_setenv(const char* variable, const char* value, int overwrite) {
  * @returns the home directory
  */
 char* os_utils_get_homedir() {
+#ifndef __MINGW32__
 	struct passwd *pw = getpwuid(getuid());
 	return pw->pw_dir;
+#endif
+	return ".";
 }
 
 /**

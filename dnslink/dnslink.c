@@ -46,9 +46,49 @@ Expect these resolutions:
 
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
+#ifdef __MINGW32__
+    #include <stdint.h>
+
+    #define u_char unsigned char
+    #define u_int16_t uint16_t
+    #define u_int32_t uint32_t
+    #define NS_MAXDNAME     1025    /*%< maximum domain name */
+    #define ns_c_in 1
+    #define ns_t_txt 16
+
+    typedef enum __ns_sect {
+            ns_s_qd = 0,            /*%< Query: Question. */
+            ns_s_zn = 0,            /*%< Update: Zone. */
+            ns_s_an = 1,            /*%< Query: Answer. */
+            ns_s_pr = 1,            /*%< Update: Prerequisites. */
+            ns_s_ns = 2,            /*%< Query: Name servers. */
+            ns_s_ud = 2,            /*%< Update: Update. */
+            ns_s_ar = 3,            /*%< Query|Update: Additional records. */
+            ns_s_max = 4
+    } ns_sect;
+
+    typedef struct __ns_msg {
+            const unsigned char    *_msg, *_eom;
+            u_int16_t       _id, _flags, _counts[ns_s_max];
+            const unsigned char    *_sections[ns_s_max];
+            ns_sect         _sect;
+            int             _rrnum;
+            const unsigned char    *_msg_ptr;
+    } ns_msg;
+
+    typedef struct __ns_rr {
+            char            name[NS_MAXDNAME];
+            u_int16_t       type;
+            u_int16_t       rr_class;
+            u_int32_t       ttl;
+            u_int16_t       rdlength;
+            const u_char *  rdata;
+    } ns_rr;
+#else
+    #include <netinet/in.h>
+    #include <arpa/nameser.h>
+    #include <resolv.h>
+#endif
 #include "ipfs/namesys/namesys.h"
 #define IPFS_DNSLINK_C
 #include "ipfs/dnslink/dnslink.h"
@@ -57,65 +97,71 @@ Expect these resolutions:
 
 int ipfs_dns (int argc, char **argv)
 {
-    int err, r=0, i;
-    char **txt, *path, *param;
-
-    if (argc == 4 && strcmp ("-r", argv[2])==0) {
-        r = 1;
-        argc--; argv++;
-    }
-
-    if (argc != 3) {
-        fprintf (stderr, "usage: ipfs dns [-r] dns.name.com\n");
+#ifdef __MINGW32__
+        fprintf (stderr, "Sorry, dns has not yet been implemented for the Windows version.\n");
         return -1;
     }
+#else
+        int err, r=0, i;
+        char **txt, *path, *param;
 
-    param = malloc (strlen (argv[2]) + 1);
-    if (!param) {
-        fprintf (stderr, "memory allocation failed.\n");
-        return 1;
-    }
-    strcpy (param, argv[2]);
-
-    for (i = 0 ; i < DefaultDepthLimit ; i++) {
-        if (memcmp(param, "/ipns/", 6) == 0) {
-            err = ipfs_dnslink_resolv_lookupTXT (&txt, param+6);
-        } else {
-            err = ipfs_dnslink_resolv_lookupTXT (&txt, param);
-        }
-        if (err) {
-            fprintf (stderr, "dns lookupTXT: %s\n", Err[err]);
-            return err;
+        if (argc == 4 && strcmp ("-r", argv[2])==0) {
+            r = 1;
+            argc--; argv++;
         }
 
-        err = ipfs_dnslink_parse_txt(&path, *txt);
-        if (err) {
+        if (argc != 3) {
+            fprintf (stderr, "usage: ipfs dns [-r] dns.name.com\n");
+            return -1;
+        }
+
+        param = malloc (strlen (argv[2]) + 1);
+        if (!param) {
+            fprintf (stderr, "memory allocation failed.\n");
+            return 1;
+        }
+        strcpy (param, argv[2]);
+
+        for (i = 0 ; i < DefaultDepthLimit ; i++) {
+            if (memcmp(param, "/ipns/", 6) == 0) {
+                err = ipfs_dnslink_resolv_lookupTXT (&txt, param+6);
+            } else {
+                err = ipfs_dnslink_resolv_lookupTXT (&txt, param);
+            }
+            free (param);
+
+            if (err) {
+                fprintf (stderr, "dns lookupTXT: %s\n", Err[err]);
+                return err;
+            }
+
+            err = ipfs_dnslink_parse_txt(&path, *txt);
+            if (err) {
+                free (*txt);
+                free (txt);
+                fprintf (stderr, "dns parse_txt: %s\n", Err[err]);
+                return err;
+            }
+
             free (*txt);
             free (txt);
-            fprintf (stderr, "dns parse_txt: %s\n", Err[err]);
-            return err;
-        }
+            param = path;
 
-        free (*txt);
-        free (txt);
+            if (! r) {
+                // not recursive.
+                break;
+            }
+
+            if (memcmp(path, "/ipfs/", 6) == 0) {
+                break;
+            }
+        } while (--r);
+        fprintf (stdout, "%s\n", param);
         free (param);
 
-        if (! r) {
-            // not recursive.
-            break;
-        }
-
-        if (memcmp(path, "/ipfs/", 6) == 0) {
-            break;
-        }
-
-        param = path;
-    } while (--r);
-    fprintf (stdout, "%s\n", path);
-    free (path);
-
-    return 0;
-}
+        return 0;
+    }
+#endif // MINGW
 
 // ipfs_dnslink_resolve resolves the dnslink at a particular domain. It will
 // recursively keep resolving until reaching the defaultDepth of Resolver. If
@@ -190,56 +236,58 @@ int ipfs_dnslink_resolve_n (char **p, char *d, int depth)
     return ErrResolveLimit;
 }
 
-// lookup using libresolv -lresolv
-int ipfs_dnslink_resolv_lookupTXT(char ***txt, char *domain)
-{
-    char buf[4096], *p;
-    int responseLength;
-    int i, l, n = 0;
-    ns_msg query_parse_msg;
-    ns_rr query_parse_rr;
-    u_char responseByte[4096];
+#ifndef __MINGW32__
+    // lookup using libresolv -lresolv
+    int ipfs_dnslink_resolv_lookupTXT(char ***txt, char *domain)
+    {
+        char buf[4096], *p;
+        int responseLength;
+        int i, l, n = 0;
+        ns_msg query_parse_msg;
+        ns_rr query_parse_rr;
+        u_char responseByte[4096];
 
-    // Use res_query from libresolv to retrieve TXT record from DNS server.
-    if ((responseLength = res_query(domain,ns_c_in,ns_t_txt,responseByte,sizeof(responseByte))) < 0 ||
-        ns_initparse(responseByte,responseLength,&query_parse_msg) < 0) {
-        return ErrResolveFailed;
-    } else {
-        l = sizeof (buf);
-        buf[--l] = '\0';
-        p = buf;
-        // save every TXT record to buffer separating with a \0
-        for (i=0 ; i < ns_msg_count(query_parse_msg,ns_s_an) ; i++) {
-            if (ns_parserr(&query_parse_msg,ns_s_an,i,&query_parse_rr)) {
-                return ErrResolveFailed;
-            } else {
-                char *rdata = ns_rr_rdata(query_parse_rr);
-                memcpy(p, rdata+1, *rdata); // first byte is record length
-                p += *rdata; // update pointer
-                *p++ = '\0'; // mark end-of-record and update pointer to next record.
-                n++; // update record count
+        // Use res_query from libresolv to retrieve TXT record from DNS server.
+        if ((responseLength = res_query(domain,ns_c_in,ns_t_txt,responseByte,sizeof(responseByte))) < 0 ||
+            ns_initparse(responseByte,responseLength,&query_parse_msg) < 0) {
+            return ErrResolveFailed;
+        } else {
+            l = sizeof (buf);
+            buf[--l] = '\0';
+            p = buf;
+            // save every TXT record to buffer separating with a \0
+            for (i=0 ; i < ns_msg_count(query_parse_msg,ns_s_an) ; i++) {
+                if (ns_parserr(&query_parse_msg,ns_s_an,i,&query_parse_rr)) {
+                    return ErrResolveFailed;
+                } else {
+                    char *rdata = ns_rr_rdata(query_parse_rr);
+                    memcpy(p, rdata+1, *rdata); // first byte is record length
+                    p += *rdata; // update pointer
+                    *p++ = '\0'; // mark end-of-record and update pointer to next record.
+                    n++; // update record count
+                }
+            }
+            // allocate array for all records + NULL pointer terminator.
+            *txt = calloc(n+1, sizeof(void*));
+            if (!*txt) {
+                return ErrAllocFailed;
+            }
+            l = p - buf; // length of all records in buffer.
+            p = malloc(l); // allocate memory that will be used as string data at *txt array.
+            if (!p) {
+                free(*txt);
+                *txt = NULL;
+                return ErrAllocFailed;
+            }
+            memcpy(p, buf, l); // transfer from buffer to allocated memory.
+            for (i = 0 ; i < n ; i++) {
+                *txt[i] = p; // save position of current record at *txt array.
+                p = memchr(p, '\0', l - (p - *txt[0])) + 1; // find next record position after next \0
             }
         }
-        // allocate array for all records + NULL pointer terminator.
-        *txt = calloc(n+1, sizeof(void*));
-        if (!*txt) {
-            return ErrAllocFailed;
-        }
-        l = p - buf; // length of all records in buffer.
-        p = malloc(l); // allocate memory that will be used as string data at *txt array.
-        if (!p) {
-            free(*txt);
-            *txt = NULL;
-            return ErrAllocFailed;
-        }
-        memcpy(p, buf, l); // transfer from buffer to allocated memory.
-        for (i = 0 ; i < n ; i++) {
-            *txt[i] = p; // save position of current record at *txt array.
-            p = memchr(p, '\0', l - (p - *txt[0])) + 1; // find next record position after next \0
-        }
+        return 0;
     }
-    return 0;
-}
+#endif
 
 // ipfs_dnslink_resolve_once implements resolver.
 int ipfs_dnslink_resolve_once (char ***p, char *domain)
@@ -257,11 +305,13 @@ int ipfs_dnslink_resolve_once (char ***p, char *domain)
         return ErrInvalidDomain;
     }
 
+#ifndef __MINGW32__
     if (!ipfs_dnslink_lookup_txt) { // if not set
         ipfs_dnslink_lookup_txt = ipfs_dnslink_resolv_lookupTXT; // use default libresolv
     }
 
     err = ipfs_dnslink_lookup_txt (&txt, domain);
+#endif
     if (err) {
         return err;
     }

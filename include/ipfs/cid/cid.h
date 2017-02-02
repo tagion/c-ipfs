@@ -26,6 +26,11 @@ struct Cid {
 	size_t hash_length;
 };
 
+struct CidSet {
+    struct Cid *cid;
+    struct CidSet *next;
+};
+
 /***
  * encode a Cid into a protobuf array of bytes
  * @param incoming the incoming Cid struct
@@ -94,5 +99,14 @@ int ipfs_cid_hash_to_base58(const unsigned char* hash, size_t hash_length, unsig
  * @param cid the Cid structure to fill
  */
 int ipfs_cid_cast(const unsigned char* incoming, size_t incoming_size, struct Cid* cid);
+
+struct CidSet *ipfs_cid_set_new ();
+void ipfs_cid_set_destroy (struct CidSet **set);
+int ipfs_cid_set_add (struct CidSet *set, struct Cid *cid, int visit);
+int ipfs_cid_set_has (struct CidSet *set, struct Cid *cid);
+int ipfs_cid_set_remove (struct CidSet *set, struct Cid *cid);
+int ipfs_cid_set_len (struct CidSet *set);
+unsigned char **ipfs_cid_set_keys (struct CidSet *set);
+int ipfs_cid_set_foreach (struct CidSet *set, int (*func)(struct Cid *));
 
 #endif

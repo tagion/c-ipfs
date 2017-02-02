@@ -6,6 +6,33 @@
 #include "ipfs/importer/exporter.h"
 #include "ipfs/dnslink/dnslink.h"
 
+#ifdef __MINGW32__
+    void bzero(void *s, size_t n)
+    {
+        memset (s, '\0', n);
+    }
+
+    char *strtok_r(char *str, const char *delim, char **save)
+    {
+        char *res, *last;
+
+        if( !save )
+            return strtok(str, delim);
+        if( !str && !(str = *save) )
+            return NULL;
+        last = str + strlen(str);
+        if( (*save = res = strtok(str, delim)) )
+        {
+            *save += strlen(res);
+            if( *save < last )
+                (*save)++;
+            else
+                *save = NULL;
+        }
+        return res;
+    }
+#endif // MINGW
+
 void stripit(int argc, char** argv) {
 	char tmp[strlen(argv[argc])];
 	strcpy(tmp, &argv[argc][1]);
