@@ -52,6 +52,7 @@ int ipfs_flatfs_create_directory(const char* full_directory) {
 	// it is not there, create it
 #ifdef __MINGW32__
 	if (mkdir(full_directory) == -1)
+		return 0;
 #else
 	if (mkdir(full_directory, S_IRWXU) == -1)
 		return 0;
