@@ -8,7 +8,7 @@
 
 #include "ipfs/repo/config/identity.h"
 #include "libp2p/crypto/rsa.h"
-#include "libp2p/peerutils.h"
+#include "libp2p/crypto/peerutils.h"
 #include "libp2p/crypto/encoding/base64.h"
 #include "libp2p/crypto/encoding/x509.h"
 

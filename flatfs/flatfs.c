@@ -54,7 +54,8 @@ int ipfs_flatfs_create_directory(const char* full_directory) {
 	if (mkdir(full_directory) == -1)
 #else
 	if (mkdir(full_directory, S_IRWXU) == -1)
-#endif		return 0;
+		return 0;
+#endif
 
 	return 1;
 }

@@ -32,6 +32,7 @@ int os_utils_setenv(const char* variable, const char* value, int overwrite) {
 	return 0;
 #else
 	setenv(variable, value, overwrite);
+	return 1;
 #endif
 }
 
