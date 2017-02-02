@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
 		printf("***** No tests found *****\n");
 	else {
 		if (counter > 0) {
-			printf("***** There were %d failed test(s) *****\n", counter);
+			printf("***** There were %d failed (out of %d) test(s) *****\n", counter, tests_ran);
 		} else {
 			printf("All %d tests passed\n", tests_ran);
 		}
