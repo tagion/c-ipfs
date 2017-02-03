@@ -19,6 +19,7 @@ all:
 	cd thirdparty; make all;
 	cd unixfs; make all;
 	cd main; make all;
+	cd routing; make all;
 	cd test; make all;
 	
 clean:
@@ -38,6 +39,7 @@ clean:
 	cd thirdparty; make clean;
 	cd unixfs; make clean;
 	cd main; make clean;
+	cd routing; make clean;
 	cd test; make clean;
 
 rebuild: clean all

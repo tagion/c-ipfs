@@ -27,6 +27,7 @@
         ErrInvalidSignature,
         ErrInvalidSignatureFmt,
         ErrNoRecord,
-        ErrCidDecodeFailed
+        ErrCidDecodeFailed,
+        ErrOffline
     } ErrsIdx;
 #endif // IPFS_ERRS_H

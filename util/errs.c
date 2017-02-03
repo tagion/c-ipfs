@@ -29,5 +29,6 @@ char *Err[] = {
     NULL,
     "Invalid value. Not signed by PrivateKey corresponding to %s",
     "no usable records in given set",
-    "failed to decode empty key constant"
+    "failed to decode empty key constant",
+    "routing system in offline mode"
 };
