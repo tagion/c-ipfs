@@ -11,6 +11,7 @@
 #include "libp2p/crypto/peerutils.h"
 #include "libp2p/crypto/encoding/base64.h"
 #include "libp2p/crypto/encoding/x509.h"
+#include "libp2p/crypto/key.h"
 
 /**
  * Builds the Peer ID using the private key, and places it in the identity->peer_id
@@ -18,25 +19,13 @@
  * @returns true(1) on success
  */
 int repo_config_identity_build_peer_id(struct Identity* identity) {
-	// ic key and PeerID
-	unsigned char hash[32];
-	ID_FromPK_non_null_terminated((char*)hash, (unsigned char*)identity->private_key.der, identity->private_key.der_length);
 
-	// peer id is multihashed
-	size_t sz = 255;
-	unsigned char results[sz];
-	if (PrettyID(results, &sz, hash, 32) == 0)
+	struct PublicKey public_key;
+	public_key.data = (unsigned char*)identity->private_key.public_key_der;
+	public_key.data_size = identity->private_key.public_key_length;
+	public_key.type = KEYTYPE_RSA;
+	if (!libp2p_crypto_public_key_to_peer_id(&public_key, &identity->peer_id))
 		return 0;
-
-	// copy it into the structure
-	if (identity->peer_id != NULL)
-		free(identity->peer_id);
-	identity->peer_id = (char*)malloc(sz + 1);
-	if (identity->peer_id == NULL)
-		return 0;
-
-	strncpy(identity->peer_id, (char*)results, sz);
-	identity->peer_id[sz] = 0;
 	return 1;
 }
 
