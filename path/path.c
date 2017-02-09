@@ -3,11 +3,13 @@
 #include <ipfs/cid/cid.h>
 #include <ipfs/path/path.h>
 
+#include <arpa/inet.h>
+
 // FromCid safely converts a cid.Cid type to a Path type
 char* ipfs_path_from_cid (struct Cid *c)
 {
    const char prefix[] = "/ipfs/";
-   char *rpath, *cidstr;// = CidString(c);
+   char *rpath, *cidstr = (char*)c->hash;
    int l;
 
    l = sizeof(prefix) + strlen(cidstr);
@@ -189,7 +191,7 @@ int ipfs_path_pop_last_segment (char **str, char *p)
    *str = strrchr(p, '/');
    if (!*str) return ErrBadPath; // error
    **str = '\0';
-   *str++;
+   (*str)++;
    return 0;
 }
 
@@ -219,7 +221,7 @@ char *ipfs_path_from_segments(char *prefix, char **seg)
 
 int ipfs_path_parse_from_cid (char *dst, char *txt)
 {
-   struct Cid *c;
+   struct Cid *c = NULL;
    char *r;
 
    if (!txt || txt[0] == '\0') return ErrNoComponents;

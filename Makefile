@@ -20,6 +20,10 @@ all:
 	cd unixfs; make all;
 	cd main; make all;
 	cd routing; make all;
+	cd dnslink; make all;
+	cd namesys; make all;
+	cd path; make all;
+	cd util; make all;
 	cd test; make all;
 	
 clean:
@@ -40,6 +44,10 @@ clean:
 	cd unixfs; make clean;
 	cd main; make clean;
 	cd routing; make clean;
+	cd dnslink; make clean;
+	cd namesys; make clean;
+	cd path; make clean;
+	cd util; make clean;
 	cd test; make clean;
 
 rebuild: clean all
