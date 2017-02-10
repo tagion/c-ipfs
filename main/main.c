@@ -54,6 +54,7 @@ void strip_quotes(int argc, char** argv) {
 #define OBJECT_GET 3
 #define DNS 4
 #define CAT 5
+#define DAEMON 6
 
 /***
  * Basic parsing of command line arguments to figure out where the user wants to go
@@ -77,6 +78,9 @@ int parse_arguments(int argc, char** argv) {
 	}
 	if (strcmp("dns", argv[1]) == 0) {
 		return DNS;
+	}
+	if (strcmp("daemon", argv[1]) == 0) {
+		return DAEMON;
 	}
 	return -1;
 }
@@ -102,6 +106,9 @@ int main(int argc, char** argv) {
 		break;
 	case (DNS):
 		ipfs_dns(argc, argv);
+		break;
+	case (DAEMON):
+		ipfs_daemon(argc, argv);
 		break;
 	}
 }
