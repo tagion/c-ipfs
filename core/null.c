@@ -1,19 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <unistd.h>
 #include <pthread.h>
 #include "libp2p/net/p2pnet.h"
 #include "ipfs/core/daemon.h"
 
+#define BUF_SIZE 4096
+
 void *ipfs_null_connection (void *ptr)
 {
     struct null_connection_params *connection_param;
+    char b[BUF_SIZE];
+    int len;
 
     connection_param = (struct null_connection_params*) ptr;
 
     // TODO: multistream + secio + message.
     fprintf(stderr, "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
+
+    for(;;) {
+        len = socket_read(connection_param->socket, b, sizeof(b)-1, 0);
+        if (len > 0) {
+            while (b[len-1] == '\r' || b[len-1] == '\n') len--;
+            b[len] = '\0';
+            fprintf(stderr, "Recv: '%s'\n", b);
+            if (strcmp (b, "ping") == 0) {
+                socket_write(connection_param->socket, "pong", 4, 0);
+            }
+        } else if(len < 0) {
+            break;
+        }
+    }
 
     close (connection_param->socket); // close socket.
     (*(connection_param->count))--; // update counter.

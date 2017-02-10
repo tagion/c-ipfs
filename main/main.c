@@ -5,6 +5,7 @@
 #include "ipfs/importer/importer.h"
 #include "ipfs/importer/exporter.h"
 #include "ipfs/dnslink/dnslink.h"
+#include "ipfs/core/daemon.h"
 
 #ifdef __MINGW32__
     void bzero(void *s, size_t n)
@@ -55,6 +56,7 @@ void strip_quotes(int argc, char** argv) {
 #define DNS 4
 #define CAT 5
 #define DAEMON 6
+#define PING 7
 
 /***
  * Basic parsing of command line arguments to figure out where the user wants to go
@@ -81,6 +83,9 @@ int parse_arguments(int argc, char** argv) {
 	}
 	if (strcmp("daemon", argv[1]) == 0) {
 		return DAEMON;
+	}
+	if (strcmp("ping", argv[1]) == 0) {
+		return PING;
 	}
 	return -1;
 }
@@ -109,6 +114,9 @@ int main(int argc, char** argv) {
 		break;
 	case (DAEMON):
 		ipfs_daemon(argc, argv);
+		break;
+	case (PING):
+		ipfs_ping(argc, argv);
 		break;
 	}
 }
