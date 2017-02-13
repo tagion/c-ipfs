@@ -16,6 +16,7 @@ extern int timespec_get (struct timespec *__ts, int __base)
 #include "ipfs/namesys/namesys.h"
 #include "ipfs/cid/cid.h"
 #include "ipfs/path/path.h"
+#include "libp2p/crypto/encoding/base58.h"
 
 char* ipfs_routing_cache_get (char *key, struct ipns_entry *ientry)
 {
@@ -108,13 +109,41 @@ int ipfs_namesys_routing_resolve_n (char **path, char *name, int depth, struct n
  * @param buffer_length the length of the buffer
  * @returns 0 on success, otherwise an error code
  */
-int ipfs_namesys_bytes_to_hex_string(unsigned char* bytes, size_t bytes_size, char* buffer, size_t buffer_length) {
+int ipfs_namesys_bytes_to_hex_string(const unsigned char* bytes, size_t bytes_size, char* buffer, size_t buffer_length) {
 	if (bytes_size * 2 > buffer_length) {
 		return ErrInvalidParam;
 	}
 	for(size_t i = 0; i < bytes_size; i++) {
-		sprintf(buffer[i*2], "%02x", bytes[i]);
+		sprintf(&buffer[i*2], "%02x", bytes[i]);
 	}
+	return 0;
+}
+
+/***
+ * Convert a hex string to an array of bytes
+ * @param hex a null terminated string of bytes in 2 digit hex format
+ * @param buffer where to put the results. NOTE: this allocates memory
+ * @param buffer_length the size of the buffer that was allocated
+ * @returns 0 on success, otherwise an error code
+ */
+int ipfs_namesys_hex_string_to_bytes(const unsigned char* hex, unsigned char** buffer, size_t* buffer_length) {
+	size_t hex_size = strlen((char*)hex);
+	char* pos = (char*)hex;
+
+	// sanity check
+	if (hex_size % 2 != 0)
+		return ErrInvalidParam;
+
+	// allocate memory
+	*buffer = (unsigned char*)malloc( hex_size / 2 );
+	unsigned char* ptr = *buffer;
+
+	// convert string
+	for(size_t i = 0; i < hex_size; i++) {
+		sscanf(pos, "%2hhx", &ptr[i]);
+		pos += 2;
+	}
+
 	return 0;
 }
 
@@ -132,13 +161,12 @@ int ipfs_namesys_bytes_to_hex_string(unsigned char* bytes, size_t bytes_size, ch
 int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char *prefix, struct namesys_pb *pb)
 {
     int err, l, s, ok;
-    struct MultiHash hash;
     unsigned char* multihash = NULL;
     size_t multihash_size = 0;
     char *h, *string, val[8];
     char pubkey[60];
 
-    if (!path || !name | !prefix) {
+    if (!path || !name || !prefix) {
         return ErrInvalidParam;
     }
     // log.Debugf("RoutingResolve: '%s'", name)
@@ -152,10 +180,12 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
     }
 
     // turn the b58 encoded name into a multihash
-    err = libp2p_crypto_encoding_base58_decode(name, strlen(name), multihash, multihash_size);
+    err = libp2p_crypto_encoding_base58_decode((unsigned char*)name, strlen(name), &multihash, &multihash_size);
     if (!err) {
         // name should be a multihash. if it isn't, error out here.
         //log.Warningf("RoutingResolve: bad input hash: [%s]\n", name)
+    	if (multihash != NULL)
+    		free(multihash);
         return ErrInvalidParam;
     }
 
@@ -165,32 +195,41 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
     s = (multihash_size * 2) + 1;
     h = malloc(l + s); // alloc to fit prefix + hexhash + null terminator
     if (!h) {
+   		free(multihash);
         return ErrAllocFailed;
     }
     memcpy(h, prefix, l); // copy prefix
-    if (ipfs_namesys_bytes_to_hex_string(&multihash, multihash_size, h+l, s)) { // hexstring just after prefix.
+    if (ipfs_namesys_bytes_to_hex_string(multihash, multihash_size, h+l, s)) { // hexstring just after prefix.
+   		free(multihash);
+   		free(h);
         return ErrUnknow;
     }
 
     err = ipfs_namesys_routing_get_value (val, h);
+	free(h); // no longer needed
     if (err) {
         //log.Warning("RoutingResolve get failed.")
+   		free(multihash);
         return err;
     }
 
+
     //err = protobuf decode (val, pb.IpnsEntry);
-    if (err) {
-        return err;
-    }
+    //if (err) {
+    //    return err;
+    //}
 
     // name should be a public key retrievable from ipfs
     err = ipfs_namesys_routing_getpublic_key (pubkey, multihash, multihash_size);
+	free(multihash); // done with multihash for now
+	multihash = NULL;
+	multihash_size = 0;
     if (err) {
         return err;
     }
 
     // check sig with pk
-    err = libp2p_crypto_verify (ipns_entry_data_for_sig(pb->IpnsEntry), pb->IpnsEntry->signature, &ok);
+    err = libp2p_crypto_verify(ipns_entry_data_for_sig(pb->IpnsEntry), pb->IpnsEntry->signature, &ok);
     if (err || !ok) {
         char buf[500];
         snprintf(buf, sizeof(buf), Err[ErrInvalidSignatureFmt], pubkey);
@@ -207,29 +246,44 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
     // check for old style record:
     err = ipfs_namesys_pb_get_value (&string, pb->IpnsEntry);
     if (err) {
+   		free(multihash);
         return err;
     }
-    err = libp2p_multihash_from_hex_string(string, strlen(string), &hash);
+    err = ipfs_namesys_hex_string_to_bytes((unsigned char*)string, &multihash, &multihash_size);
     if (err) {
+    	if (multihash != NULL)
+    		free(multihash);
+    	return ErrInvalidParam;
+    }
+    err = mh_multihash_hash(multihash, multihash_size);
+    if (err < 0) {
         // Not a multihash, probably a new record
         err = ipfs_path_parse(*path, string);
         if (err) {
+        	free(multihash);
             return err;
         }
     } else {
         // Its an old style multihash record
         //log.Warning("Detected old style multihash record")
-        struct Cid *cid;
-        err = ipfs_cid_new(0, hash.data, hash.size, CID_PROTOBUF, &cid);
+        struct Cid *cid = NULL;;
+        err = ipfs_cid_new(0, multihash, multihash_size, CID_PROTOBUF, &cid);
         if (err) {
+            free(multihash);
+        	if (cid != NULL)
+        		ipfs_cid_free(cid);
             return err;
         }
 
         err = ipfs_path_parse_from_cid (*path, (char*)cid->hash);
         if (err) {
+            free(multihash);
+        	ipfs_cid_free(cid);
             return err;
         }
+        ipfs_cid_free(cid);
     }
+    free(multihash);
 
     ipfs_routing_cache_set (name, *path, pb->IpnsEntry);
 

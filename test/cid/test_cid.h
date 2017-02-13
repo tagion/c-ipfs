@@ -37,11 +37,11 @@ int test_cid_new_free() {
  */
 int test_cid_cast_multihash() {
 	// first, build a multihash
-	unsigned char* string_to_hash = (unsigned char*)"Hello, World!";
+	char* string_to_hash = "Hello, World!";
 	unsigned char hashed[32];
 	memset(hashed, 0, 32);
 	// hash the string
-	libp2p_crypto_hashing_sha256(string_to_hash, strlen((char*)string_to_hash), hashed);
+	libp2p_crypto_hashing_sha256(string_to_hash, strlen(string_to_hash), hashed);
 	size_t multihash_size = mh_new_length(MH_H_SHA2_256, 32);
 	unsigned char multihash[multihash_size];
 	memset(multihash, 0, multihash_size);
@@ -71,11 +71,11 @@ int test_cid_cast_multihash() {
 
 int test_cid_cast_non_multihash() {
 	// first, build a hash
-	unsigned char* string_to_hash = (unsigned char*)"Hello, World!";
+	char* string_to_hash = "Hello, World!";
 	unsigned char hashed[32];
 	memset(hashed, 0, 32);
 	// hash the string
-	libp2p_crypto_hashing_sha256(string_to_hash, strlen((char*)string_to_hash), hashed);
+	libp2p_crypto_hashing_sha256(string_to_hash, strlen(string_to_hash), hashed);
 
 	// now make it a hash with a version and codec embedded in varints before the hash
 	size_t array_size = 34; // 32 for the hash, 2 for the 2 varints

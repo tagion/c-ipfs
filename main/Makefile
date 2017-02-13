@@ -24,6 +24,7 @@ OBJS = main.o \
 	../repo/config/config.o ../repo/config/identity.o \
 	../repo/config/bootstrap_peers.o ../repo/config/datastore.o ../repo/config/gateway.o \
 	../repo/config/addresses.o ../repo/config/swarm.o ../repo/config/peer.o \
+	../routing/*.o \
 	../thirdparty/ipfsaddr/ipfs_addr.o \
 	../unixfs/unixfs.o \
 	../../c-protobuf/protobuf.o ../../c-protobuf/varint.o \
