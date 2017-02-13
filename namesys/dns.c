@@ -9,6 +9,7 @@
 #include "ipfs/cid/cid.h"
 #include "ipfs/path/path.h"
 #include "ipfs/namesys/namesys.h"
+#include "ipfs/dnslink/dnslink.h"
 
 /*type LookupTXTFunc func(name string) (txt []string, err error)
 
@@ -53,6 +54,7 @@ int ipfs_dns_resolver_resolve_once (char **path, char *name)
     char **segments, *domain, *dnslink, buf[500], dlprefix[] = "_dnslink.";
     int p1[2], p2[2], r, l, c=2;
     struct pollfd event[2], *e;
+    DNSResolver dnsr;
 
     segments = ipfs_path_split_n(name, "/", 2);
     domain = segments[0];
@@ -68,13 +70,15 @@ int ipfs_dns_resolver_resolve_once (char **path, char *name)
         return ErrPipe;
     }
 
+    dnsr.lookupTXT = ipfs_dnslink_resolv_lookupTXT;
+
     r = fork();
     switch(r) {
         case -1:
             return ErrPipe;
         case 0: // child
             close(p1[STDIN_FILENO]); // we don't need to read at child process.
-            return ipfs_dns_work_domain (p1[STDOUT_FILENO], r, domain);
+            return ipfs_dns_work_domain (p1[STDOUT_FILENO], &dnsr, domain);
     }
     close(p1[STDOUT_FILENO]); // we don't need to write at main process.
     r = fork();
@@ -93,7 +97,7 @@ int ipfs_dns_resolver_resolve_once (char **path, char *name)
             strncpy (dnslink, dlprefix, l);
             strncat (dnslink, domain, l - strlen(dnslink));
 
-            return ipfs_dns_work_domain (p2[STDOUT_FILENO], r, dnslink);
+            return ipfs_dns_work_domain (p2[STDOUT_FILENO], &dnsr, dnslink);
     }
     close(p2[STDOUT_FILENO]); // we don't need to write at main process.
 

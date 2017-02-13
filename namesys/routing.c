@@ -2,12 +2,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifndef __USE_ISOC11
+extern int timespec_get (struct timespec *__ts, int __base)
+     __THROW __nonnull ((1));
+#endif
+#ifndef TIME_UTC
+# define TIME_UTC 1
+#endif
 #include "ipfs/namesys/routing.h"
 #include "ipfs/util/time.h"
 #include "mh/multihash.h"
 #include "ipfs/namesys/pb.h"
 #include "ipfs/namesys/namesys.h"
 #include "ipfs/cid/cid.h"
+#include "ipfs/path/path.h"
 
 char* ipfs_routing_cache_get (char *key, struct ipns_entry *ientry)
 {
@@ -18,7 +26,7 @@ char* ipfs_routing_cache_get (char *key, struct ipns_entry *ientry)
     if (key && ientry) {
         cache = ientry->cache;
         if (cache) {
-            timespec_get (&now);
+            timespec_get (&now, TIME_UTC);
             for (i = 0 ; i < cache->next ; i++) {
                 if (((now.tv_sec < cache->data[i]->eol.tv_sec ||
                      (now.tv_sec == cache->data[i]->eol.tv_sec && now.tv_nsec < cache->data[i]->eol.tv_nsec))) &&
@@ -43,7 +51,7 @@ void ipfs_routing_cache_set (char *key, char *value, struct ipns_entry *ientry)
             if (n) {
                 n->key = key;
                 n->value = value;
-                timespec_get (&n->eol); // now
+                timespec_get (&n->eol, TIME_UTC); // now
                 n->eol.tv_sec += DefaultResolverCacheTTL; // sum TTL seconds to time seconds.
                 cache->data[cache->next++] = n;
             }
@@ -98,8 +106,8 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
 {
     int err, l, s, ok;
     struct MultiHash hash;
-    char *h, *string, *val;
-    struct libp2p_crypto_pubkey pubkey;
+    char *h, *string, val[8];
+    char pubkey[60];
 
     if (!path || !name | !prefix) {
         return ErrInvalidParam;
@@ -114,7 +122,7 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
         name += strlen (prefix); // trim prefix.
     }
 
-    err = libp2p_b58_to_multihash (name, strlen(name), &hash);
+    err = libp2p_b58_to_multihash ((unsigned char*)name, strlen(name), &hash);
     if (err) {
         // name should be a multihash. if it isn't, error out here.
         //log.Warningf("RoutingResolve: bad input hash: [%s]\n", name)
@@ -174,7 +182,7 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
     err = libp2p_multihash_from_hex_string(string, strlen(string), &hash);
     if (err) {
         // Not a multihash, probably a new record
-        err = ipfs_path_parse(path, string);
+        err = ipfs_path_parse(*path, string);
         if (err) {
             return err;
         }
@@ -187,7 +195,7 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
             return err;
         }
 
-        err = ipfs_path_parse_from_cid (path, cid);
+        err = ipfs_path_parse_from_cid (*path, (char*)cid->hash);
         if (err) {
             return err;
         }

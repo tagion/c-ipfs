@@ -19,6 +19,10 @@
         struct cacheEntry **data;
     };
 
+    struct libp2p_routing_value_store { // dummy declaration, not implemented yet.
+        void *missing;
+    };
+
     char* ipfs_routing_cache_get (char *key, struct ipns_entry *ientry);
     void ipfs_routing_cache_set (char *key, char *value, struct ipns_entry *ientry);
     struct routingResolver* ipfs_namesys_new_routing_resolver (struct libp2p_routing_value_store *route, int cachesize);

@@ -34,4 +34,5 @@
     char* ipfs_ipns_entry_get_signature(struct ipns_entry*);
     int ipfs_namesys_pb_get_value (char**, struct ipns_entry*);
     IpnsEntry_ValidityType ipfs_namesys_pb_get_validity_type (struct ipns_entry*);
+    void ipfs_namesys_ipnsentry_reset (struct ipns_entry *m);
 #endif // IPNS_NAMESYS_PB_H

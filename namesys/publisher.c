@@ -27,7 +27,7 @@ char* ipns_entry_data_for_sig (struct ipns_entry *entry)
 
 int ipns_selector_func (int *idx, struct ipns_entry ***recs, char *k, char **vals)
 {
-    int err, i, c;
+    int err = 0, i, c;
 
     if (!idx || !recs || !k || !vals) {
         return ErrInvalidParam;
@@ -98,7 +98,7 @@ int ipns_select_record (int *idx, struct ipns_entry **recs, char **vals)
 // given 'val' is an IpnsEntry and that that entry is valid.
 int ipns_validate_ipns_record (char *k, char *val)
 {
-    int err;
+    int err = 0;
     struct ipns_entry *entry = ipfs_namesys_pb_new_ipns_entry();
     struct timespec ts, now;
 
@@ -122,4 +122,5 @@ int ipns_validate_ipns_record (char *k, char *val)
     } else {
         return ErrUnrecognizedValidity;
     }
+   return 0;
 }

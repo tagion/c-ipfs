@@ -6,6 +6,11 @@
 #include "ipfs/namesys/namesys.h"
 #include "ipfs/dnslink/dnslink.h"
 
+#ifndef __USE_ISOC11
+extern int timespec_get (struct timespec *__ts, int __base)
+     __THROW __nonnull ((1));
+#endif
+
 /* mpns (a multi-protocol NameSystem) implements generic IPFS naming.
  *
  * Uses several Resolvers:
@@ -32,7 +37,7 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 	}
 }*/
 
-const DefaultResolverCacheTTL = 60;
+const int DefaultResolverCacheTTL = 60;
 
 // ipfs_namesys_resolve implements Resolver.
 int ipfs_namesys_resolve(char **path, char *name)
@@ -45,11 +50,7 @@ int ipfs_namesys_resolve_n(char **path, char *name, int depth)
 {
     char ipfs_prefix[] = "/ipfs/";
     char p[500];
-    char *ps[] = {"/ipns/", NULL};
     int err;
-    resolver r;
-
-    r.resolveOnce = ipfs_namesys_resolve_once;
 
     if (memcmp(name, ipfs_prefix, strlen(ipfs_prefix)) == 0) {
         ipfs_path_parse(p, name);
@@ -85,7 +86,7 @@ int ipfs_namesys_resolve_n(char **path, char *name, int depth)
         return err;
     }
 
-    return ipfs_namesys_resolve(&r, path, name, depth, ps);
+    return ipfs_namesys_resolve(path, name);
 }
 
 // ipfs_namesys_resolve_once implements resolver.
@@ -95,13 +96,10 @@ int ipfs_namesys_resolve_once (char **path, char *name)
     char *ptr = NULL;
     char **segs;
     int i, err = 0;
-    struct DNSResolver dnsr;
 
     if (!name) { // NULL pointer.
         return ErrNULLPointer;
     }
-
-    dnsr.lookupTXT = ipfs_dnslink_resolv_lookupTXT;
 
     if (memcmp (name, ipns_prefix, strlen(ipns_prefix)) == 0) { // prefix missing.
         i = strlen(name) + sizeof(ipns_prefix);
@@ -146,8 +144,8 @@ int ipfs_namesys_publish (char *proto, ciPrivKey name, char *value)
     int i;
 
     for (i = 0 ; ns[i] ; i++) {
-        if (strcmp(ns[i]->Publisher->protocol, proto)==0) {
-            return ns[i]->Publisher->func(name, value);
+        if (strcmp(ns[i]->publisher->protocol, proto)==0) {
+            return ns[i]->publisher->func(name, value);
         }
     }
     return ErrPublishFailed;
@@ -158,8 +156,8 @@ int ipfs_namesys_publish_with_eol (char *proto, ciPrivKey name, char *value, tim
     int i;
 
     for (i = 0 ; ns[i] ; i++) {
-        if (strcmp(ns[i]->Publisher->protocol, proto)==0) {
-            return ns[i]->Publisher->func_eol(name, value, eol);
+        if (strcmp(ns[i]->publisher->protocol, proto)==0) {
+            return ns[i]->publisher->func_eol(name, value, eol);
         }
     }
     return ErrPublishFailed;

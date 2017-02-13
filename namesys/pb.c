@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 #include "ipfs/namesys/routing.h"
 #include "ipfs/namesys/pb.h"
 
