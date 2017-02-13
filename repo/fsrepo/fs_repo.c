@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
-#include "ipfs/blocks/blockstore.h"
 #include "libp2p/crypto/encoding/base64.h"
+#include "libp2p/crypto/key.h"
+#include "ipfs/blocks/blockstore.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "ipfs/repo/config/datastore.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
@@ -29,10 +30,26 @@ int repo_config_write_config_file(char* full_filename, struct RepoConfig* config
 	fprintf(out_file, " \"Identity\": {\n");
 	fprintf(out_file, "  \"PeerID\": \"%s\",\n", config->identity->peer_id);
 	// print correct format of private key
-	// first base 64 it
-	size_t encoded_size = libp2p_crypto_encoding_base64_encode_size(config->identity->private_key.der_length);
+	// first put it in a protobuf
+	struct PrivateKey* priv_key = libp2p_crypto_private_key_new();
+	if (priv_key == NULL)
+		return 0;
+	priv_key->data_size = config->identity->private_key.der_length;
+	priv_key->data = (unsigned char*)malloc(priv_key->data_size);
+	if (priv_key->data == NULL) {
+		libp2p_crypto_private_key_free(priv_key);
+		return 0;
+	}
+	memcpy(priv_key->data, config->identity->private_key.der, priv_key->data_size);
+	priv_key->type = KEYTYPE_RSA;
+	size_t protobuf_size = libp2p_crypto_private_key_protobuf_encode_size(priv_key);
+	unsigned char protobuf[protobuf_size];
+	libp2p_crypto_private_key_protobuf_encode(priv_key, protobuf, protobuf_size, &protobuf_size);
+	libp2p_crypto_private_key_free(priv_key);
+	// then base 64 it
+	size_t encoded_size = libp2p_crypto_encoding_base64_encode_size(protobuf_size);
 	unsigned char encoded_buffer[encoded_size + 1];
-	int retVal = libp2p_crypto_encoding_base64_encode((unsigned char*)config->identity->private_key.der, config->identity->private_key.der_length, encoded_buffer, encoded_size, &encoded_size);
+	int retVal = libp2p_crypto_encoding_base64_encode(protobuf, protobuf_size, encoded_buffer, encoded_size, &encoded_size);
 	if (retVal == 0)
 		return 0;
 	encoded_buffer[encoded_size] = 0;
