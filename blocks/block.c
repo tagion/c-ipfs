@@ -129,7 +129,7 @@ int ipfs_blocks_block_new(struct Block** block) {
 int ipfs_blocks_block_add_data(const unsigned char* data, size_t data_size, struct Block* block) {
 	// cid
 	unsigned char hash[32];
-	if (libp2p_crypto_hashing_sha256(data, data_size, &hash[0]) == 0) {
+	if (libp2p_crypto_hashing_sha256((char*)data, data_size, &hash[0]) == 0) {
 		return 0;
 	}
 

@@ -130,7 +130,7 @@ int ipfs_unixfs_add_data(unsigned char* data, size_t data_length, struct UnixFS*
 		free(unix_fs->bytes);
 		return 0;
 	}
-	if (libp2p_crypto_hashing_sha256(data, data_length, &unix_fs->hash[0]) == 0) {
+	if (libp2p_crypto_hashing_sha256((char*)data, data_length, &unix_fs->hash[0]) == 0) {
 		free(unix_fs->bytes);
 		free(unix_fs->hash);
 		return 0;

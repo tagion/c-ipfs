@@ -260,7 +260,7 @@ int ipfs_dnslink_resolve_n (char **p, char *d, int depth)
                 if (ns_parserr(&query_parse_msg,ns_s_an,i,&query_parse_rr)) {
                     return ErrResolveFailed;
                 } else {
-                    char *rdata = ns_rr_rdata(query_parse_rr);
+                    const unsigned char *rdata = ns_rr_rdata(query_parse_rr);
                     memcpy(p, rdata+1, *rdata); // first byte is record length
                     p += *rdata; // update pointer
                     *p++ = '\0'; // mark end-of-record and update pointer to next record.

@@ -35,7 +35,7 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo, size_t* bytes_
 		if (node->hash == NULL) {
 			return 0;
 		}
-		if (libp2p_crypto_hashing_sha256(protobuf, bytes_encoded, &node->hash[0]) == 0) {
+		if (libp2p_crypto_hashing_sha256((char*)protobuf, bytes_encoded, &node->hash[0]) == 0) {
 			free(node->hash);
 			return 0;
 		}
