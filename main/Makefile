@@ -10,13 +10,13 @@ OBJS = main.o \
 	../core/builder.o ../core/daemon.o ../core/null.o ../core/ping.o \
 	../datastore/ds_helper.o \
 	../datastore/key.o \
-	../dnslink/dnslink.o \
+	../dnslink/*.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \
 	../path/path.o \
 	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \
-	../namesys/isdomain.o \
+	../namesys/*.o \
 	../os/utils.o \
 	../pin/pin.o \
 	../repo/init.o \
