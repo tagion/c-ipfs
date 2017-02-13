@@ -100,12 +100,41 @@ int ipfs_namesys_routing_resolve_n (char **path, char *name, int depth, struct n
     return ipfs_namesys_routing_resolve_once (path, name, depth, "/ipns/", pb);
 }
 
-// ipfs_namesys_routing_resolve_once implements resolver. Uses the IPFS
-// routing system to resolve SFS-like names.
+/**
+ * convert bytes to a hex string representation
+ * @param bytes the bytes to convert
+ * @param bytes_size the length of the bytes array
+ * @param buffer where to put the results
+ * @param buffer_length the length of the buffer
+ * @returns 0 on success, otherwise an error code
+ */
+int ipfs_namesys_bytes_to_hex_string(unsigned char* bytes, size_t bytes_size, char* buffer, size_t buffer_length) {
+	if (bytes_size * 2 > buffer_length) {
+		return ErrInvalidParam;
+	}
+	for(size_t i = 0; i < bytes_size; i++) {
+		sprintf(buffer[i*2], "%02x", bytes[i]);
+	}
+	return 0;
+}
+
+/***
+ * Implements resolver. Uses the IPFS routing system to resolve SFS-like names.
+ *
+ * @param path the path
+ * @param name the name (b58 encoded)
+ * @param depth
+ * @param depth
+ * @param prefix
+ * @param pb
+ * @returns 0 on success, otherwise error code
+ */
 int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char *prefix, struct namesys_pb *pb)
 {
     int err, l, s, ok;
     struct MultiHash hash;
+    unsigned char* multihash = NULL;
+    size_t multihash_size = 0;
     char *h, *string, val[8];
     char pubkey[60];
 
@@ -122,23 +151,24 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
         name += strlen (prefix); // trim prefix.
     }
 
-    err = libp2p_b58_to_multihash ((unsigned char*)name, strlen(name), &hash);
-    if (err) {
+    // turn the b58 encoded name into a multihash
+    err = libp2p_crypto_encoding_base58_decode(name, strlen(name), multihash, multihash_size);
+    if (!err) {
         // name should be a multihash. if it isn't, error out here.
         //log.Warningf("RoutingResolve: bad input hash: [%s]\n", name)
-        return err;
+        return ErrInvalidParam;
     }
 
     // use the routing system to get the name.
     // /ipns/<name>
     l = strlen(prefix);
-    s = (hash.size * 2) + 1;
+    s = (multihash_size * 2) + 1;
     h = malloc(l + s); // alloc to fit prefix + hexhash + null terminator
     if (!h) {
         return ErrAllocFailed;
     }
     memcpy(h, prefix, l); // copy prefix
-    if (!libp2p_multihash_hex_string(&hash, h+l, s)) { // hexstring just after prefix.
+    if (ipfs_namesys_bytes_to_hex_string(&multihash, multihash_size, h+l, s)) { // hexstring just after prefix.
         return ErrUnknow;
     }
 
@@ -154,7 +184,7 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
     }
 
     // name should be a public key retrievable from ipfs
-    err = ipfs_namesys_routing_getpublic_key (pubkey, &hash);
+    err = ipfs_namesys_routing_getpublic_key (pubkey, multihash, multihash_size);
     if (err) {
         return err;
     }
