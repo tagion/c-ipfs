@@ -18,12 +18,12 @@ all:
 	cd datastore; make all;
 	cd thirdparty; make all;
 	cd unixfs; make all;
-	cd main; make all;
 	cd routing; make all;
 	cd dnslink; make all;
 	cd namesys; make all;
 	cd path; make all;
 	cd util; make all;
+	cd main; make all;
 	cd test; make all;
 	
 clean:
