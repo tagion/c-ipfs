@@ -1,15 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
+#define __USE_ISOC11
 #include <time.h>
 #include "ipfs/cid/cid.h"
 #include "ipfs/path/path.h"
 #include "ipfs/namesys/namesys.h"
 #include "ipfs/dnslink/dnslink.h"
-
-#ifndef __USE_ISOC11
-extern int timespec_get (struct timespec *__ts, int __base)
-     __THROW __nonnull ((1));
-#endif
 
 /* mpns (a multi-protocol NameSystem) implements generic IPFS naming.
  *

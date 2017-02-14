@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 #include "ipfs/namesys/namesys.h"
 #include "ipfs/cid/cid.h"
 #include "ipfs/path/path.h"

@@ -28,7 +28,8 @@ OBJS = main.o \
 	../thirdparty/ipfsaddr/ipfs_addr.o \
 	../unixfs/unixfs.o \
 	../../c-protobuf/protobuf.o ../../c-protobuf/varint.o \
-	../util/errs.o
+	../util/errs.o \
+	../util/time.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

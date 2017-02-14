@@ -1,14 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define __USE_ISOC11
 #include <time.h>
-#ifndef __USE_ISOC11
-extern int timespec_get (struct timespec *__ts, int __base)
-     __THROW __nonnull ((1));
-#endif
-#ifndef TIME_UTC
-# define TIME_UTC 1
-#endif
 #include "ipfs/namesys/routing.h"
 #include "ipfs/util/time.h"
 #include "mh/multihash.h"
@@ -228,6 +222,7 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
         return err;
     }
 
+    // TODO: implement libp2p_crypto_verify
     // check sig with pk
     err = libp2p_crypto_verify(ipns_entry_data_for_sig(pb->IpnsEntry), pb->IpnsEntry->signature, &ok);
     if (err || !ok) {
