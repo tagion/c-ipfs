@@ -8,6 +8,7 @@
     struct null_connection_params {
         int socket;
         int *count;
+        struct IpfsNode* local_node;
     };
 
     struct null_listen_params {

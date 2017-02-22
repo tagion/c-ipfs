@@ -4,8 +4,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "libp2p/net/p2pnet.h"
+#include "libp2p/peer/peerstore.h"
 #include "ipfs/core/daemon.h"
 #include "ipfs/core/ipfs_node.h"
+#include "ipfs/repo/fsrepo/fs_repo.h"
 
 int ipfs_daemon (int argc, char **argv)
 {
@@ -15,12 +17,23 @@ int ipfs_daemon (int argc, char **argv)
 
     fprintf(stderr, "Initializing daemon...\n");
 
+    // read the configuration
+    struct FSRepo* fs_repo;
+	if (!ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo))
+		return 0;
+
+	// open the repository and read the file
+	if (!ipfs_repo_fsrepo_open(fs_repo)) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		return 0;
+	}
+
     // create a new IpfsNode
     struct IpfsNode local_node;
     local_node.mode = MODE_ONLINE;
-    //local_node.peerstore = ipfs_peerstore_new();
-    //local_node.repo = fsrepo;
-    //local_node.peer_id = peer_id;
+    local_node.peerstore = libp2p_peerstore_new();
+    local_node.repo = fs_repo;
+    local_node.identity = fs_repo->config->identity;
 
     // Set null router param
     listen_param.ipv4 = 0; // ip 0.0.0.0, all interfaces

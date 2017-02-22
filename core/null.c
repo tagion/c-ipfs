@@ -68,6 +68,7 @@ void *ipfs_null_listen (void *ptr)
         if (connection_param) {
             connection_param->socket = s;
             connection_param->count = &count;
+            connection_param->local_node = listen_param->local_node;
             // Create pthread for ipfs_null_connection.
             if (pthread_create(&pth_connection, NULL, ipfs_null_connection, connection_param)) {
                 fprintf(stderr, "Error creating thread for connection %d\n", count);

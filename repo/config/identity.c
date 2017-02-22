@@ -93,8 +93,14 @@ int repo_config_identity_build_private_key(struct Identity* identity, const char
 	if (retVal == 0)
 		return 0;
 
+	// now we have a protobuf'd struct PrivateKey. Unprotobuf it
+	struct PrivateKey* priv_key;
+	if (!libp2p_crypto_private_key_protobuf_decode(decoded, decoded_size, &priv_key))
+			return 0;
+
 	// now convert DER to RsaPrivateKey
-	retVal = libp2p_crypto_encoding_x509_der_to_private_key(decoded, decoded_size, &identity->private_key);
+	retVal = libp2p_crypto_encoding_x509_der_to_private_key(priv_key->data, priv_key->data_size, &identity->private_key);
+	libp2p_crypto_private_key_free(priv_key);
 	if (retVal == 0)
 		return 0;
 
