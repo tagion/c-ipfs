@@ -1,13 +1,14 @@
-#ifndef __CORE_IPFS_NODE_H__
-#define __CORE_IPFS_NODE_H__
+#pragma once
+
+enum NodeMode { MODE_OFFLINE, MODE_ONLINE };
 
 struct IpfsNode {
+	enum NodeMode mode;
 	//struct PeerId identity;
-	//struct Repo repo;
+	struct FSRepo* repo;
+	struct Peerstore* peerstore;
 	//struct Pinner pinning; // an interface
 	//struct Mount** mounts;
 	//struct PrivKey* private_key;
 	// TODO: Add more here
 };
-
-#endif /* ipfs_node_h */

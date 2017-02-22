@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
+#ifndef __USE_ISOC11
 #define __USE_ISOC11
+#endif
 #include <time.h>
 #include "ipfs/cid/cid.h"
 #include "ipfs/path/path.h"

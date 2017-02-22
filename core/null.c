@@ -44,10 +44,10 @@ void *ipfs_null_listen (void *ptr)
 {
     int socketfd, s, count = 0;
     pthread_t pth_connection;
-    struct null_listen_params *listen_param;
+    struct IpfsNodeListenParams *listen_param;
     struct null_connection_params *connection_param;
 
-    listen_param = (struct null_listen_params*) ptr;
+    listen_param = (struct IpfsNodeListenParams*) ptr;
 
     if ((socketfd = socket_listen(socket_tcp4(), &(listen_param->ipv4), &(listen_param->port))) <= 0) {
         perror("fail to init null router.");
