@@ -5,28 +5,9 @@
 #include "libp2p/record/record.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "ipfs/merkledag/merkledag.h"
+#include "ipfs/routing/routing.h"
 
-ipfs_routing* ipfs_routing_new_offline (struct FSRepo* ds, struct RsaPrivateKey *private_key)
-{
-    ipfs_routing *offlineRouting = malloc (sizeof(ipfs_routing));
-
-    if (offlineRouting) {
-        offlineRouting->datastore     = ds;
-        offlineRouting->sk            = private_key;
-
-        offlineRouting->PutValue      = ipfs_routing_offline_put_value;
-        offlineRouting->GetValue      = ipfs_routing_offline_get_value;
-        offlineRouting->FindProviders = ipfs_routing_offline_find_providers;
-        offlineRouting->FindPeer      = ipfs_routing_offline_find_peer;
-        offlineRouting->Provide       = ipfs_routing_offline_provide;
-        offlineRouting->Ping          = ipfs_routing_offline_ping;
-        offlineRouting->Bootstrap     = ipfs_routing_offline_bootstrap;
-    }
-
-    return offlineRouting;
-}
-
-int ipfs_routing_offline_put_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void *val, size_t vlen)
+int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void *val, size_t vlen)
 {
     int err;
     char *record, *nkey;
@@ -55,7 +36,7 @@ int ipfs_routing_offline_put_value (ipfs_routing* offlineRouting, char *key, siz
     return 0; // success.
 }
 
-int ipfs_routing_offline_get_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void *val, size_t *vlen)
+int ipfs_routing_generic_get_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void **val, size_t *vlen)
 {
     // TODO: Read from db, validate and decode before return.
     return -1;
@@ -76,7 +57,7 @@ int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, char *cid)
     return ErrOffline;
 }
 
-int ipfs_routing_offline_ping (ipfs_routing* offlineRouting, char *peer_id, size_t pid_size)
+int ipfs_routing_offline_ping (ipfs_routing* offlineRouting, struct Libp2pMessage* message)
 {
     return ErrOffline;
 }
@@ -84,4 +65,25 @@ int ipfs_routing_offline_ping (ipfs_routing* offlineRouting, char *peer_id, size
 int ipfs_routing_offline_bootstrap (ipfs_routing* offlineRouting)
 {
     return ErrOffline;
+}
+
+ipfs_routing* ipfs_routing_new_offline (struct FSRepo* ds, struct RsaPrivateKey *private_key)
+{
+    ipfs_routing *offlineRouting = malloc (sizeof(ipfs_routing));
+
+    if (offlineRouting) {
+        offlineRouting->datastore     = ds;
+        offlineRouting->sk            = private_key;
+        offlineRouting->stream = NULL;
+
+        offlineRouting->PutValue      = ipfs_routing_generic_put_value;
+        offlineRouting->GetValue      = ipfs_routing_generic_get_value;
+        offlineRouting->FindProviders = ipfs_routing_offline_find_providers;
+        offlineRouting->FindPeer      = ipfs_routing_offline_find_peer;
+        offlineRouting->Provide       = ipfs_routing_offline_provide;
+        offlineRouting->Ping          = ipfs_routing_offline_ping;
+        offlineRouting->Bootstrap     = ipfs_routing_offline_bootstrap;
+    }
+
+    return offlineRouting;
 }

@@ -12,7 +12,7 @@
 
 int ipfs_ping (int argc, char **argv)
 {
-	char* results = NULL;
+	unsigned char* results = NULL;
 	size_t results_size = 0;
 	//TODO: handle multiaddress
 
@@ -20,8 +20,8 @@ int ipfs_ping (int argc, char **argv)
 	//TODO: Error checking
 	char* ip = argv[2];
 	int port = atoi(argv[3]);
-	int socket_fd = libp2p_net_multistream_connect(ip, port);
-	if (socket_fd < 0) {
+	struct Stream* stream = libp2p_net_multistream_connect(ip, port);
+	if (stream == NULL) {
 		fprintf(stderr, "Unable to connect to %s on port %s", ip, argv[3]);
 	}
 
@@ -32,8 +32,8 @@ int ipfs_ping (int argc, char **argv)
 	size_t protobuf_size = libp2p_message_protobuf_encode_size(msg);
 	unsigned char protobuf[protobuf_size];
 	libp2p_message_protobuf_encode(msg, &protobuf[0], protobuf_size, &protobuf_size);
-	libp2p_net_multistream_send(socket_fd, protobuf, protobuf_size);
-	libp2p_net_multistream_receive(socket_fd, &results, &results_size);
+	libp2p_net_multistream_write(stream, protobuf, protobuf_size);
+	libp2p_net_multistream_read(stream, &results, &results_size);
 
 	if (results_size != protobuf_size) {
 		fprintf(stderr, "PING unsuccessful. Original size: %lu, returned size: %lu\n", protobuf_size, results_size);

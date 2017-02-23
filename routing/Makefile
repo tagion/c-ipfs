@@ -7,7 +7,7 @@ endif
 
 LFLAGS = 
 DEPS = 
-OBJS = offline.o
+OBJS = offline.o online.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
