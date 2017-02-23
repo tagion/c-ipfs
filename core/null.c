@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "libp2p/net/p2pnet.h"
+#include "libp2p/record/message.h"
+#include "libp2p/net/multistream.h"
 #include "ipfs/core/daemon.h"
 
 #define BUF_SIZE 4096
@@ -12,8 +14,8 @@
 void *ipfs_null_connection (void *ptr)
 {
     struct null_connection_params *connection_param;
-    char b[BUF_SIZE];
-    int len;
+    //char b[BUF_SIZE];
+    //int len;
 
     connection_param = (struct null_connection_params*) ptr;
 
@@ -21,6 +23,13 @@ void *ipfs_null_connection (void *ptr)
     fprintf(stderr, "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
 
     for(;;) {
+    	if (libp2p_net_multistream_negotiate(connection_param->socket)) {
+    		// we negotiated, now find out what they want
+    		libp2p_net_multistream_handle_message(connection_param->socket);
+    	} else {
+    		break;
+    	}
+    	/*
         len = socket_read(connection_param->socket, b, sizeof(b)-1, 0);
         if (len > 0) {
             while (b[len-1] == '\r' || b[len-1] == '\n') len--;
@@ -32,6 +41,7 @@ void *ipfs_null_connection (void *ptr)
         } else if(len < 0) {
             break;
         }
+        */
     }
 
     close (connection_param->socket); // close socket.

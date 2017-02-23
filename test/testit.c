@@ -13,6 +13,7 @@
 #include "storage/test_datastore.h"
 #include "storage/test_blocks.h"
 #include "storage/test_unixfs.h"
+#include "core/test_ping.h"
  		 
 int testit(const char* name, int (*func)(void)) {
 	printf("Testing %s...\n", name);
@@ -55,7 +56,8 @@ const char* names[] = {
 		"test_merkledag_add_node_with_links",
 		"test_resolver_get",
 		"test_unixfs_encode_decode",
-		"test_unixfs_encode_smallfile"
+		"test_unixfs_encode_smallfile",
+		"test_ping"
 };
 
 int (*funcs[])(void) = {
@@ -89,7 +91,8 @@ int (*funcs[])(void) = {
 		test_merkledag_add_node_with_links,
 		test_resolver_get,
 		test_unixfs_encode_decode,
-		test_unixfs_encode_smallfile
+		test_unixfs_encode_smallfile,
+		test_ping
 };
 
 /**

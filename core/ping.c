@@ -5,11 +5,54 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include "libp2p/net/p2pnet.h"
+#include "libp2p/net/multistream.h"
+#include "libp2p/record/message.h"
 
 #define BUF_SIZE 4096
 
 int ipfs_ping (int argc, char **argv)
 {
+	char* results = NULL;
+	size_t results_size = 0;
+	//TODO: handle multiaddress
+
+	// the way using multistream
+	//TODO: Error checking
+	char* ip = argv[2];
+	int port = atoi(argv[3]);
+	int socket_fd = libp2p_net_multistream_connect(ip, port);
+	if (socket_fd < 0) {
+		fprintf(stderr, "Unable to connect to %s on port %s", ip, argv[3]);
+	}
+
+	// prepare the PING message
+	struct Libp2pMessage* msg = libp2p_message_new();
+	msg->message_type = MESSAGE_TYPE_PING;
+
+	size_t protobuf_size = libp2p_message_protobuf_encode_size(msg);
+	unsigned char protobuf[protobuf_size];
+	libp2p_message_protobuf_encode(msg, &protobuf[0], protobuf_size, &protobuf_size);
+	libp2p_net_multistream_send(socket_fd, protobuf, protobuf_size);
+	libp2p_net_multistream_receive(socket_fd, &results, &results_size);
+
+	if (results_size != protobuf_size) {
+		fprintf(stderr, "PING unsuccessful. Original size: %lu, returned size: %lu\n", protobuf_size, results_size);
+		return 0;
+	}
+	if (memcmp(results, protobuf, protobuf_size) != 0) {
+		fprintf(stderr, "PING unsuccessful. Results do not match.\n");
+		return 0;
+	}
+
+	if (msg != NULL)
+		libp2p_message_free(msg);
+
+	fprintf(stdout, "Ping of %s:%s successful.\n", ip, argv[3]);
+
+	return 0;
+
+	// the old way
+	/*
     int socketfd, i, count=10, tcount = 0;
     uint32_t ipv4;
     uint16_t port;
@@ -60,4 +103,5 @@ int ipfs_ping (int argc, char **argv)
     fprintf(stderr, "Average latency: %.2fms\n", total / tcount);
 
     return 0;
+    */
 }

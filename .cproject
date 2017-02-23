@@ -21,16 +21,20 @@
 							<builder id="cdt.managedbuild.target.gnu.builder.base.1870748436" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1038880733" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1701788660" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
+								<option id="gnu.cpp.compiler.option.include.paths.776431500" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-libp2p/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-multiaddr/include}&quot;"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1773271782" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.365209117" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
 								<option id="gnu.c.compiler.option.include.paths.106437885" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-libp2p/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-multihash/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-multiaddr}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/lmdb}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-ipfs/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-protobuf}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-libp2p/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-multiaddr/include}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.581176638" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -42,6 +46,10 @@
 								</inputType>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.base.451195806" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base">
+								<option id="gnu.both.asm.option.include.paths.1115343131" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-libp2p/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/c-multiaddr/include}&quot;"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1339940304" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
