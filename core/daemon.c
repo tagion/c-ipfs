@@ -9,8 +9,7 @@
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 
-int ipfs_daemon (int argc, char **argv)
-{
+int ipfs_daemon_start(char* repo_path) {
     int count_pths = 0;
     pthread_t work_pths[MAX];
     struct IpfsNodeListenParams listen_param;
@@ -19,7 +18,7 @@ int ipfs_daemon (int argc, char **argv)
 
     // read the configuration
     struct FSRepo* fs_repo;
-	if (!ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo))
+	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo))
 		return 0;
 
 	// open the repository and read the file
@@ -58,4 +57,10 @@ int ipfs_daemon (int argc, char **argv)
 
     // All pthreads aborted?
     return 0;
+
+}
+
+int ipfs_daemon (int argc, char **argv)
+{
+	return ipfs_daemon_start(NULL);
 }

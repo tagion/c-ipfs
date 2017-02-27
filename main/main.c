@@ -57,6 +57,7 @@ void strip_quotes(int argc, char** argv) {
 #define CAT 5
 #define DAEMON 6
 #define PING 7
+#define GET 8
 
 /***
  * Basic parsing of command line arguments to figure out where the user wants to go
@@ -87,6 +88,9 @@ int parse_arguments(int argc, char** argv) {
 	if (strcmp("ping", argv[1]) == 0) {
 		return PING;
 	}
+	if (strcmp("get", argv[1]) == 0) {
+		return GET;
+	}
 	return -1;
 }
 
@@ -106,6 +110,8 @@ int main(int argc, char** argv) {
 	case (OBJECT_GET):
 		ipfs_exporter_object_get(argc, argv);
 		break;
+	case(GET):
+		//ipfs_exporter_get(argc, argv);
 	case (CAT):
 		ipfs_exporter_object_cat(argc, argv);
 		break;

@@ -25,5 +25,6 @@
     void *ipfs_null_connection (void *ptr);
     void *ipfs_null_listen (void *ptr);
     int ipfs_daemon (int argc, char **argv);
+    int ipfs_daemon_start(char* repo_path);
     int ipfs_ping (int argc, char **argv);
 #endif // DAEMON_H

@@ -6,6 +6,7 @@
 #include "ipfs/datastore/ds_helper.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/routing/routing.h"
+#include "ipfs/importer/resolver.h"
 
 int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void *val, size_t vlen)
 {
@@ -36,10 +37,21 @@ int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, siz
     return 0; // success.
 }
 
-int ipfs_routing_generic_get_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void **val, size_t *vlen)
+int ipfs_routing_generic_get_value (ipfs_routing* routing, char *key, size_t key_size, void **val, size_t *vlen)
 {
-    // TODO: Read from db, validate and decode before return.
-    return -1;
+	char key_str[key_size + 1];
+	strncpy(key_str, key, key_size);
+	key_str[key_size] = 0;
+    struct Node* node = ipfs_resolver_get(key_str, NULL, routing->local_node);
+    if (node == NULL)
+    	return -1;
+    // protobuf the node
+    int protobuf_size = ipfs_node_protobuf_encode_size(node);
+    *val = malloc(protobuf_size);
+    if (ipfs_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0)
+    	return -1;
+
+    return 0;
 }
 
 int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, char *key, size_t key_size, void *ret, size_t *rlen)
@@ -67,12 +79,12 @@ int ipfs_routing_offline_bootstrap (ipfs_routing* offlineRouting)
     return ErrOffline;
 }
 
-ipfs_routing* ipfs_routing_new_offline (struct FSRepo* ds, struct RsaPrivateKey *private_key)
+ipfs_routing* ipfs_routing_new_offline (struct IpfsNode* local_node, struct RsaPrivateKey *private_key)
 {
     ipfs_routing *offlineRouting = malloc (sizeof(ipfs_routing));
 
     if (offlineRouting) {
-        offlineRouting->datastore     = ds;
+        offlineRouting->local_node     = local_node;
         offlineRouting->sk            = private_key;
         offlineRouting->stream = NULL;
 

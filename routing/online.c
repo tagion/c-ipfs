@@ -41,11 +41,11 @@ int ipfs_routing_online_bootstrap(struct s_ipfs_routing* routing) {
  * @param private_key the local private key
  * @reurns the ipfs_routing struct that handles messages
  */
-ipfs_routing* ipfs_routing_new_online (struct FSRepo* fs_repo, struct RsaPrivateKey *private_key, struct Stream* stream) {
+ipfs_routing* ipfs_routing_new_online (struct IpfsNode* local_node, struct RsaPrivateKey *private_key, struct Stream* stream) {
     ipfs_routing *onlineRouting = malloc (sizeof(ipfs_routing));
 
     if (onlineRouting) {
-        onlineRouting->datastore     = fs_repo;
+        onlineRouting->local_node     = local_node;
         onlineRouting->sk            = private_key;
         onlineRouting->stream = stream;
 

@@ -32,7 +32,7 @@ void *ipfs_null_connection (void *ptr)
     fprintf(stderr, "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
 
 	if (libp2p_net_multistream_negotiate(stream)) {
-	    routing = ipfs_routing_new_online(connection_param->local_node->repo, &connection_param->local_node->identity->private_key, stream);
+	    routing = ipfs_routing_new_online(connection_param->local_node, &connection_param->local_node->identity->private_key, stream);
 
 		for(;;) {
 			struct Libp2pMessage* msg = libp2p_net_multistream_get_message(stream);
@@ -41,9 +41,17 @@ void *ipfs_null_connection (void *ptr)
 				case (MESSAGE_TYPE_PING):
 					routing->Ping(routing, msg);
 					break;
-				case (MESSAGE_TYPE_GET_VALUE):
-					routing->GetValue(routing, msg->key, msg->key_size, NULL, NULL);
+				case (MESSAGE_TYPE_GET_VALUE): {
+					unsigned char* val;
+					size_t val_size = 0;
+					routing->GetValue(routing, msg->key, msg->key_size, (void**)&val, &val_size);
+					if (val == NULL) {
+						stream->write(stream, 0, 1);
+					} else {
+						stream->write(stream, val, val_size);
+					}
 					break;
+				}
 				default:
 					break;
 				}

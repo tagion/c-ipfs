@@ -8,6 +8,8 @@ OBJS = testit.o test_helper.o \
 	../cmd/ipfs/init.o \
 	../commands/argument.o ../commands/command_option.o ../commands/command.o ../commands/cli/parse.o \
 	../core/builder.o \
+	../core/daemon.o \
+	../core/null.o \
 	../datastore/ds_helper.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \
@@ -19,6 +21,8 @@ OBJS = testit.o test_helper.o \
 	../repo/config/config.o ../repo/config/identity.o \
 	../repo/config/bootstrap_peers.o ../repo/config/datastore.o ../repo/config/gateway.o \
 	../repo/config/addresses.o ../repo/config/swarm.o ../repo/config/peer.o \
+	../routing/offline.o \
+	../routing/online.o \
 	../thirdparty/ipfsaddr/ipfs_addr.o \
 	../unixfs/unixfs.o \
 	../../c-protobuf/protobuf.o ../../c-protobuf/varint.o
