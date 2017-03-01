@@ -137,7 +137,7 @@ struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const
 	id[id_size] = 0;
 	char* key = &pos[1];
 	pos = strchr(key, '/');
-	if (pos == NULL || pos - temp > 254)
+	if (pos == NULL || pos - key > 254)
 		return NULL;
 	pos[0] = '\0';
 	// get the multiaddress for this
