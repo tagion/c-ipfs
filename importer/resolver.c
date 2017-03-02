@@ -9,6 +9,7 @@
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "libp2p/net/multistream.h"
 #include "libp2p/record/message.h"
+#include "libp2p/utils/multiaddress.h"
 
 /**
  * return the next chunk of a path
@@ -96,27 +97,6 @@ int ipfs_resolver_is_remote(const char* path, const struct FSRepo* fs_repo) {
 }
 
 /**
- * This is a hack to get ip4/tcp working
- * TODO: this should be moved further down in the networking stack and generified for different multiaddresses
- * This makes too many assumptions
- */
-int ipfs_resolver_multiaddress_parse_tcp(struct MultiAddress* address, char** ip, int* port) {
-	// ip
-	char* str = malloc(strlen(address->string));
-	strcpy(str, &address->string[5]); // gets rid of /ip4/
-	char* pos = strchr(str, '/');
-	pos[0] = 0;
-	*ip = malloc(strlen(str) + 1);
-	strcpy(*ip, str);
-	free(str);
-	// port
-	str = strstr(address->string, "/tcp/");
-	str += 5;
-	*port = atoi(str);
-	return 1;
-}
-
-/**
  * Retrieve a node from a remote source
  * @param path the path to retrieve
  * @param from where to start
@@ -148,7 +128,7 @@ struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const
 	struct MultiAddress* address = peer->addr_head->item;
 	char* ip;
 	int port;
-	ipfs_resolver_multiaddress_parse_tcp(address, &ip, &port);
+	libp2p_utils_multiaddress_parse_ip4_tcp(address, &ip, &port);
 	struct Stream* stream = libp2p_net_multistream_connect(ip, port);
 	free(ip);
 	// build the request

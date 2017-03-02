@@ -10,9 +10,15 @@
 #include "ipfs/core/daemon.h"
 #include "ipfs/routing/routing.h"
 #include "ipfs/core/ipfs_node.h"
+#include "libp2p/secio/secio.h"
 
 #define BUF_SIZE 4096
 
+int ipfs_null_requesting_secio(unsigned char* buffer, size_t buffer_size) {
+	if (buffer_size > 5 && strncmp((char*)buffer, "/secio", 6) == 0)
+		return 1;
+	return 0;
+}
 /**
  * We've received a connection. Find out what they want
  */
@@ -35,28 +41,43 @@ void *ipfs_null_connection (void *ptr)
 	    routing = ipfs_routing_new_online(connection_param->local_node, &connection_param->local_node->identity->private_key, stream);
 
 		for(;;) {
-			struct Libp2pMessage* msg = libp2p_net_multistream_get_message(stream);
-			if (msg != NULL) {
-				switch(msg->message_type) {
-				case (MESSAGE_TYPE_PING):
-					routing->Ping(routing, msg);
-					break;
-				case (MESSAGE_TYPE_GET_VALUE): {
-					unsigned char* val;
-					size_t val_size = 0;
-					routing->GetValue(routing, msg->key, msg->key_size, (void**)&val, &val_size);
-					if (val == NULL) {
-						stream->write(stream, 0, 1);
-					} else {
-						stream->write(stream, val, val_size);
-					}
-					break;
-				}
-				default:
+			// check if they're looking for an upgrade (i.e. secio)
+			unsigned char* results = NULL;
+			size_t bytes_read;
+			libp2p_net_multistream_read(stream, &results, &bytes_read);
+			if (ipfs_null_requesting_secio(results, bytes_read)) {
+				struct SecureSession secure_session;
+				secure_session.stream = stream;
+				if (!libp2p_secio_handshake(&secure_session, &connection_param->local_node->identity->private_key)) {
+					// rejecting connection
 					break;
 				}
 			} else {
-				break;
+				struct Libp2pMessage* msg = NULL;
+				libp2p_message_protobuf_decode(results, bytes_read, &msg);
+				if (msg != NULL) {
+					switch(msg->message_type) {
+					case (MESSAGE_TYPE_PING):
+						routing->Ping(routing, msg);
+						break;
+					case (MESSAGE_TYPE_GET_VALUE): {
+						unsigned char* val;
+						size_t val_size = 0;
+						routing->GetValue(routing, msg->key, msg->key_size, (void**)&val, &val_size);
+						if (val == NULL) {
+							// write a 0 to the stream to tell the client we couldn't find it.
+							stream->write(stream, 0, 1);
+						} else {
+							stream->write(stream, val, val_size);
+						}
+						break;
+					}
+					default:
+						break;
+					}
+				} else {
+					break;
+				}
 			}
 		}
    	}
