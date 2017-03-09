@@ -11,7 +11,7 @@ struct IpfsNode {
 	struct Identity* identity;
 	struct FSRepo* repo;
 	struct Peerstore* peerstore;
-	struct Routing* routing;
+	struct s_ipfs_routing* routing;
 	//struct Pinner pinning; // an interface
 	//struct Mount** mounts;
 	// TODO: Add more here

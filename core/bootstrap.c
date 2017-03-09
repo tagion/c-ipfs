@@ -1,5 +1,6 @@
 
 #include "libp2p/peer/peer.h"
+#include "ipfs/routing/routing.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/thirdparty/ipfsaddr/ipfs_addr.h"
 #include "multiaddr/multiaddr.h"
@@ -38,6 +39,6 @@ void *ipfs_bootstrap_swarm(void* param) {
  */
 void *ipfs_bootstrap_routing(void* param) {
 	struct IpfsNode* local_node = (struct IpfsNode*)param;
-	local_node->routing = ipfs_routing_new_kademlia(local_node, local_node->identity->private_key, NULL);
+	local_node->routing = ipfs_routing_new_kademlia(local_node, &local_node->identity->private_key, NULL);
 	return NULL;
 }

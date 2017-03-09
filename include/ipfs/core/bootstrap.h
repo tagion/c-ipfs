@@ -10,3 +10,5 @@
  * @returns nothing useful
  */
 void *ipfs_bootstrap_swarm(void* param);
+
+void *ipfs_bootstrap_routing(void* param);

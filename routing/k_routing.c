@@ -1,4 +1,5 @@
 #include "ipfs/routing/routing.h"
+#include "libp2p/routing/kademlia.h"
 
 /**
  * Routing using Kademlia and DHT
@@ -13,8 +14,8 @@
  * @param value_size the size of the value
  * @returns 0 on success, otherwise -1
  */
-int ipfs_routing_kademlia_put_value(struct s_ipfs_routing routing, char* key, size_t key_size, void* value, size_t value_size) {
-
+int ipfs_routing_kademlia_put_value(struct s_ipfs_routing* routing, char* key, size_t key_size, void* value, size_t value_size) {
+	return 0;
 }
 
 /**
@@ -25,27 +26,29 @@ int ipfs_routing_kademlia_put_value(struct s_ipfs_routing routing, char* key, si
  * @param 4 a place to store the value
  * @param 5 the size of the value
  */
-int ipfs_routing_kademlia_get_value(struct s_ipfs_routing*, char*, size_t, void**, size_t*) {
+int ipfs_routing_kademlia_get_value(struct s_ipfs_routing* routing, char* key, size_t key_size, void** value, size_t* value_size) {
 	return 0;
 }
 
 /**
  * Find a provider
  */
-int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing*, char*, size_t, void*, size_t*) {
+int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* param1, size_t param2, void* param3, size_t* param4) {
 	return 0;
 }
 
 /**
  * Find a peer
  */
-int ipfs_routing_kademlia_find_peer(struct s_ipfs_routing*, char*, size_t, void*, size_t*) {
+int ipfs_routing_kademlia_find_peer(struct s_ipfs_routing* routing, char* param1, size_t param2, void* param3, size_t* param4) {
 	return 0;
 }
-int ipfs_routing_kademlia_provide(struct s_ipfs_routing*, char*) {
+int ipfs_routing_kademlia_provide(struct s_ipfs_routing* routing, char* param1) {
 	return 0;
 }
 
+// declared here so as to have the code in 1 place
+int ipfs_routing_online_ping(struct s_ipfs_routing*, struct Libp2pMessage*);
 /**
  * Ping this instance
  */
@@ -53,7 +56,7 @@ int ipfs_routing_kademlia_ping(struct s_ipfs_routing* routing, struct Libp2pMess
 	return ipfs_routing_online_ping(routing, message);
 }
 
-int ipfs_routing_kademlia_bootstrap(struct s_ipfs_routing*) {
+int ipfs_routing_kademlia_bootstrap(struct s_ipfs_routing* routing) {
 	return 0;
 }
 
@@ -72,7 +75,7 @@ struct s_ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, st
 		routing->Bootstrap = ipfs_routing_kademlia_bootstrap;
 	}
 	// connect to nodes and listen for connections
-	struct MultiAddress* address = multiaddresss_new_from_string(local_node->repo->config->addresses->api);
+	struct MultiAddress* address = multiaddress_new_from_string(local_node->repo->config->addresses->api);
 	if (multiaddress_is_ip(address)) {
 		int port = multiaddress_get_ip_port(address);
 		int family = multiaddress_get_ip_family(address);

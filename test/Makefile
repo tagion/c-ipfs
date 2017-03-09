@@ -24,6 +24,7 @@ OBJS = testit.o test_helper.o \
 	../repo/config/addresses.o ../repo/config/swarm.o ../repo/config/peer.o \
 	../routing/offline.o \
 	../routing/online.o \
+	../routing/k_routing.o \
 	../thirdparty/ipfsaddr/ipfs_addr.o \
 	../unixfs/unixfs.o \
 	../../c-protobuf/protobuf.o ../../c-protobuf/varint.o

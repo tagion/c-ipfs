@@ -9,7 +9,7 @@
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "libp2p/net/multistream.h"
 #include "libp2p/record/message.h"
-#include "libp2p/utils/multiaddress.h"
+#include "multiaddr/multiaddr.h"
 
 /**
  * return the next chunk of a path
@@ -127,8 +127,8 @@ struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const
 	// connect to the peer
 	struct MultiAddress* address = peer->addr_head->item;
 	char* ip;
-	int port;
-	libp2p_utils_multiaddress_parse_ip4_tcp(address, &ip, &port);
+	int port = multiaddress_get_ip_port(address);
+	multiaddress_get_ip_address(address, &ip);
 	struct Stream* stream = libp2p_net_multistream_connect(ip, port);
 	free(ip);
 	// build the request
