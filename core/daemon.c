@@ -40,15 +40,15 @@ int ipfs_daemon_start(char* repo_path) {
     listen_param.port = 4001;
     listen_param.local_node = &local_node;
 
-    // Create pthread for ipfs_null_listen.
+    // Create pthread for swarm listener.
     if (pthread_create(&work_pths[count_pths++], NULL, ipfs_null_listen, &listen_param)) {
         fprintf(stderr, "Error creating thread for ipfs_null_listen\n");
         return 1;
     }
 
-    // create pthread for connecting to the swarm bootstrap
-    if (pthread_create(&work_pths[count_pths++], NULL, ipfs_bootstrap_swarm, &local_node)) {
-
+    // create pthread for the API
+    if (pthread_create(&work_pths[count_pths++], NULL, ipfs_bootstrap_routing, &local_node)) {
+    	fprintf(stderr, "Error creating thread for routing\n");
     }
 
     fprintf(stderr, "Daemon is ready\n");

@@ -28,3 +28,16 @@ void *ipfs_bootstrap_swarm(void* param) {
 	}
 	return (void*)1;
 }
+
+/***
+ * Listen for connections on the API port (usually 5001)
+ * NOTE: This fills in the IpfsNode->routing struct
+ *
+ * @param param the IpfsNode information
+ * @returns nothing useful
+ */
+void *ipfs_bootstrap_routing(void* param) {
+	struct IpfsNode* local_node = (struct IpfsNode*)param;
+	local_node->routing = ipfs_routing_new_kademlia(local_node, local_node->identity->private_key, NULL);
+	return NULL;
+}
