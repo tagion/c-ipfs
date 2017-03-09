@@ -19,7 +19,7 @@ int test_ping() {
 	int retVal = 0;
 	struct FSRepo* fs_repo = NULL;
     struct Libp2pMessage* message = NULL;
-    struct IpfsNode local_node;
+    //struct IpfsNode local_node;
     struct Libp2pPeer* remote_peer = NULL;
     struct Dialer* dialer = NULL;
     struct Connection* conn = NULL;
@@ -32,10 +32,12 @@ int test_ping() {
 	drop_build_and_open_repo("/tmp/.ipfs", &fs_repo);
 
 	// create a new IpfsNode
+	/*
     local_node.mode = MODE_ONLINE;
     local_node.peerstore = libp2p_peerstore_new();
     local_node.repo = fs_repo;
     local_node.identity = fs_repo->config->identity;
+	*/
 
     // build the ping message
     message = libp2p_message_new();

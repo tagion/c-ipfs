@@ -87,7 +87,8 @@ int test_resolver_remote_get() {
 
 	// start the daemon in a separate thread
 	pthread_t thread;
-	int rc = pthread_create(&thread, NULL, test_resolver_daemon_start, (void*)ipfs_path);
+	if (pthread_create(&thread, NULL, test_resolver_daemon_start, (void*)ipfs_path) < 0)
+		return 0;
 
 	// this should point to a test directory with files and directories
 	char* home_dir = os_utils_get_homedir();

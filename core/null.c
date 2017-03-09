@@ -26,28 +26,27 @@ void *ipfs_null_connection (void *ptr)
 {
     struct null_connection_params *connection_param = NULL;
     struct s_ipfs_routing* routing = NULL;
-    struct Stream* stream = NULL;
 
     connection_param = (struct null_connection_params*) ptr;
 
     // TODO: multistream + secio + message.
     // TODO: when should we exit the for loop and disconnect?
 
-    stream = libp2p_net_multistream_stream_new(connection_param->socket);
+    struct SecureSession secure_session;
+    secure_session.insecure_stream = libp2p_net_multistream_stream_new(connection_param->socket);
+    secure_session.default_stream = secure_session.insecure_stream;
 
     fprintf(stderr, "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
 
-	if (libp2p_net_multistream_negotiate(stream)) {
-	    routing = ipfs_routing_new_online(connection_param->local_node, &connection_param->local_node->identity->private_key, stream);
+	if (libp2p_net_multistream_negotiate(secure_session.insecure_stream)) {
+	    routing = ipfs_routing_new_online(connection_param->local_node, &connection_param->local_node->identity->private_key, secure_session.insecure_stream);
 
 		for(;;) {
 			// check if they're looking for an upgrade (i.e. secio)
 			unsigned char* results = NULL;
 			size_t bytes_read;
-			libp2p_net_multistream_read(stream, &results, &bytes_read);
-			if (ipfs_null_requesting_secio(results, bytes_read)) {
-				struct SecureSession secure_session;
-				secure_session.stream = stream;
+			secure_session.default_stream->read(&secure_session, &results, &bytes_read);
+			if (secure_session.secure_stream == NULL && ipfs_null_requesting_secio(results, bytes_read)) {
 				if (!libp2p_secio_handshake(&secure_session, &connection_param->local_node->identity->private_key, 1)) {
 					// rejecting connection
 					break;
@@ -66,9 +65,9 @@ void *ipfs_null_connection (void *ptr)
 						routing->GetValue(routing, msg->key, msg->key_size, (void**)&val, &val_size);
 						if (val == NULL) {
 							// write a 0 to the stream to tell the client we couldn't find it.
-							stream->write(stream, 0, 1);
+							secure_session.default_stream->write(&secure_session, 0, 1);
 						} else {
-							stream->write(stream, val, val_size);
+							secure_session.default_stream->write(&secure_session, val, val_size);
 						}
 						break;
 					}
@@ -95,8 +94,8 @@ void *ipfs_null_connection (void *ptr)
 	}
 	*/
 
-	if (stream != NULL) {
-		stream->close(stream);
+	if (secure_session.default_stream != NULL) {
+		secure_session.default_stream->close(&secure_session);
 	}
     (*(connection_param->count))--; // update counter.
     free (connection_param);
