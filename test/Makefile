@@ -10,6 +10,7 @@ OBJS = testit.o test_helper.o \
 	../core/builder.o \
 	../core/daemon.o \
 	../core/null.o \
+	../core/bootstrap.o \
 	../datastore/ds_helper.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \

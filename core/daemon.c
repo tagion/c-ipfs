@@ -7,6 +7,7 @@
 #include "libp2p/peer/peerstore.h"
 #include "ipfs/core/daemon.h"
 #include "ipfs/core/ipfs_node.h"
+#include "ipfs/core/bootstrap.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 
 int ipfs_daemon_start(char* repo_path) {
@@ -43,6 +44,11 @@ int ipfs_daemon_start(char* repo_path) {
     if (pthread_create(&work_pths[count_pths++], NULL, ipfs_null_listen, &listen_param)) {
         fprintf(stderr, "Error creating thread for ipfs_null_listen\n");
         return 1;
+    }
+
+    // create pthread for connecting to the swarm bootstrap
+    if (pthread_create(&work_pths[count_pths++], NULL, ipfs_bootstrap_swarm, &local_node)) {
+
     }
 
     fprintf(stderr, "Daemon is ready\n");

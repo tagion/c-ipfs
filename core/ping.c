@@ -7,6 +7,8 @@
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/net/multistream.h"
 #include "libp2p/record/message.h"
+#include "libp2p/secio/secio.h"
+#include "ipfs/repo/fsrepo/fs_repo.h"
 
 #define BUF_SIZE 4096
 
@@ -14,15 +16,40 @@ int ipfs_ping (int argc, char **argv)
 {
 	unsigned char* results = NULL;
 	size_t results_size = 0;
-	//TODO: handle multiaddress
+	int port = 0;
+	char* ip = NULL;
+	struct SecureSession session;
 
-	// the way using multistream
-	//TODO: Error checking
-	char* ip = argv[2];
-	int port = atoi(argv[3]);
-	struct Stream* stream = libp2p_net_multistream_connect(ip, port);
-	if (stream == NULL) {
+    // read the configuration
+    struct FSRepo* fs_repo;
+	if (!ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo))
+		return 0;
+
+	// open the repository and read the file
+	if (!ipfs_repo_fsrepo_open(fs_repo)) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		return 0;
+	}
+
+	//TODO: handle multiaddress
+	if (strstr(argv[2], "/ipfs/") != NULL) {
+		// look in peerstore
+	} else {
+		// the way using multistream
+		//TODO: Error checking
+		ip = argv[2];
+		port = atoi(argv[3]);
+	}
+
+	session.insecure_stream = libp2p_net_multistream_connect(ip, port);
+	session.default_stream = session.insecure_stream;
+	if (session.insecure_stream == NULL) {
 		fprintf(stderr, "Unable to connect to %s on port %s", ip, argv[3]);
+	}
+
+	// try to switch to secio
+	if (!libp2p_secio_handshake(&session, &fs_repo->config->identity->private_key, 0)) {
+		fprintf(stderr, "Unable to switch to secure connection. Attempting insecure ping...\n");
 	}
 
 	// prepare the PING message
@@ -32,8 +59,16 @@ int ipfs_ping (int argc, char **argv)
 	size_t protobuf_size = libp2p_message_protobuf_encode_size(msg);
 	unsigned char protobuf[protobuf_size];
 	libp2p_message_protobuf_encode(msg, &protobuf[0], protobuf_size, &protobuf_size);
-	libp2p_net_multistream_write(stream, protobuf, protobuf_size);
-	libp2p_net_multistream_read(stream, &results, &results_size);
+	session.default_stream->write(&session, protobuf, protobuf_size);
+	session.default_stream->read(&session, &results, &results_size);
+
+	// see if we can unprotobuf
+	struct Libp2pMessage* msg_returned = NULL;
+	libp2p_message_protobuf_decode(results, results_size, &msg_returned);
+	if (msg_returned->message_type != MESSAGE_TYPE_PING) {
+		fprintf(stderr, "Ping unsuccessful. Returned message was not a PING");
+		return 0;
+	}
 
 	if (results_size != protobuf_size) {
 		fprintf(stderr, "PING unsuccessful. Original size: %lu, returned size: %lu\n", protobuf_size, results_size);

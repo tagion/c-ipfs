@@ -46,7 +46,7 @@ void *ipfs_null_connection (void *ptr)
 			unsigned char* results = NULL;
 			size_t bytes_read;
 			secure_session.default_stream->read(&secure_session, &results, &bytes_read);
-			if (secure_session.secure_stream == NULL && ipfs_null_requesting_secio(results, bytes_read)) {
+			if (ipfs_null_requesting_secio(results, bytes_read)) {
 				if (!libp2p_secio_handshake(&secure_session, &connection_param->local_node->identity->private_key, 1)) {
 					// rejecting connection
 					break;
