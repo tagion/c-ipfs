@@ -88,7 +88,7 @@ int test_routing_supernode_get_value() {
 
 	struct Libp2pLinkedList* multiaddress_head;
 	// get an IP4 ip and port
-	if (!ipfs_routing_supernode_parse_provider(&results_buffer, &multiaddress_head))
+	if (!ipfs_routing_supernode_parse_provider(results_buffer, results_size, &multiaddress_head))
 		goto exit;
 
 	struct Libp2pLinkedList* current_address = multiaddress_head;
@@ -110,7 +110,7 @@ int test_routing_supernode_get_value() {
 	struct Stream* file_stream = libp2p_net_multistream_connect(ip, multiaddress_get_ip_port(addr));
 
 	// Switch from multistream to NodeIO
-	if (!libp2p_net_multistream_upgrade(file_stream, "/NodeIO/1.0.0"))
+	if (!libp2p_nodeio_upgrade_stream(file_stream))
 		goto exit;
 
 	// Ask for file

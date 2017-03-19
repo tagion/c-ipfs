@@ -85,4 +85,4 @@ int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, siz
 int ipfs_routing_generic_get_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void **val, size_t *vlen);
 
 // supernode
-int ipfs_routing_supernode_parse_provider(const unsigned char* in, struct Libp2pLinkedList** multiaddresses);
+int ipfs_routing_supernode_parse_provider(const unsigned char* in, size_t in_size, struct Libp2pLinkedList** multiaddresses);

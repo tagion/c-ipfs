@@ -25,6 +25,7 @@ OBJS = testit.o test_helper.o \
 	../routing/offline.o \
 	../routing/online.o \
 	../routing/k_routing.o \
+	../routing/supernode.o \
 	../thirdparty/ipfsaddr/ipfs_addr.o \
 	../unixfs/unixfs.o \
 	../../c-protobuf/protobuf.o ../../c-protobuf/varint.o
