@@ -3,6 +3,12 @@
 #include "../test_helper.h"
 #include "ipfs/routing/routing.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "libp2p/net/multistream.h"
+#include "libp2p/nodeio/nodeio.h"
+#include "libp2p/utils/vector.h"
+#include "libp2p/utils/linked_list.h"
+#include "libp2p/peer/peerstore.h"
+#include "libp2p/peer/providerstore.h"
 
 void stop_kademlia(void);
 
@@ -33,6 +39,12 @@ int test_routing_supernode_start() {
 	return retVal;
 }
 
+void* start_daemon(void* path) {
+	char* repo_path = (char*)path;
+	ipfs_daemon_start(repo_path);
+	return NULL;
+}
+
 int test_routing_supernode_get_value() {
 	int retVal = 0;
 	struct FSRepo* fs_repo = NULL;
@@ -40,83 +52,93 @@ int test_routing_supernode_get_value() {
 	struct Stream* stream = NULL;
 	int file_size = 1000;
 	unsigned char bytes[file_size];
-	char* fileName = "temp_file.bin";
+	//char* fileName = "temp_file.bin";
 	char* fullFileName = "/tmp/temp_file.bin";
 	struct Node* write_node = NULL;
 	size_t bytes_written = 0;
-	unsigned char base58Hash[100];
-	size_t results_size = 2048;
-	char results_buffer[results_size];
+	struct Libp2pVector* multiaddresses;
+	unsigned char* results;
+	size_t results_size = 0;
+	struct Node* node = NULL;
+	char* ip = NULL;
 
 	if (!drop_build_and_open_repo("/tmp/.ipfs", &fs_repo))
 		goto exit;
+
+	// start daemon
+	pthread_t thread;
+	pthread_create(&thread, NULL, start_daemon, (void*)"/tmp/.ipfs");
 
 	ipfs_node = (struct IpfsNode*)malloc(sizeof(struct IpfsNode));
 	ipfs_node->mode = MODE_ONLINE;
 	ipfs_node->identity = fs_repo->config->identity;
 	ipfs_node->repo = fs_repo;
+	ipfs_node->providerstore = libp2p_providerstore_new();
+	ipfs_node->peerstore = libp2p_peerstore_new();
+	struct Libp2pPeer this_peer;
+	this_peer.id = fs_repo->config->identity->peer_id;
+	this_peer.id_size = strlen(fs_repo->config->identity->peer_id);
+	this_peer.addr_head = libp2p_utils_linked_list_new();
+	this_peer.addr_head->item = multiaddress_new_from_string("/ip4/127.0.0.1/tcp/4001");
+	libp2p_peerstore_add_peer(ipfs_node->peerstore, &this_peer);
 	ipfs_node->routing = ipfs_routing_new_kademlia(ipfs_node, &fs_repo->config->identity->private_key, stream);
 
 	if (ipfs_node->routing == NULL)
 		goto exit;
+
+	// start listening
 
 	// create a file
 	create_bytes(&bytes[0], file_size);
 	create_file(fullFileName, bytes, file_size);
 
 	// write to ipfs
-	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written, 1) == 0) {
+	if (ipfs_import_file("/tmp", fullFileName, &write_node, fs_repo, &bytes_written, 1) == 0) {
 		goto exit;
 	}
 
-	if (!ipfs_node->routing->Provide(ipfs_node->routing, (char*)write_node->data, write_node->data_size))
-		goto exit;
-	// write_node->hash has the base32 key of the file. Convert this to a base58.
-	if (!ipfs_cid_hash_to_base58(write_node->hash, write_node->hash_size, base58Hash, 100))
+	// TODO: announce to network that this can be provided
+	if (!ipfs_node->routing->Provide(ipfs_node->routing, (char*)write_node->hash, write_node->hash_size))
 		goto exit;
 
 	// ask the network who can provide this
-	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, (char*)base58Hash, 100, &results_buffer[0], &results_size))
+	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, (char*)write_node->hash, write_node->hash_size, &multiaddresses))
 		goto exit;
 
-	// Q: What should FindProviders have in the results buffer? A: A struct of:
-	// 20 byte id
-	// 4 byte (or 16 byte for ip6) ip address
-	// 2 byte port number
-	// that means we have to attempt a connection and ask for peer ID
-	// TODO: Q: How do we determine ip4 vs ip6?
-
-	struct Libp2pLinkedList* multiaddress_head;
-	// get an IP4 ip and port
-	if (!ipfs_routing_supernode_parse_provider(results_buffer, results_size, &multiaddress_head))
-		goto exit;
-
-	struct Libp2pLinkedList* current_address = multiaddress_head;
 	struct MultiAddress* addr = NULL;
-	while (current_address != NULL) {
-		addr = (struct Multiaddress*)current_address->item;
-		if (multiaddress_is_ip4(addr))
+	for(int i = 0; i < multiaddresses->total; i++) {
+		addr = (struct MultiAddress*) libp2p_utils_vector_get(multiaddresses, i);
+		if (multiaddress_is_ip4(addr)) {
 			break;
+		}
 		addr = NULL;
-		current_address = current_address->next;
 	}
 
 	if (addr == NULL)
 		goto exit;
 
 	// Connect to server
-	char* ip;
 	multiaddress_get_ip_address(addr, &ip);
 	struct Stream* file_stream = libp2p_net_multistream_connect(ip, multiaddress_get_ip_port(addr));
 
+	if (file_stream == NULL)
+		goto exit;
+
+	struct SessionContext context;
+	context.insecure_stream = file_stream;
+	context.default_stream = file_stream;
 	// Switch from multistream to NodeIO
-	if (!libp2p_nodeio_upgrade_stream(file_stream))
+	if (!libp2p_nodeio_upgrade_stream(&context))
 		goto exit;
 
 	// Ask for file
-	struct Node* node = libp2p_nodeio_get(file_stream, base58Hash, 100);
-	if (node == NULL)
+	if (!libp2p_nodeio_get(&context, write_node->hash, write_node->hash_size, &results, &results_size))
 		goto exit;
+
+	if (!ipfs_node_protobuf_decode(results, results_size, &node))
+		goto exit;
+
+	//TODO: see if we got it
 
 	retVal = 1;
 	exit:

@@ -8,7 +8,7 @@
  * Implements the routing interface for network clients
  */
 
-int ipfs_routing_online_find_providers(struct s_ipfs_routing* routing, char* val1, size_t val2, void* val3, size_t* val4) {
+int ipfs_routing_online_find_providers(struct s_ipfs_routing* routing, char* val1, size_t val2, struct Libp2pVector** multiaddresses) {
 	return 0;
 }
 int ipfs_routing_online_find_peer(struct s_ipfs_routing* routing, char* val1, size_t val2, void* val3, size_t* val4) {

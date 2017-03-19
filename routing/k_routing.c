@@ -1,5 +1,7 @@
 #include "ipfs/routing/routing.h"
 #include "libp2p/routing/kademlia.h"
+#include "libp2p/peer/providerstore.h"
+#include "libp2p/utils/vector.h"
 
 /**
  * Routing using Kademlia and DHT
@@ -41,11 +43,30 @@ int ipfs_routing_kademlia_get_value(struct s_ipfs_routing* routing, char* key, s
  * @param results_size the size of the results buffer
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* key, size_t key_size, void* results, size_t* results_size) {
+int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* key, size_t key_size, struct Libp2pVector** results) {
+	*results = libp2p_utils_vector_new(1);
+	struct Libp2pVector* vector = *results;
 	// see if I can provide it
-	// add my multiaddress if I can
-	// get a list of providers that are closer
-	return 0;
+	unsigned char* peer_id = NULL;
+	int peer_id_size = 0;
+	if (libp2p_providerstore_get(routing->local_node->providerstore, (unsigned char*)key, key_size, &peer_id, &peer_id_size)) {
+		struct Libp2pPeer* peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, peer_id, peer_id_size);
+		struct Libp2pLinkedList* current = peer->addr_head;
+		while (current != NULL) {
+			struct MultiAddress* ma = (struct MultiAddress*)current->item;
+			if (multiaddress_is_ip(ma)) {
+				libp2p_utils_vector_add(vector, ma);
+			}
+			current = current->next;
+		}
+	}
+	//TODO: get a list of providers that are closer
+	if (vector->total == 0) {
+		libp2p_utils_vector_free(vector);
+		vector = NULL;
+		return 0;
+	}
+	return 1;
 }
 
 /**
@@ -54,8 +75,13 @@ int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* k
 int ipfs_routing_kademlia_find_peer(struct s_ipfs_routing* routing, char* param1, size_t param2, void* param3, size_t* param4) {
 	return 0;
 }
-int ipfs_routing_kademlia_provide(struct s_ipfs_routing* routing, char* param1, size_t param2) {
-	return 0;
+int ipfs_routing_kademlia_provide(struct s_ipfs_routing* routing, char* key, size_t key_size) {
+	//TODO: Announce to the network that I can provide this file
+	// save in a cache
+	// store key and address in cache. Key is the hash, peer id is the value
+	libp2p_providerstore_add(routing->local_node->providerstore, (unsigned char*)key, key_size, (unsigned char*)routing->local_node->identity->peer_id, strlen(routing->local_node->identity->peer_id));
+
+	return 1;
 }
 
 // declared here so as to have the code in 1 place

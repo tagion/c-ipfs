@@ -40,7 +40,7 @@ struct s_ipfs_routing {
 	 * @param 4 the information found
 	 * @param 5 the size of the information found
 	 */
-	int (*FindProviders) (struct s_ipfs_routing*, char*, size_t, void*, size_t*);
+	int (*FindProviders) (struct s_ipfs_routing*, char*, size_t, struct Libp2pVector** multiaddresses);
 	/**
 	 * Find a peer
 	 * @param 1 the context
