@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "libp2p/utils/linked_list.h"
 #include "ipfs/repo/config/config.h"
 #include "ipfs/os/utils.h"
 #include "ipfs/repo/config/bootstrap_peers.h"
@@ -96,10 +97,14 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 		return 0;
 
 	// swarm addresses
-	char** address_array = (char * []){ "/ip4/0.0.0.0/tcp/4001", "/ip6/::/tcp/4001" };
-	retVal = repo_config_swarm_address_init(config->addresses->swarm, address_array, 2);
-	if (retVal == 0)
-		return 0;
+	const char* addr1 = "/ip4/0.0.0.0/tcp/4001";
+	const char* addr2 = "/ip6/::/tcp/4001";
+	config->addresses->swarm_head = libp2p_utils_linked_list_new();
+	config->addresses->swarm_head->item = malloc(strlen(addr1) + 1);
+	strcpy(config->addresses->swarm_head->item, addr1);
+	config->addresses->swarm_head->next = libp2p_utils_linked_list_new();
+	config->addresses->swarm_head->next->item = malloc(strlen(addr2) + 1);
+	strcpy(config->addresses->swarm_head->next->item, addr2);
 	
 	config->discovery.mdns.enabled = 1;
 	config->discovery.mdns.interval = 10;

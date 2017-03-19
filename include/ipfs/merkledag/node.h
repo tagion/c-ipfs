@@ -30,6 +30,7 @@ struct Node
 	struct NodeLink* head_link;
 	// not saved in protobuf
 	unsigned char* encoded;
+	// a base32 representation of the multihash
 	unsigned char* hash;
 	size_t hash_size;
 };

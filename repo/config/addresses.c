@@ -17,15 +17,18 @@ int repo_config_addresses_new(struct Addresses** addresses, char* api, char* gat
 	if (*addresses == NULL)
 		return 0;
 
+	struct Addresses* addr = *addresses;
 	// allocate memory to store api and gateway
-	(*addresses)->api = alloc_and_copy(api);
-	(*addresses)->gateway = alloc_and_copy(gateway);
-	if ( (*addresses)->api == NULL || (*addresses)->gateway == NULL)
+	addr->api = alloc_and_copy(api);
+	addr->gateway = alloc_and_copy(gateway);
+	if ( addr->api == NULL || addr->gateway == NULL)
 		return 0;
 
 	// allocate memory for swarm_addresses
-	if (repo_config_swarm_address_new(&((*addresses)->swarm)) == 0)
-		return 0;
+	//if (repo_config_swarm_address_new(&((*addresses)->swarm)) == 0)
+	//	return 0;
+	// this is now allocated when it is filled
+	addr->swarm_head = NULL;
 
 	return 1;
 }
@@ -33,7 +36,7 @@ int repo_config_addresses_new(struct Addresses** addresses, char* api, char* gat
 int repo_config_addresses_free(struct Addresses* addresses) {
 	free(addresses->api);
 	free(addresses->gateway);
-	repo_config_swarm_address_free(addresses->swarm);
+	libp2p_utils_linked_list_free(addresses->swarm_head);
 	free(addresses);
 	return 1;
 }

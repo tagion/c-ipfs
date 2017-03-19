@@ -32,7 +32,7 @@ void *ipfs_null_connection (void *ptr)
     // TODO: multistream + secio + message.
     // TODO: when should we exit the for loop and disconnect?
 
-    struct SecureSession secure_session;
+    struct SessionContext secure_session;
     secure_session.insecure_stream = libp2p_net_multistream_stream_new(connection_param->socket);
     secure_session.default_stream = secure_session.insecure_stream;
 

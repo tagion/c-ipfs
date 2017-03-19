@@ -38,14 +38,14 @@ int test_repo_config_init() {
 	if (retVal != 0)
 		return 0;
 	
-	if (repoConfig->addresses->swarm->num_addresses != 2)
+	if (repoConfig->addresses->swarm_head == NULL || repoConfig->addresses->swarm_head->next == NULL || repoConfig->addresses->swarm_head->next->next != NULL)
 		return 0;
 	
-	retVal = strncmp(repoConfig->addresses->swarm->addresses[0], "/ip4/0.0.0.0/tcp/4001", 21);
+	retVal = strcmp((char*)repoConfig->addresses->swarm_head->item, "/ip4/0.0.0.0/tcp/4001");
 	if (retVal != 0)
 		return 0;
 	
-	retVal = strncmp(repoConfig->addresses->swarm->addresses[1], "/ip6/::/tcp/4001", 16);
+	retVal = strcmp((char*)repoConfig->addresses->swarm_head->next->item, "/ip6/::/tcp/4001");
 	if (retVal != 0)
 		return 0;
 	

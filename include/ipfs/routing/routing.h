@@ -34,17 +34,42 @@ struct s_ipfs_routing {
 	int (*GetValue)      (struct s_ipfs_routing*, char*, size_t, void**, size_t*);
 	/**
 	 * Find a provider
+	 * @param 1 the context
+	 * @param 2 the information that is being looked for
+	 * @param 3 the size of param 2
+	 * @param 4 the information found
+	 * @param 5 the size of the information found
 	 */
 	int (*FindProviders) (struct s_ipfs_routing*, char*, size_t, void*, size_t*);
 	/**
 	 * Find a peer
+	 * @param 1 the context
+	 * @param 2 the peer to look for
+	 * @param 3 the size of the peer char array
+	 * @param 4 the results
+	 * @param 5 the size of the results
 	 */
 	int (*FindPeer)      (struct s_ipfs_routing*, char*, size_t, void*, size_t*);
-	int (*Provide)       (struct s_ipfs_routing*, char*);
 	/**
-	 * Ping this instance
+	 * Announce to the network that this host can provide this key
+	 * @param 1 the context
+	 * @param 2 the key
+	 * @param 3 the key size
+	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*Ping)          (struct s_ipfs_routing*, struct Libp2pMessage* message);
+	int (*Provide)       (struct s_ipfs_routing*, char*, size_t);
+	/**
+	 * Ping
+	 * @param routing the context
+	 * @param message the message
+	 * @returns true(1) on success, otherwise false(0)
+	 */
+	int (*Ping)          (struct s_ipfs_routing*, struct Libp2pMessage*);
+	/**
+	 * Get everything going
+	 * @param routing the context
+	 * @returns true(1) on success, otherwise false(0)
+	 */
 	int (*Bootstrap)     (struct s_ipfs_routing*);
 };
 typedef struct s_ipfs_routing ipfs_routing;
@@ -59,3 +84,5 @@ ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaP
 int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void *val, size_t vlen);
 int ipfs_routing_generic_get_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void **val, size_t *vlen);
 
+// supernode
+int ipfs_routing_supernode_parse_provider(const unsigned char* in, struct Libp2pLinkedList** multiaddresses);

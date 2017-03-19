@@ -64,7 +64,7 @@ int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, char *peer_id,
     return ErrOffline;
 }
 
-int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, char *cid)
+int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, char *cid, size_t cid_size)
 {
     return ErrOffline;
 }

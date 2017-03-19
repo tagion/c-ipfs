@@ -9,6 +9,7 @@
 #include "repo/test_repo_config.h"
 #include "repo/test_repo_fsrepo.h"
 #include "repo/test_repo_identity.h"
+#include "routing/test_supernode.h"
 #include "storage/test_ds_helper.h"
 #include "storage/test_datastore.h"
 #include "storage/test_blocks.h"
@@ -36,6 +37,7 @@ const char* names[] = {
 		"test_repo_config_identity_new",
 		"test_repo_config_identity_private_key",
 		"test_repo_fsrepo_write_read_block",
+		"test_routing_supernode_start",
 		"test_get_init_command",
 		"test_import_small_file",
 		"test_import_large_file",
@@ -72,6 +74,7 @@ int (*funcs[])(void) = {
 		test_repo_config_identity_new,
 		test_repo_config_identity_private_key,
 		test_repo_fsrepo_write_read_block,
+		test_routing_supernode_start,
 		test_get_init_command,
 		test_import_small_file,
 		test_import_large_file,

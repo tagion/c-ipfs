@@ -14,7 +14,14 @@ int ipfs_routing_online_find_providers(struct s_ipfs_routing* routing, char* val
 int ipfs_routing_online_find_peer(struct s_ipfs_routing* routing, char* val1, size_t val2, void* val3, size_t* val4) {
 	return 0;
 }
-int ipfs_routing_online_provide(struct s_ipfs_routing* routing, char* val1) {
+
+/**
+ * Notify the network that this host can provide this key
+ * @param routing information about this host
+ * @param val1 the key (hash) of the data
+ * @returns true(1) on success, otherwise false
+ */
+int ipfs_routing_online_provide(struct s_ipfs_routing* routing, char* val1, size_t val2) {
 	return 0;
 }
 int ipfs_routing_online_ping(struct s_ipfs_routing* routing, struct Libp2pMessage* message) {

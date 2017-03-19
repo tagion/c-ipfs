@@ -6,6 +6,31 @@
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/os/utils.h"
 
+/***
+ * Helper to create a test file in the OS
+ */
+int create_file(const char* fileName, unsigned char* bytes, size_t num_bytes) {
+	FILE* file = fopen(fileName, "wb");
+	fwrite(bytes, num_bytes, 1, file);
+	fclose(file);
+	return 1;
+}
+
+/***
+ * Create a buffer with some data
+ */
+int create_bytes(unsigned char* buffer, size_t num_bytes) {
+	int counter = 0;
+
+	for(int i = 0; i < num_bytes; i++) {
+		buffer[i] = counter++;
+		if (counter > 15)
+			counter = 0;
+	}
+	return 1;
+}
+
+
 int remove_directory(const char *path)
 {
    DIR *d = opendir(path);

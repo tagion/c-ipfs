@@ -1,10 +1,11 @@
 #ifndef addresses_h
 #define addresses_h
 
+#include "libp2p/utils/linked_list.h"
 #include "swarm.h"
 
 struct Addresses {
-	struct SwarmAddresses* swarm;
+	struct Libp2pLinkedList* swarm_head;
 	char* api;
 	char* gateway;
 };

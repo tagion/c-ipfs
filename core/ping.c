@@ -18,7 +18,7 @@ int ipfs_ping (int argc, char **argv)
 	size_t results_size = 0;
 	int port = 0;
 	char* ip = NULL;
-	struct SecureSession session;
+	struct SessionContext session;
 
     // read the configuration
     struct FSRepo* fs_repo;

@@ -1,32 +1,12 @@
 #include <stdio.h>
 
+#include "../test_helper.h"
 #include "ipfs/importer/importer.h"
 #include "ipfs/importer/exporter.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "mh/hashes.h"
 #include "mh/multihash.h"
 #include "libp2p/crypto/encoding/base58.h"
-
-/***
- * Helper to create a test file in the OS
- */
-int create_file(const char* fileName, unsigned char* bytes, size_t num_bytes) {
-	FILE* file = fopen(fileName, "wb");
-	fwrite(bytes, num_bytes, 1, file);
-	fclose(file);
-	return 1;
-}
-
-int create_bytes(unsigned char* buffer, size_t num_bytes) {
-	int counter = 0;
-
-	for(int i = 0; i < num_bytes; i++) {
-		buffer[i] = counter++;
-		if (counter > 15)
-			counter = 0;
-	}
-	return 1;
-}
 
 int test_import_large_file() {
 	size_t bytes_size = 1000000; //1mb

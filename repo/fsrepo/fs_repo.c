@@ -67,12 +67,14 @@ int repo_config_write_config_file(char* full_filename, struct RepoConfig* config
 	fprintf(out_file, "  \"BloomFilterSize\": %d\n", config->datastore->bloom_filter_size);
 	fprintf(out_file, " },\n \"Addresses\": {\n");
 	fprintf(out_file, "  \"Swarm\": [\n");
-	for(int i = 0; i < config->addresses->swarm->num_addresses; i++) {
-		fprintf(out_file, "   \"%s\"", config->addresses->swarm->addresses[i]);
-		if (i != (config->addresses->swarm->num_addresses - 1))
-			fprintf(out_file, ",\n");
-		else
+	struct Libp2pLinkedList* current = config->addresses->swarm_head;
+	while (current != NULL) {
+		fprintf(out_file, "  \"%s\"", (char*)current->item);
+		if (current->next == NULL)
 			fprintf(out_file, "\n");
+		else
+			fprintf(out_file, ",\n");
+		current = current->next;
 	}
 	fprintf(out_file, "  ],\n");
 	fprintf(out_file, "  \"API\": \"%s\",\n", config->addresses->api);
@@ -285,28 +287,41 @@ int _find_token(const char* data, const jsmntok_t* tokens, int tok_length, int s
  * @param tokens the array of tokens
  * @param tok_length the number of tokens
  * @param search_from start search from this token onward
- * @param tag what to search for
+ * @param tag what to search for (NOTE: If null, read from search_from)
  * @param result where to put the result. NOTE: allocates memory that must be freed
  * @returns true(1) on success
  */
 int _get_json_string_value(char* data, const jsmntok_t* tokens, int tok_length, int search_from, const char* tag, char** result) {
-	int pos = _find_token(data, tokens, tok_length, search_from, tag);
-	if (pos < 0)
+	int pos = 0;
+	jsmntok_t* curr_token = NULL;
+
+	if (tag == NULL) {
+		pos = search_from;
+		if (pos >= 0)
+			curr_token = (jsmntok_t*)&tokens[pos];
+	}
+	else {
+		pos = _find_token(data, tokens, tok_length, search_from, tag);
+		if (pos >= 0)
+			curr_token = (jsmntok_t*)&tokens[pos + 1];
+	}
+
+	if (curr_token == NULL)
 		return 0;
-	jsmntok_t curr_token = tokens[pos+1];
-	if (curr_token.type == JSMN_PRIMITIVE) {
+
+	if (curr_token->type == JSMN_PRIMITIVE) {
 		// a null
 		*result = NULL;
 	}
-	if (curr_token.type != JSMN_STRING)
+	if (curr_token->type != JSMN_STRING)
 		return 0;
 	// allocate memory
-	int str_len = curr_token.end - curr_token.start;
+	int str_len = curr_token->end - curr_token->start;
 	*result = malloc(sizeof(char) * str_len + 1);
 	if (*result == NULL)
 		return 0;
 	// copy in the string
-	strncpy(*result, &data[curr_token.start], str_len);
+	strncpy(*result, &data[curr_token->start], str_len);
 	(*result)[str_len] = 0;
 	return 1;
 }
@@ -399,6 +414,34 @@ int fs_repo_open_config(struct FSRepo* repo) {
 	_get_json_int_value(data, tokens, num_tokens, curr_pos, "NoSync", &repo->config->datastore->no_sync);
 	_get_json_int_value(data, tokens, num_tokens, curr_pos, "HashOnRead", &repo->config->datastore->hash_on_read);
 	_get_json_int_value(data, tokens, num_tokens, curr_pos, "BloomFilterSize", &repo->config->datastore->bloom_filter_size);
+
+	// get addresses. First is Swarm array, then Api, then Gateway
+	curr_pos = _find_token(data, tokens, num_tokens, curr_pos, "Addresses");
+	if (curr_pos < 0) {
+		free(data);
+		return 0;
+	}
+	// get swarm addresses
+	int swarm_pos = _find_token(data, tokens, num_tokens, curr_pos, "Swarm") + 1;
+	if (tokens[swarm_pos].type != JSMN_ARRAY)
+		return 0;
+	int swarm_size = tokens[swarm_pos].size;
+	swarm_pos++;
+	repo->config->addresses->swarm_head = NULL;
+	struct Libp2pLinkedList* last = NULL;
+	for(int i = 0; i < swarm_size; i++) {
+		struct Libp2pLinkedList* current = libp2p_utils_linked_list_new();
+		if (!_get_json_string_value(data, tokens, num_tokens, swarm_pos + i, NULL, (char**)&current->item))
+			break;
+		if (repo->config->addresses->swarm_head == NULL) {
+			repo->config->addresses->swarm_head = current;
+		} else {
+			last->next = current;
+		}
+		last = current;
+	}
+	_get_json_string_value(data, tokens, num_tokens, curr_pos, "API", &repo->config->addresses->api);
+	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Gateway", &repo->config->addresses->gateway);
 
 	// free the memory used reading the json file
 	free(data);
