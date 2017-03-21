@@ -28,7 +28,6 @@ OBJS = testit.o test_helper.o \
 	../routing/supernode.o \
 	../thirdparty/ipfsaddr/ipfs_addr.o \
 	../unixfs/unixfs.o \
-	../util/string_tokenizer.o \
 	../../c-protobuf/protobuf.o ../../c-protobuf/varint.o
 
 %.o: %.c $(DEPS)

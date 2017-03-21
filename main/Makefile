@@ -29,8 +29,7 @@ OBJS = main.o \
 	../unixfs/unixfs.o \
 	../../c-protobuf/protobuf.o ../../c-protobuf/varint.o \
 	../util/errs.o \
-	../util/time.o \
-	../util/string_tokenizer.o
+	../util/time.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
