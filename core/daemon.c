@@ -47,9 +47,12 @@ int ipfs_daemon_start(char* repo_path) {
     }
 
     // create pthread for the API
+    ipfs_bootstrap_routing(&local_node);
+    /*
     if (pthread_create(&work_pths[count_pths++], NULL, ipfs_bootstrap_routing, &local_node)) {
     	fprintf(stderr, "Error creating thread for routing\n");
     }
+    */
 
     fprintf(stderr, "Daemon is ready\n");
 
