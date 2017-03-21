@@ -7,7 +7,7 @@ endif
 
 LFLAGS = 
 DEPS = 
-OBJS = errs.o time.o
+OBJS = errs.o time.o string_tokenizer.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

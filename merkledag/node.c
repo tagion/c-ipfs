@@ -13,6 +13,7 @@
 #include "ipfs/cid/cid.h"
 #include "ipfs/merkledag/node.h"
 #include "ipfs/unixfs/unixfs.h"
+#include "ipfs/util/string_tokenizer.h"
 
 
 // for protobuf Node (all fields optional)    data (optional bytes)      links (repeated node_link)
@@ -691,10 +692,10 @@ int Node_Resolve_Max_Size(char * input1)
 	int num = 0;
 	char * tr;
 	char * end;
-	tr=strtok_r(input,"/",&end);
+	tr=ipfs_utils_strtok_r(input,"/",&end);
 	for(int i = 0;tr;i++)
 	{
-		tr=strtok_r(NULL,"/",&end);
+		tr=ipfs_utils_strtok_r(NULL,"/",&end);
 		num++;
 	}
 	return num;
@@ -718,12 +719,12 @@ int Node_Resolve(char ** result, char * input1)
 	strcpy(input, input1);
 	char * tr;
 	char * end;
-	tr=strtok_r(input,"/",&end);
+	tr=ipfs_utils_strtok_r(input,"/",&end);
 	for(int i = 0;tr;i++)
 	{
 		result[i] = (char *) malloc(strlen(tr)+1);
 		strcpy(result[i], tr);
-		tr=strtok_r(NULL,"/",&end);
+		tr=ipfs_utils_strtok_r(NULL,"/",&end);
 	}
 	return 1;
 }
