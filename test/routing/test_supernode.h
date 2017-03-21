@@ -52,7 +52,6 @@ int test_routing_supernode_get_value() {
 	struct Stream* stream = NULL;
 	int file_size = 1000;
 	unsigned char bytes[file_size];
-	//char* fileName = "temp_file.bin";
 	char* fullFileName = "/tmp/temp_file.bin";
 	struct Node* write_node = NULL;
 	size_t bytes_written = 0;
@@ -97,7 +96,7 @@ int test_routing_supernode_get_value() {
 		goto exit;
 	}
 
-	// TODO: announce to network that this can be provided
+	// announce to network that this can be provided
 	if (!ipfs_node->routing->Provide(ipfs_node->routing, (char*)write_node->hash, write_node->hash_size))
 		goto exit;
 
@@ -138,7 +137,9 @@ int test_routing_supernode_get_value() {
 	if (!ipfs_node_protobuf_decode(results, results_size, &node))
 		goto exit;
 
-	//TODO: see if we got it
+	//we got it
+	if (node->data_size != write_node->data_size)
+		goto exit;
 
 	retVal = 1;
 	exit:

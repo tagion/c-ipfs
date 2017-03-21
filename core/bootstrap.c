@@ -40,5 +40,5 @@ void *ipfs_bootstrap_swarm(void* param) {
 void *ipfs_bootstrap_routing(void* param) {
 	struct IpfsNode* local_node = (struct IpfsNode*)param;
 	local_node->routing = ipfs_routing_new_kademlia(local_node, &local_node->identity->private_key, NULL);
-	return NULL;
+	return (void*)2;
 }

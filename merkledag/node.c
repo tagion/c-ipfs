@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include "inttypes.h"
 
 #include "mh/multihash.h"
@@ -684,7 +685,7 @@ int Node_Resolve_Max_Size(char * input1)
 	{
 		return -1; // Input is null, therefor nothing can be processed.
 	}
-	char input[strlen(input1)];
+	char input[strlen(input1)+1];
 	bzero(input, strlen(input1));
 	strcpy(input, input1);
 	int num = 0;
@@ -712,7 +713,7 @@ int Node_Resolve(char ** result, char * input1)
 	{
 		return 0; // Input is null, therefor nothing can be processed.
 	}
-	char input[strlen(input1)];
+	char input[strlen(input1)+1];
 	bzero(input, strlen(input1));
 	strcpy(input, input1);
 	char * tr;
@@ -789,7 +790,7 @@ int Node_Tree(char * result, char * input1) //I don't know where you use this bu
 	{
 		return 0;
 	}
-	char input[strlen(input1)];
+	char input[strlen(input1)+1];
 	bzero(input, strlen(input1));
 	strcpy(input, input1);
 	for(int i=0; i<strlen(input); i++)
