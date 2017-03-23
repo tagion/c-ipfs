@@ -98,12 +98,13 @@ int ipfs_routing_kademlia_bootstrap(struct s_ipfs_routing* routing) {
 }
 
 struct s_ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key, struct Stream* stream) {
-	char* kademlia_id = NULL;
-	// generate kademlia compatible id by getting last 20 chars of peer id
+	char kademlia_id[21];
+	// generate kademlia compatible id by getting first 20 chars of peer id
 	if (local_node->identity->peer_id == NULL || strlen(local_node->identity->peer_id) < 20) {
 		return NULL;
 	}
-	kademlia_id = &local_node->identity->peer_id[strlen(local_node->identity->peer_id)-20];
+	strncpy(kademlia_id, local_node->identity->peer_id, 20);
+	kademlia_id[20] = 0;
 	struct s_ipfs_routing* routing = (struct s_ipfs_routing*)malloc(sizeof(struct s_ipfs_routing));
 	if (routing != NULL) {
 		routing->local_node = local_node;

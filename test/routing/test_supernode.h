@@ -9,6 +9,7 @@
 #include "libp2p/utils/linked_list.h"
 #include "libp2p/peer/peerstore.h"
 #include "libp2p/peer/providerstore.h"
+#include "libp2p/crypto/encoding/base58.h"
 
 void stop_kademlia(void);
 
@@ -43,6 +44,101 @@ void* start_daemon(void* path) {
 	char* repo_path = (char*)path;
 	ipfs_daemon_start(repo_path);
 	return NULL;
+}
+
+int test_routing_supernode_get_remote_value() {
+	// a remote machine has a file. Let's see if we can get it.
+	// the key is QmXQDbRPsbGdtvDwWvXVXb9TwUTNMcGNfWWnA9oSJJBi5n, which is the email.txt from jmjatlanta.com
+	int retVal = 0;
+	struct FSRepo* fs_repo = NULL;
+	struct IpfsNode* ipfs_node = NULL;
+	struct Libp2pPeer this_peer;
+	struct Stream* stream = NULL;
+	const unsigned char* orig_multihash = (unsigned char*)"QmXQDbRPsbGdtvDwWvXVXb9TwUTNMcGNfWWnA9oSJJBi5n";
+	size_t hash_size = 100;
+	unsigned char hash[hash_size];
+	unsigned char* hash_ptr = &hash[0];
+	struct Libp2pVector* multiaddresses;
+	struct MultiAddress* addr = NULL;
+	char* ip = NULL;
+	struct SessionContext context;
+	unsigned char* results = NULL;
+	size_t results_size = 0;
+	struct Node* node;
+
+	// unencode the base58
+	if (!libp2p_crypto_encoding_base58_decode(orig_multihash, strlen((char*)orig_multihash), &hash_ptr, &hash_size))
+		goto exit;
+
+	// fire things up
+	if (!drop_build_and_open_repo("/tmp/.ipfs", &fs_repo))
+		goto exit;
+
+	ipfs_node = (struct IpfsNode*)malloc(sizeof(struct IpfsNode));
+	ipfs_node->mode = MODE_ONLINE;
+	ipfs_node->identity = fs_repo->config->identity;
+	ipfs_node->repo = fs_repo;
+	ipfs_node->providerstore = libp2p_providerstore_new();
+	ipfs_node->peerstore = libp2p_peerstore_new();
+	// add the local peer to the peerstore
+	this_peer.id = fs_repo->config->identity->peer_id;
+	this_peer.id_size = strlen(fs_repo->config->identity->peer_id);
+	this_peer.addr_head = libp2p_utils_linked_list_new();
+	this_peer.addr_head->item = multiaddress_new_from_string("/ip4/127.0.0.1/tcp/4001");
+	libp2p_peerstore_add_peer(ipfs_node->peerstore, &this_peer);
+	ipfs_node->routing = ipfs_routing_new_kademlia(ipfs_node, &fs_repo->config->identity->private_key, stream);
+
+	if (ipfs_node->routing == NULL)
+		goto exit;
+
+	// ask the network who can provide this
+	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, (char*)hash, hash_size, &multiaddresses))
+		goto exit;
+
+	// get the file
+	for(int i = 0; i < multiaddresses->total; i++) {
+		addr = (struct MultiAddress*) libp2p_utils_vector_get(multiaddresses, i);
+		if (multiaddress_is_ip4(addr)) {
+			break;
+		}
+		addr = NULL;
+	}
+
+	if (addr == NULL)
+		goto exit;
+
+	// Connect to server
+	multiaddress_get_ip_address(addr, &ip);
+	struct Stream* file_stream = libp2p_net_multistream_connect(ip, multiaddress_get_ip_port(addr));
+
+	if (file_stream == NULL)
+		goto exit;
+
+	context.insecure_stream = file_stream;
+	context.default_stream = file_stream;
+	// Switch from multistream to NodeIO
+	if (!libp2p_nodeio_upgrade_stream(&context))
+		goto exit;
+
+	// Ask for file
+	if (!libp2p_nodeio_get(&context, hash, hash_size, &results, &results_size))
+		goto exit;
+
+	if (!ipfs_node_protobuf_decode(results, results_size, &node))
+		goto exit;
+
+	//we got it
+	if (node->data_size < 100)
+		goto exit;
+	// make sure we got what we should have gotten
+	// clean up
+	retVal = 1;
+	exit:
+	if (fs_repo != NULL)
+		ipfs_repo_fsrepo_free(fs_repo);
+	if (ipfs_node != NULL)
+		free(ipfs_node);
+	return retVal;
 }
 
 int test_routing_supernode_get_value() {

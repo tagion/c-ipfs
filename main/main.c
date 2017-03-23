@@ -112,6 +112,7 @@ int main(int argc, char** argv) {
 		break;
 	case(GET):
 		//ipfs_exporter_get(argc, argv);
+		//break;
 	case (CAT):
 		ipfs_exporter_object_cat(argc, argv);
 		break;
