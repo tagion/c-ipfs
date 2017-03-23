@@ -35,7 +35,9 @@ int ipfs_routing_kademlia_get_value(struct s_ipfs_routing* routing, char* key, s
 }
 
 /**
- * Find a provider
+ * Find a provider that can provide a particular key
+ * NOTE: It will look locally before asking the network
+ *
  * @param routing the context
  * @param key the key to what we're looking for
  * @param key_size the size of the key
@@ -62,6 +64,10 @@ int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* k
 	}
 	//TODO: get a list of providers that are closer
 	if (vector->total == 0) {
+		// ask the network
+	}
+	if (vector->total == 0) {
+		// we were unable to find it, even on the network
 		libp2p_utils_vector_free(vector);
 		vector = NULL;
 		return 0;
@@ -75,6 +81,14 @@ int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* k
 int ipfs_routing_kademlia_find_peer(struct s_ipfs_routing* routing, char* param1, size_t param2, void* param3, size_t* param4) {
 	return 0;
 }
+
+/**
+ * Calling this method notifies the network that this peer can provide this key
+ * @param routing the context
+ * @param key the key that can be provided
+ * @param key_size the size of the key
+ * @returns true(1) on success, otherwise false(0)
+ */
 int ipfs_routing_kademlia_provide(struct s_ipfs_routing* routing, char* key, size_t key_size) {
 	//TODO: Announce to the network that I can provide this file
 	// save in a cache
