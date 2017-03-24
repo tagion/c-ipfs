@@ -9,6 +9,8 @@
  * Begin to connect to the swarm
  */
 void *ipfs_bootstrap_swarm(void* param) {
+	//TODO:
+	/*
 	struct IpfsNode* local_node = (struct IpfsNode*)param;
 	// read the config file and get the bootstrap peers
 	for(int i = 0; i < local_node->repo->config->peer_addresses.num_peers; i++) { // loop through the peers
@@ -27,6 +29,7 @@ void *ipfs_bootstrap_swarm(void* param) {
 		} // we have a good peer ID
 
 	}
+	*/
 	return (void*)1;
 }
 

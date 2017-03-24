@@ -37,7 +37,7 @@ struct RepoConfig {
 	struct Mounts mounts;
 	struct Discovery discovery;
 	struct Ipns ipns;
-	struct BootstrapPeers peer_addresses;
+	struct Libp2pVector* bootstrap_peers; // MultiAddresses
 	//struct tour tour;
 	struct Gateway* gateway;
 	//struct supernode_routing supernode_client_config;

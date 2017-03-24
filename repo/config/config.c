@@ -87,7 +87,7 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 		return 0;
 	
 	// bootstrap peers
-	retVal = repo_config_bootstrap_peers_retrieve(&(config->peer_addresses));
+	retVal = repo_config_bootstrap_peers_retrieve(&(config->bootstrap_peers));
 	if (retVal == 0)
 		return 0;
 	
@@ -142,8 +142,7 @@ int ipfs_repo_config_new(struct RepoConfig** config) {
 		return 0;
 
 	// set initial values
-	(*config)->peer_addresses.num_peers = 0;
-	(*config)->peer_addresses.peers = NULL;
+	(*config)->bootstrap_peers = NULL;
 
 	int retVal = 1;
 	retVal = repo_config_identity_new(&((*config)->identity));
@@ -174,8 +173,8 @@ int ipfs_repo_config_free(struct RepoConfig* config) {
 	if (config != NULL) {
 		if (config->identity != NULL)
 			repo_config_identity_free(config->identity);
-		if (&(config->peer_addresses) != NULL)
-			repo_config_bootstrap_peers_free(&(config->peer_addresses));
+		if (&(config->bootstrap_peers) != NULL)
+			repo_config_bootstrap_peers_free(config->bootstrap_peers);
 		if (config->datastore != NULL)
 			ipfs_repo_config_datastore_free(config->datastore);
 		if (config->addresses != NULL)

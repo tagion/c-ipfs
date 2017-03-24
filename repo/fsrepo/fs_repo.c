@@ -443,6 +443,9 @@ int fs_repo_open_config(struct FSRepo* repo) {
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "API", &repo->config->addresses->api);
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Gateway", &repo->config->addresses->gateway);
 
+	// bootstrap peers
+	repo->config->bootstrap_peers = libp2p_utils_vector_new(1);
+	// TODO: Implement bootstrap peers
 	// free the memory used reading the json file
 	free(data);
 	free(priv_key_base64);

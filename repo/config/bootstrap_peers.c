@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ipfs/thirdparty/ipfsaddr/ipfs_addr.h"
 #include "ipfs/repo/config/bootstrap_peers.h"
+#include "multiaddr/multiaddr.h"
 
-int repo_config_bootstrap_peers_retrieve(struct BootstrapPeers* list) {
+int repo_config_bootstrap_peers_retrieve(struct Libp2pVector** list) {
 
 	char* default_bootstrap_addresses[] = {
 		"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",  // mars.i.ipfs.io
@@ -17,29 +17,16 @@ int repo_config_bootstrap_peers_retrieve(struct BootstrapPeers* list) {
 		"/ip4/178.62.61.185/tcp/4001/ipfs/QmSoLMeWqB7YGVLJN3pNLQpmmEk35v6wYtsMGLzSr5QBU3",   // mercury.i.ipfs.io
 		"/ip4/104.236.151.122/tcp/4001/ipfs/QmSoLju6m7xTh3DuokvT3886QRYqxAzb1kShaanJgW36yx", // jupiter.i.ipfs.io
 	};
+	*list = libp2p_utils_vector_new(9);
 	
-	list->num_peers = 9;
-	// allocate memory for list
-	list->peers = malloc(sizeof(struct IPFSAddr*) * list->num_peers);
-	if (list->peers == NULL)
-		return 0;
-	
-	for(int i = 0; i < list->num_peers; i++) {
-		struct IPFSAddr* currAddr;
-		if (ipfsaddr_new(&currAddr, default_bootstrap_addresses[i]) == 0)
-			return 0;
-		list->peers[i] = currAddr;
+	for(int i = 0; i < 9; i++) {
+		struct MultiAddress* currAddr = multiaddress_new_from_string(default_bootstrap_addresses[i]);
+		libp2p_utils_vector_add(*list, currAddr);
 	}
 	return 1;
 }
 
-int repo_config_bootstrap_peers_free(struct BootstrapPeers* list) {
-	
-	for(int i = 0; i < list->num_peers; i++) {
-		if (list->peers[i] != NULL) {
-			ipfsaddr_free(list->peers[i]);
-		}
-	}
-	free(list->peers);
+int repo_config_bootstrap_peers_free(struct Libp2pVector* list) {
+	libp2p_utils_vector_free(list);
 	return 1;
 }

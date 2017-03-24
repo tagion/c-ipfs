@@ -19,19 +19,20 @@ int test_repo_bootstrap_peers_init() {
 		"/ip4/104.236.151.122/tcp/4001/ipfs/QmSoLju6m7xTh3DuokvT3886QRYqxAzb1kShaanJgW36yx", // jupiter.i.ipfs.io
 	};
 
-	struct BootstrapPeers list;
+	struct Libp2pVector* list;
 	int retVal = 1;
 	repo_config_bootstrap_peers_retrieve(&list);
-	if ( list.num_peers != 9) {
+	if ( list->total != 9) {
 		printf("Size does not equal 9 in test_repo_bootstrap_peers_init");
 		retVal = 0;
 	}
-	for(int i = 0; i < list.num_peers; i++) {
+	for(int i = 0; i < list->total; i++) {
 		unsigned long strLen = strlen(default_bootstrap_addresses[i]);
-		if (strncmp(list.peers[i]->entire_string, default_bootstrap_addresses[i], strLen) != 0)
-			printf("The value of element %d is: %s\n", i, list.peers[i]->entire_string);
+		struct MultiAddress* currAddr = libp2p_utils_vector_get(list, i);
+		if (strncmp(currAddr->string, default_bootstrap_addresses[i], strLen) != 0)
+			printf("The value of element %d is: %s\n", i, currAddr->string);
 	}
-	repo_config_bootstrap_peers_free(&list);
+	repo_config_bootstrap_peers_free(list);
 	return retVal;
 }
 

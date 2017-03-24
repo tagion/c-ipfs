@@ -50,8 +50,6 @@ int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* k
 	*results = libp2p_utils_vector_new(1);
 	struct Libp2pVector* vector = *results;
 	// see if I can provide it
-	// temporarily commented out for testing...
-	/*
 	unsigned char* peer_id = NULL;
 	int peer_id_size = 0;
 	if (libp2p_providerstore_get(routing->local_node->providerstore, (unsigned char*)key, key_size, &peer_id, &peer_id_size)) {
@@ -65,7 +63,6 @@ int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* k
 			current = current->next;
 		}
 	}
-	*/
 	//get a list of providers that are closest
 	if (vector->total == 0) {
 		// search requires null terminated key
@@ -152,7 +149,7 @@ struct s_ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, st
 	// connect to nodes and listen for connections
 	struct MultiAddress* address = multiaddress_new_from_string(local_node->repo->config->addresses->api);
 	if (multiaddress_is_ip(address)) {
-		start_kademlia_multiaddress(address, kademlia_id, 10);
+		start_kademlia_multiaddress(address, kademlia_id, 10, local_node->repo->config->bootstrap_peers);
 	}
 	local_node->routing = routing;
 	return routing;

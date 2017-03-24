@@ -87,7 +87,10 @@ int test_routing_supernode_get_remote_value() {
 	this_peer.addr_head->item = multiaddress_new_from_string("/ip4/127.0.0.1/tcp/4001");
 	libp2p_peerstore_add_peer(ipfs_node->peerstore, &this_peer);
 	// set a different port for the dht/kademlia stuff
-	ipfs_node->repo->config->addresses->api = "/ip4/127.0.0.1/tcp/5002";
+	strcpy(ipfs_node->repo->config->addresses->api, "/ip4/127.0.0.1/udp/5002");
+	// add bootstrap peer for kademlia
+	struct MultiAddress* remote = multiaddress_new_from_string("/ip4/127.0.0.1/udp/5001");
+	libp2p_utils_vector_add(ipfs_node->repo->config->bootstrap_peers, remote);
 	ipfs_node->routing = ipfs_routing_new_kademlia(ipfs_node, &fs_repo->config->identity->private_key, stream);
 
 
