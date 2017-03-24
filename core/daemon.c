@@ -32,6 +32,7 @@ int ipfs_daemon_start(char* repo_path) {
     struct IpfsNode local_node;
     local_node.mode = MODE_ONLINE;
     local_node.peerstore = libp2p_peerstore_new();
+	local_node.providerstore = libp2p_providerstore_new();
     local_node.repo = fs_repo;
     local_node.identity = fs_repo->config->identity;
 
@@ -47,12 +48,10 @@ int ipfs_daemon_start(char* repo_path) {
     }
 
     // create pthread for the API
-    ipfs_bootstrap_routing(&local_node);
-    /*
+    //ipfs_bootstrap_routing(&local_node);
     if (pthread_create(&work_pths[count_pths++], NULL, ipfs_bootstrap_routing, &local_node)) {
     	fprintf(stderr, "Error creating thread for routing\n");
     }
-    */
 
     fprintf(stderr, "Daemon is ready\n");
 

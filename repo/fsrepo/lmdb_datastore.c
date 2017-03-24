@@ -12,6 +12,11 @@
 #include "lmdb.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
 
+struct lmdb_trans_cursor {
+	MDB_txn* transaction;
+	MDB_cursor* cursor;
+};
+
 /***
  * retrieve a record from the database and put in a pre-sized buffer
  * @param key the key to look for
@@ -164,6 +169,79 @@ int repo_fsrepo_lmdb_close(struct Datastore* datastore) {
 	return 1;
 }
 
+int repo_fsrepo_lmdb_cursor_open(struct Datastore* datastore) {
+	if (datastore->handle != NULL) {
+		MDB_env* mdb_env = (MDB_env*)datastore->handle;
+		MDB_dbi mdb_dbi;
+		if (datastore->cursor == NULL ) {
+			datastore->cursor = malloc(sizeof(struct lmdb_trans_cursor));
+			struct lmdb_trans_cursor* cursor = (struct lmdb_trans_cursor*)datastore->cursor;
+			// open transaction
+			if (mdb_txn_begin(mdb_env, NULL, 0, &cursor->transaction) != 0)
+				return 0;
+			MDB_txn* mdb_txn = (MDB_txn*)cursor->transaction;
+			if (mdb_dbi_open(mdb_txn, NULL, MDB_DUPSORT, &mdb_dbi) != 0) {
+				mdb_txn_commit(mdb_txn);
+				return 0;
+			}
+			// open cursor
+			if (mdb_cursor_open(mdb_txn, mdb_dbi, &cursor->cursor) != 0) {
+				mdb_txn_commit(mdb_txn);
+				return 0;
+			}
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int repo_fsrepo_lmdb_cursor_get(unsigned char** key, int* key_length,
+		unsigned char** value, int* value_length,
+		enum DatastoreCursorOp op, struct Datastore* datastore)
+{
+	if (datastore->cursor != NULL) {
+		struct lmdb_trans_cursor* tc = (struct lmdb_trans_cursor*)datastore->cursor;
+		MDB_val mdb_key;
+		MDB_val mdb_value;
+		MDB_cursor_op co = MDB_FIRST;
+		if (op == CURSOR_FIRST)
+			co = MDB_FIRST;
+		else if (op == CURSOR_NEXT)
+			co = MDB_NEXT;
+		if (mdb_cursor_get(tc->cursor, &mdb_key, &mdb_value, co) != 0) {
+			return 0;
+		}
+		*key = (unsigned char*)malloc(mdb_key.mv_size);
+		memcpy(*key, mdb_key.mv_data, mdb_key.mv_size);
+		*key_length = mdb_key.mv_size;
+		if (value != NULL) { // don't do this if a null is passed in, time saver
+			*value = (unsigned char*)malloc(mdb_value.mv_size);
+			memcpy(*value, mdb_value.mv_data, mdb_value.mv_size);
+			*value_length = mdb_value.mv_size;
+		}
+		return 1;
+	}
+	return 0;
+}
+/**
+ * Close an existing cursor
+ * @param datastore the context
+ * @returns true(1) on success
+ */
+int repo_fsrepo_lmdb_cursor_close(struct Datastore* datastore) {
+	if (datastore->cursor != NULL) {
+		struct lmdb_trans_cursor* cursor = (struct lmdb_trans_cursor*)datastore->cursor;
+		if (cursor->cursor != NULL) {
+			mdb_cursor_close(cursor->cursor);
+			mdb_txn_commit(cursor->transaction);
+			free(cursor);
+			return 1;
+		}
+		free(cursor);
+	}
+	return 0;
+}
+
 /***
  * Places the LMDB methods into the datastore's function pointers
  * @param datastore the datastore to fill
@@ -174,6 +252,10 @@ int repo_fsrepo_lmdb_cast(struct Datastore* datastore) {
 	datastore->datastore_close = &repo_fsrepo_lmdb_close;
 	datastore->datastore_put = &repo_fsrepo_lmdb_put;
 	datastore->datastore_get = &repo_fsrepo_lmdb_get;
+	datastore->datastore_cursor_open = &repo_fsrepo_lmdb_cursor_open;
+	datastore->datastore_cursor_get = &repo_fsrepo_lmdb_cursor_get;
+	datastore->datastore_cursor_close = &repo_fsrepo_lmdb_cursor_close;
+	datastore->cursor = NULL;
 	return 1;
 }
 

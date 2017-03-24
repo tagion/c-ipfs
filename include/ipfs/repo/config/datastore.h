@@ -6,6 +6,8 @@
 
 //const char* datastore_default_directory = "datastore";
 
+enum DatastoreCursorOp { CURSOR_FIRST, CURSOR_NEXT };
+
 struct Datastore {
 	char* type;
 	char* path;
@@ -21,9 +23,15 @@ struct Datastore {
 	int (*datastore_open)(int argc, char** argv, struct Datastore* datastore);
 	int (*datastore_close)(struct Datastore* datastore);
 	int (*datastore_put)(const unsigned char* key, size_t key_size, unsigned char* data, size_t data_length, const struct Datastore* datastore);
-	int (*datastore_get)(const char* key, size_t key_size, unsigned char* data, size_t max_data_length, size_t* data_length, const struct Datastore* datastore);
-	// a handle to the datastore "context" used by the datastore
-	void* handle;
+	int (*datastore_get)(const char* key, size_t key_size,
+			unsigned char* data, size_t max_data_length, size_t* data_length,
+			const struct Datastore* datastore);
+	int (*datastore_cursor_open)(struct Datastore* datastore);
+	int (*datastore_cursor_close)(struct Datastore* datastore);
+	int (*datastore_cursor_get)(unsigned char** key, int* key_length, unsigned char** value, int* value_length, enum DatastoreCursorOp op, struct Datastore* datastore);
+	// generic connection and status variables for the datastore
+	void* handle; // a handle to the database
+	void* cursor; // a current cursor
 };
 
 /***

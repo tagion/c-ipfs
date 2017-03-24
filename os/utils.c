@@ -89,13 +89,18 @@ int os_utils_is_directory(const char* file_name) {
 int os_utils_split_filename(const char* in, char** path, char** filename) {
 	int len = strlen(in);
 	char* pos = strrchr(in, '/');
-	pos++;
-	*path = (char*)malloc((pos - in) + 1);
-	*filename = (char*)malloc(len - (pos-in) + 1);
-	strncpy(*path, in, pos-in-1);
-	(*path)[pos-in-1] = 0;
-	strcpy(*filename, pos);
-	(*filename)[len - (pos-in)] = 0;
+	if (pos != NULL) {
+		pos++;
+		*path = (char*)malloc((pos - in) + 1);
+		strncpy(*path, in, pos-in-1);
+		(*path)[pos-in-1] = 0;
+		*filename = (char*)malloc(len - (pos-in) + 1);
+		strcpy(*filename, pos);
+		(*filename)[len - (pos-in)] = 0;
+	} else {
+		*filename = (char*)malloc(len+1);
+		strcpy(*filename, in);
+	}
 	return 1;
 }
 

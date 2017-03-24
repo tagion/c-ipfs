@@ -342,8 +342,8 @@ int ipfs_import_files(int argc, char** argv) {
 	struct FileList* current = first;
 	while (current != NULL) {
 		struct Node* directory_entry = NULL;
-		char* path;
-		char* filename;
+		char* path = NULL;
+		char* filename = NULL;
 		os_utils_split_filename(current->file_name, &path, &filename);
 		size_t bytes_written = 0;
 		retVal = ipfs_import_file(NULL, current->file_name, &directory_entry, fs_repo, &bytes_written, recursive);
@@ -351,7 +351,8 @@ int ipfs_import_files(int argc, char** argv) {
 		ipfs_import_print_node_results(directory_entry, filename);
 		// cleanup
 		ipfs_node_free(directory_entry);
-		free(path);
+		if (path != NULL)
+			free(path);
 		free(filename);
 		current = current->next;
 	}

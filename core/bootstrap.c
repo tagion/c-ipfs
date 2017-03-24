@@ -31,6 +31,27 @@ void *ipfs_bootstrap_swarm(void* param) {
 }
 
 /***
+ * Announce to the network all of the files that I have in storage
+ * @param local_node the context
+ */
+void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
+	struct Datastore* db = local_node->repo->config->datastore;
+	if (!db->datastore_cursor_open(db))
+		return;
+	unsigned char* key = NULL;
+	int key_size = 0;
+	enum DatastoreCursorOp op = CURSOR_FIRST;
+	while (db->datastore_cursor_get(&key, &key_size, NULL, 0, op, db)) {
+		local_node->routing->Provide(local_node->routing, (char*)key, key_size);
+		// TODO announce the file
+		op = CURSOR_NEXT;
+		free(key);
+	}
+
+	return;
+}
+
+/***
  * Listen for connections on the API port (usually 5001)
  * NOTE: This fills in the IpfsNode->routing struct
  *
@@ -40,5 +61,6 @@ void *ipfs_bootstrap_swarm(void* param) {
 void *ipfs_bootstrap_routing(void* param) {
 	struct IpfsNode* local_node = (struct IpfsNode*)param;
 	local_node->routing = ipfs_routing_new_kademlia(local_node, &local_node->identity->private_key, NULL);
+	ipfs_bootstrap_announce_files(local_node);
 	return (void*)2;
 }

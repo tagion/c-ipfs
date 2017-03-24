@@ -48,13 +48,13 @@ void* start_daemon(void* path) {
 
 int test_routing_supernode_get_remote_value() {
 	// a remote machine has a file. Let's see if we can get it.
-	// the key is QmXQDbRPsbGdtvDwWvXVXb9TwUTNMcGNfWWnA9oSJJBi5n, which is the email.txt from jmjatlanta.com
+	// the key is QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH, which is the test_file.txt
 	int retVal = 0;
 	struct FSRepo* fs_repo = NULL;
 	struct IpfsNode* ipfs_node = NULL;
 	struct Libp2pPeer this_peer;
 	struct Stream* stream = NULL;
-	const unsigned char* orig_multihash = (unsigned char*)"QmXQDbRPsbGdtvDwWvXVXb9TwUTNMcGNfWWnA9oSJJBi5n";
+	const unsigned char* orig_multihash = (unsigned char*)"QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH";
 	size_t hash_size = 100;
 	unsigned char hash[hash_size];
 	unsigned char* hash_ptr = &hash[0];
@@ -86,7 +86,10 @@ int test_routing_supernode_get_remote_value() {
 	this_peer.addr_head = libp2p_utils_linked_list_new();
 	this_peer.addr_head->item = multiaddress_new_from_string("/ip4/127.0.0.1/tcp/4001");
 	libp2p_peerstore_add_peer(ipfs_node->peerstore, &this_peer);
+	// set a different port for the dht/kademlia stuff
+	ipfs_node->repo->config->addresses->api = "/ip4/127.0.0.1/tcp/5002";
 	ipfs_node->routing = ipfs_routing_new_kademlia(ipfs_node, &fs_repo->config->identity->private_key, stream);
+
 
 	if (ipfs_node->routing == NULL)
 		goto exit;

@@ -36,7 +36,8 @@ int ipfs_routing_kademlia_get_value(struct s_ipfs_routing* routing, char* key, s
 
 /**
  * Find a provider that can provide a particular key
- * NOTE: It will look locally before asking the network
+ * NOTE: It will look locally before asking the network. So
+ * if a peer announced, we already have an answer.
  *
  * @param routing the context
  * @param key the key to what we're looking for
@@ -49,6 +50,8 @@ int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* k
 	*results = libp2p_utils_vector_new(1);
 	struct Libp2pVector* vector = *results;
 	// see if I can provide it
+	// temporarily commented out for testing...
+	/*
 	unsigned char* peer_id = NULL;
 	int peer_id_size = 0;
 	if (libp2p_providerstore_get(routing->local_node->providerstore, (unsigned char*)key, key_size, &peer_id, &peer_id_size)) {
@@ -62,9 +65,23 @@ int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* k
 			current = current->next;
 		}
 	}
-	//TODO: get a list of providers that are closer
+	*/
+	//get a list of providers that are closest
 	if (vector->total == 0) {
-		// ask the network
+		// search requires null terminated key
+		char* key_nt = malloc(key_size + 1);
+		strncpy(key_nt, key, key_size);
+		key_nt[key_size] = 0;
+		struct MultiAddress** list = search_kademlia(key_nt, 3);
+		free(key_nt);
+		if (list != NULL) {
+			int i = 0;
+			while (list[i] != NULL) {
+				struct MultiAddress* current = list[i];
+				libp2p_utils_vector_add(vector, current);
+				i++;
+			}
+		}
 	}
 	if (vector->total == 0) {
 		// we were unable to find it, even on the network
@@ -135,9 +152,7 @@ struct s_ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, st
 	// connect to nodes and listen for connections
 	struct MultiAddress* address = multiaddress_new_from_string(local_node->repo->config->addresses->api);
 	if (multiaddress_is_ip(address)) {
-		int port = multiaddress_get_ip_port(address);
-		int family = multiaddress_get_ip_family(address);
-		start_kademlia(port, family, kademlia_id, 10);
+		start_kademlia_multiaddress(address, kademlia_id, 10);
 	}
 	local_node->routing = routing;
 	return routing;
