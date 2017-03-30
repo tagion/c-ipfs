@@ -2,6 +2,7 @@
 #define DAEMON_H
 
 #include <stdint.h>
+#include "ipfs/core/ipfs_node.h"
 
 #define MAX 5
 #define CONNECTIONS 50
