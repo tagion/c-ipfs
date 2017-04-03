@@ -48,7 +48,7 @@ void *ipfs_null_connection (void *ptr)
     session.insecure_stream = libp2p_net_multistream_stream_new(connection_param->socket);
     session.default_stream = session.insecure_stream;
 
-    libp2p_logger_debug("null", "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
+    libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
 
 	if (libp2p_net_multistream_negotiate(session.insecure_stream)) {
 
@@ -96,7 +96,7 @@ void *ipfs_null_connection (void *ptr)
 						session.default_stream->write(&session, results, results_size);
 					}
 				}
-			} else if (protocol_compare(results, bytes_read, "/kad/")) {
+			} else if (protocol_compare(results, bytes_read, "/ipfs/kad/")) {
 				libp2p_logger_log("null", LOGLEVEL_DEBUG, "Attempting kademlia connection...\n");
 				if (!libp2p_routing_dht_handshake(&session)) {
 					libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia connection handshake failed\n");
