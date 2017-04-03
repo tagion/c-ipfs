@@ -10,6 +10,7 @@
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "libp2p/conn/dialer.h"
+#include "ipfs/core/daemon.h"
 
 /**
  * Testing connectivity with other nodes
@@ -74,4 +75,11 @@ int test_ping() {
     exit:
 	ipfs_repo_fsrepo_free(fs_repo);
 	return retVal;
+}
+
+int test_ping_remote() {
+	char* argv[] = { "ipfs", "ping", "/ipfs/QmTjg669YQemhffXLrkA3as9jT8SzyRtWaLXHKwYN6wCBd" };
+	int argc = 3;
+
+	return ipfs_ping(argc, argv);
 }

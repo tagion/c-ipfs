@@ -18,7 +18,7 @@
  * @param value_size the size of the value
  * @returns 0 on success, otherwise -1
  */
-int ipfs_routing_kademlia_put_value(struct s_ipfs_routing* routing, char* key, size_t key_size, void* value, size_t value_size) {
+int ipfs_routing_kademlia_put_value(struct IpfsRouting* routing, char* key, size_t key_size, void* value, size_t value_size) {
 	return 0;
 }
 
@@ -30,7 +30,7 @@ int ipfs_routing_kademlia_put_value(struct s_ipfs_routing* routing, char* key, s
  * @param 4 a place to store the value
  * @param 5 the size of the value
  */
-int ipfs_routing_kademlia_get_value(struct s_ipfs_routing* routing, char* key, size_t key_size, void** value, size_t* value_size) {
+int ipfs_routing_kademlia_get_value(struct IpfsRouting* routing, char* key, size_t key_size, void** value, size_t* value_size) {
 	return 0;
 }
 
@@ -46,7 +46,7 @@ int ipfs_routing_kademlia_get_value(struct s_ipfs_routing* routing, char* key, s
  * @param results_size the size of the results buffer
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* key, size_t key_size, struct Libp2pVector** results) {
+int ipfs_routing_kademlia_find_providers(struct IpfsRouting* routing, char* key, size_t key_size, struct Libp2pVector** results) {
 	*results = libp2p_utils_vector_new(1);
 	struct Libp2pVector* vector = *results;
 	// see if I can provide it
@@ -92,7 +92,7 @@ int ipfs_routing_kademlia_find_providers(struct s_ipfs_routing* routing, char* k
 /**
  * Find a peer
  */
-int ipfs_routing_kademlia_find_peer(struct s_ipfs_routing* routing, char* param1, size_t param2, void* param3, size_t* param4) {
+int ipfs_routing_kademlia_find_peer(struct IpfsRouting* routing, const char* param1, size_t param2, void** param3, size_t* param4) {
 	return 0;
 }
 
@@ -103,7 +103,7 @@ int ipfs_routing_kademlia_find_peer(struct s_ipfs_routing* routing, char* param1
  * @param key_size the size of the key
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_routing_kademlia_provide(struct s_ipfs_routing* routing, char* key, size_t key_size) {
+int ipfs_routing_kademlia_provide(struct IpfsRouting* routing, char* key, size_t key_size) {
 	//TODO: Announce to the network that I can provide this file
 	// save in a cache
 	// store key and address in cache. Key is the hash, peer id is the value
@@ -113,19 +113,19 @@ int ipfs_routing_kademlia_provide(struct s_ipfs_routing* routing, char* key, siz
 }
 
 // declared here so as to have the code in 1 place
-int ipfs_routing_online_ping(struct s_ipfs_routing*, struct Libp2pMessage*);
+int ipfs_routing_online_ping(struct IpfsRouting*, struct Libp2pMessage*);
 /**
  * Ping this instance
  */
-int ipfs_routing_kademlia_ping(struct s_ipfs_routing* routing, struct Libp2pMessage* message) {
+int ipfs_routing_kademlia_ping(struct IpfsRouting* routing, struct Libp2pMessage* message) {
 	return ipfs_routing_online_ping(routing, message);
 }
 
-int ipfs_routing_kademlia_bootstrap(struct s_ipfs_routing* routing) {
+int ipfs_routing_kademlia_bootstrap(struct IpfsRouting* routing) {
 	return 0;
 }
 
-struct s_ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key, struct Stream* stream) {
+struct IpfsRouting* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key, struct Stream* stream) {
 	char kademlia_id[21];
 	// generate kademlia compatible id by getting first 20 chars of peer id
 	if (local_node->identity->peer_id == NULL || strlen(local_node->identity->peer_id) < 20) {
@@ -133,7 +133,7 @@ struct s_ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, st
 	}
 	strncpy(kademlia_id, local_node->identity->peer_id, 20);
 	kademlia_id[20] = 0;
-	struct s_ipfs_routing* routing = (struct s_ipfs_routing*)malloc(sizeof(struct s_ipfs_routing));
+	struct IpfsRouting* routing = (struct IpfsRouting*)malloc(sizeof(struct IpfsRouting));
 	if (routing != NULL) {
 		routing->local_node = local_node;
 		routing->sk = private_key;

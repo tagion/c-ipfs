@@ -7,7 +7,7 @@
 // offlineRouting implements the IpfsRouting interface,
 // but only provides the capability to Put and Get signed dht
 // records to and from the local datastore.
-struct s_ipfs_routing {
+struct IpfsRouting {
 	struct IpfsNode* local_node;
 	size_t ds_len;
 	struct RsaPrivateKey* sk;
@@ -22,7 +22,7 @@ struct s_ipfs_routing {
 	 * @param 5 the size of the value
 	 * @returns 0 on success, otherwise -1
 	 */
-	int (*PutValue)      (struct s_ipfs_routing*, char*, size_t, void*, size_t);
+	int (*PutValue)      (struct IpfsRouting*, char*, size_t, void*, size_t);
 	/**
 	 * Get a value from the datastore
 	 * @param 1 the struct that contains the connection information
@@ -31,7 +31,7 @@ struct s_ipfs_routing {
 	 * @param 4 a place to store the value
 	 * @param 5 the size of the value
 	 */
-	int (*GetValue)      (struct s_ipfs_routing*, char*, size_t, void**, size_t*);
+	int (*GetValue)      (struct IpfsRouting*, char*, size_t, void**, size_t*);
 	/**
 	 * Find a provider
 	 * @param 1 the context
@@ -40,7 +40,7 @@ struct s_ipfs_routing {
 	 * @param 4 the information found
 	 * @param 5 the size of the information found
 	 */
-	int (*FindProviders) (struct s_ipfs_routing*, char*, size_t, struct Libp2pVector** multiaddresses);
+	int (*FindProviders) (struct IpfsRouting*, char*, size_t, struct Libp2pVector** multiaddresses);
 	/**
 	 * Find a peer
 	 * @param 1 the context
@@ -48,8 +48,9 @@ struct s_ipfs_routing {
 	 * @param 3 the size of the peer char array
 	 * @param 4 the results
 	 * @param 5 the size of the results
+	 * @returns 0 or error code
 	 */
-	int (*FindPeer)      (struct s_ipfs_routing*, char*, size_t, void*, size_t*);
+	int (*FindPeer)      (struct IpfsRouting*, const char*, size_t, void**, size_t*);
 	/**
 	 * Announce to the network that this host can provide this key
 	 * @param 1 the context
@@ -57,22 +58,22 @@ struct s_ipfs_routing {
 	 * @param 3 the key size
 	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*Provide)       (struct s_ipfs_routing*, char*, size_t);
+	int (*Provide)       (struct IpfsRouting*, char*, size_t);
 	/**
 	 * Ping
 	 * @param routing the context
 	 * @param message the message
 	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*Ping)          (struct s_ipfs_routing*, struct Libp2pMessage*);
+	int (*Ping)          (struct IpfsRouting*, struct Libp2pMessage*);
 	/**
 	 * Get everything going
 	 * @param routing the context
 	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*Bootstrap)     (struct s_ipfs_routing*);
+	int (*Bootstrap)     (struct IpfsRouting*);
 };
-typedef struct s_ipfs_routing ipfs_routing;
+typedef struct IpfsRouting ipfs_routing;
 
 // offline routing routines.
 ipfs_routing* ipfs_routing_new_offline (struct IpfsNode* local_node, struct RsaPrivateKey *private_key);

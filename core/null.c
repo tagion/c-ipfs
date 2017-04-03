@@ -38,11 +38,9 @@ int protocol_compare(unsigned char* incoming, size_t incoming_size, const char* 
 void *ipfs_null_connection (void *ptr)
 {
     struct null_connection_params *connection_param = NULL;
-    //struct s_ipfs_routing* routing = NULL;
 
     connection_param = (struct null_connection_params*) ptr;
 
-    // TODO: multistream + secio + message.
     // TODO: when should we exit the for loop and disconnect?
 
     struct SessionContext session;
@@ -52,7 +50,6 @@ void *ipfs_null_connection (void *ptr)
     fprintf(stderr, "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
 
 	if (libp2p_net_multistream_negotiate(session.insecure_stream)) {
-	    //routing = ipfs_routing_new_online(connection_param->local_node, &connection_param->local_node->identity->private_key, session.insecure_stream);
 
 		for(;;) {
 			// check if they're looking for an upgrade (i.e. secio)
@@ -103,49 +100,9 @@ void *ipfs_null_connection (void *ptr)
 			else {
 				// oops there was a problem
 				//TODO: Handle this
-				/*
-				struct Libp2pMessage* msg = NULL;
-				libp2p_message_protobuf_decode(results, bytes_read, &msg);
-				if (msg != NULL) {
-					switch(msg->message_type) {
-					case (MESSAGE_TYPE_PING):
-						routing->Ping(routing, msg);
-						break;
-					case (MESSAGE_TYPE_GET_VALUE): {
-						unsigned char* val;
-						size_t val_size = 0;
-						routing->GetValue(routing, msg->key, msg->key_size, (void**)&val, &val_size);
-						if (val == NULL) {
-							// write a 0 to the stream to tell the client we couldn't find it.
-							session.default_stream->write(&session, 0, 1);
-						} else {
-							session.default_stream->write(&session, val, val_size);
-						}
-						break;
-					}
-					default:
-						break;
-					}
-				} else {
-					break;
-				}
-				*/
 			}
 		}
    	}
-	/*
-	len = socket_read(connection_param->socket, b, sizeof(b)-1, 0);
-	if (len > 0) {
-		while (b[len-1] == '\r' || b[len-1] == '\n') len--;
-		b[len] = '\0';
-		fprintf(stderr, "Recv: '%s'\n", b);
-		if (strcmp (b, "ping") == 0) {
-			socket_write(connection_param->socket, "pong", 4, 0);
-		}
-	} else if(len < 0) {
-		break;
-	}
-	*/
 
 	if (session.default_stream != NULL) {
 		session.default_stream->close(&session);

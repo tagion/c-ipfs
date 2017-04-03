@@ -10,6 +10,7 @@
 #include "ipfs/os/utils.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
 #include "jsmn.h"
+#include "multiaddr/multiaddr.h"
 
 /** 
  * private methods
@@ -444,8 +445,27 @@ int fs_repo_open_config(struct FSRepo* repo) {
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Gateway", &repo->config->addresses->gateway);
 
 	// bootstrap peers
-	repo->config->bootstrap_peers = libp2p_utils_vector_new(1);
-	// TODO: Implement bootstrap peers
+	swarm_pos = _find_token(data, tokens, num_tokens, curr_pos, "Bootstrap");
+	if (swarm_pos >= 0) {
+		swarm_pos++;
+		if (tokens[swarm_pos].type != JSMN_ARRAY) {
+			free(data);
+			return 0;
+		}
+		swarm_size = tokens[swarm_pos].size;
+		repo->config->bootstrap_peers = libp2p_utils_vector_new(swarm_size);
+		swarm_pos++;
+		for(int i = 0; i < swarm_size; i++) {
+			char* val = NULL;
+			if (!_get_json_string_value(data, tokens, num_tokens, swarm_pos + i, NULL, &val))
+				break;
+			struct MultiAddress* cur = multiaddress_new_from_string(val);
+			if (cur == NULL)
+				continue;
+			libp2p_utils_vector_add(repo->config->bootstrap_peers, cur);
+			free(val);
+		}
+	}
 	// free the memory used reading the json file
 	free(data);
 	free(priv_key_base64);

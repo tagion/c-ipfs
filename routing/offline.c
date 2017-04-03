@@ -59,7 +59,7 @@ int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, char *key
     return ErrOffline;
 }
 
-int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, char *peer_id, size_t pid_size, void *ret, size_t *rlen)
+int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, const char *peer_id, size_t pid_size, void **ret, size_t *rlen)
 {
     return ErrOffline;
 }
@@ -74,14 +74,19 @@ int ipfs_routing_offline_ping (ipfs_routing* offlineRouting, struct Libp2pMessag
     return ErrOffline;
 }
 
+/**
+ * For offline, this does nothing
+ * @param offlineRouting the interface
+ * @returns 0
+ */
 int ipfs_routing_offline_bootstrap (ipfs_routing* offlineRouting)
 {
-    return ErrOffline;
+    return 0;
 }
 
-ipfs_routing* ipfs_routing_new_offline (struct IpfsNode* local_node, struct RsaPrivateKey *private_key)
+struct IpfsRouting* ipfs_routing_new_offline (struct IpfsNode* local_node, struct RsaPrivateKey *private_key)
 {
-    ipfs_routing *offlineRouting = malloc (sizeof(ipfs_routing));
+    struct IpfsRouting *offlineRouting = malloc (sizeof(struct IpfsRouting));
 
     if (offlineRouting) {
         offlineRouting->local_node     = local_node;

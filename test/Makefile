@@ -11,6 +11,7 @@ OBJS = testit.o test_helper.o \
 	../core/daemon.o \
 	../core/null.o \
 	../core/bootstrap.o \
+	../core/ping.o \
 	../datastore/ds_helper.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \

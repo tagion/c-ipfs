@@ -47,8 +47,8 @@ int ipfs_daemon_start(char* repo_path) {
         return 1;
     }
 
+    ipfs_bootstrap_routing(&local_node);
     /*
-    //ipfs_bootstrap_routing(&local_node);
     if (pthread_create(&work_pths[count_pths++], NULL, ipfs_bootstrap_routing, &local_node)) {
     	fprintf(stderr, "Error creating thread for routing\n");
     }

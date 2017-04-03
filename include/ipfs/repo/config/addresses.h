@@ -5,8 +5,11 @@
 #include "swarm.h"
 
 struct Addresses {
+	// list of strings in format "/family/address/type/port"
 	struct Libp2pLinkedList* swarm_head;
+	// info for api connection
 	char* api;
+	// info for http gateway
 	char* gateway;
 };
 

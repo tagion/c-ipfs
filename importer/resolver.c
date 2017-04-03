@@ -10,6 +10,7 @@
 #include "libp2p/net/multistream.h"
 #include "libp2p/record/message.h"
 #include "multiaddr/multiaddr.h"
+#include "libp2p/record/message.h"
 
 /**
  * return the next chunk of a path
@@ -122,8 +123,10 @@ struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const
 	pos[0] = '\0';
 	// get the multiaddress for this
 	struct Libp2pPeer* peer = libp2p_peerstore_get_peer(ipfs_node->peerstore, (unsigned char*)id, id_size);
-	if (peer == NULL)
+	if (peer == NULL) {
+		//TODO: We don't have the peer address. Ask the swarm for the data related to the hash
 		return NULL;
+	}
 	// connect to the peer
 	struct MultiAddress* address = peer->addr_head->item;
 	char* ip;
@@ -254,3 +257,55 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 		ipfs_node_free(from);
 	return NULL;
 }
+
+/**
+ * Interrogate the path, looking for the peer.
+ * NOTE: only called locally. Not for remote callers
+ * @param path the peer path to search for in the form like "/ipfs/QmKioji..."
+ * @param ipfs_node the context
+ * @returns a peer struct, or NULL if not found
+ */
+struct Libp2pPeer* ipfs_resolver_find_peer(const char* path, const struct IpfsNode* ipfs_node) {
+	struct FSRepo* fs_repo = ipfs_node->repo;
+	unsigned char* results = NULL;
+	size_t results_size = 0;
+	struct Libp2pLinkedList *addresses = NULL;
+	struct Libp2pPeer* peer = NULL;
+
+	// shortcut for if this node is the node we're looking for
+	if (!ipfs_resolver_is_remote(path, fs_repo)) {
+		// turn the string list into a multiaddress list
+		struct Libp2pLinkedList* current_list_string = fs_repo->config->addresses->swarm_head;
+		struct Libp2pLinkedList* current_list_ma = addresses;
+		while(current_list_string != NULL) {
+			struct Libp2pLinkedList* item = libp2p_utils_linked_list_new();
+			item->item = multiaddress_new_from_string(current_list_string->item);
+			if (addresses == NULL) {
+				addresses = item;
+			} else {
+				current_list_ma->next = item;
+			}
+			current_list_ma = item;
+			current_list_string = current_list_string->next;
+		}
+	}
+
+	// ask the swarm for the peer
+	const char* address_string = ipfs_resolver_remove_path_prefix(path, fs_repo);
+	if (ipfs_node->routing->FindPeer(ipfs_node->routing, address_string, strlen(address_string), (void**)&results, &results_size) != 0)
+		goto exit;
+
+	// we should have gotten a protobuf'd peer
+	if (!libp2p_peer_protobuf_decode(results, results_size, &peer))
+		goto exit;
+
+	if (peer == NULL)
+		goto exit;
+
+
+	exit:
+	if (results != NULL)
+		free(results);
+	return peer;
+}
+

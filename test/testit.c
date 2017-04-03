@@ -62,6 +62,7 @@ const char* names[] = {
 		"test_unixfs_encode_decode",
 		"test_unixfs_encode_smallfile",
 		"test_ping",
+		"test_ping_remote",
 		"test_resolver_remote_get"
 };
 
@@ -101,6 +102,7 @@ int (*funcs[])(void) = {
 		test_unixfs_encode_decode,
 		test_unixfs_encode_smallfile,
 		test_ping,
+		test_ping_remote,
 		test_resolver_remote_get
 };
 
