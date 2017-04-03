@@ -8,6 +8,7 @@
 #include "libp2p/net/multistream.h"
 #include "libp2p/record/message.h"
 #include "libp2p/secio/secio.h"
+#include "libp2p/routing/dht_protocol.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/routing/routing.h"

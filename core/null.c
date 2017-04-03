@@ -7,6 +7,7 @@
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/record/message.h"
 #include "libp2p/net/multistream.h"
+#include "libp2p/utils/logger.h"
 #include "ipfs/core/daemon.h"
 #include "ipfs/routing/routing.h"
 #include "ipfs/core/ipfs_node.h"
@@ -47,7 +48,7 @@ void *ipfs_null_connection (void *ptr)
     session.insecure_stream = libp2p_net_multistream_stream_new(connection_param->socket);
     session.default_stream = session.insecure_stream;
 
-    fprintf(stderr, "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
+    libp2p_logger_debug("null", "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
 
 	if (libp2p_net_multistream_negotiate(session.insecure_stream)) {
 
@@ -56,12 +57,16 @@ void *ipfs_null_connection (void *ptr)
 			unsigned char* results = NULL;
 			size_t bytes_read;
 			session.default_stream->read(&session, &results, &bytes_read);
+			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
 			if (protocol_compare(results, bytes_read, "/secio")) {
+				libp2p_logger_debug("null", "Attempting secure io connection...\n");
 				if (!libp2p_secio_handshake(&session, &connection_param->local_node->identity->private_key, 1)) {
 					// rejecting connection
+					libp2p_logger_debug("null", "Secure IO connection failed\n");
 					break;
 				}
 			} else if (protocol_compare(results, bytes_read, "/nodeio")) {
+				libp2p_logger_debug("null", "Attempting a nodeio connection.\n");
 				if (!libp2p_nodeio_handshake(&session))
 					break;
 				// loop through file requests
@@ -92,22 +97,23 @@ void *ipfs_null_connection (void *ptr)
 					}
 				}
 			} else if (protocol_compare(results, bytes_read, "/kad/")) {
-				fprintf(stderr, "Attempting kademlia connection...\n");
+				libp2p_logger_log("null", LOGLEVEL_DEBUG, "Attempting kademlia connection...\n");
 				if (!libp2p_routing_dht_handshake(&session)) {
-					fprintf(stderr, "kademlia connection handshake failed\n");
+					libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia connection handshake failed\n");
 					break;
 				}
 				// this handles 1 transaction
 				libp2p_routing_dht_handle_message(&session, connection_param->local_node->peerstore, connection_param->local_node->providerstore);
-				fprintf(stderr, "kademlia message handled\n");
+				libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia message handled\n");
 			}
 			else {
+				libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Looping to try again.\n");
 				// oops there was a problem
 				//TODO: Handle this
 			}
 		}
    	} else {
-   		fprintf(stderr, "Multistream negotiation failed\n");
+   		libp2p_logger_log("null", LOGLEVEL_DEBUG, "Multistream negotiation failed\n");
    	}
 
 	if (session.default_stream != NULL) {
@@ -132,7 +138,7 @@ void *ipfs_null_listen (void *ptr)
         exit (1);
     }
 
-    fprintf(stderr, "Null listening on %d\n", listen_param->port);
+    libp2p_logger_log("null", LOGLEVEL_ERROR, "Null listening on %d\n", listen_param->port);
 
     for (;;) {
         s = socket_accept4(socketfd, &(listen_param->ipv4), &(listen_param->port));
@@ -149,7 +155,7 @@ void *ipfs_null_listen (void *ptr)
             connection_param->local_node = listen_param->local_node;
             // Create pthread for ipfs_null_connection.
             if (pthread_create(&pth_connection, NULL, ipfs_null_connection, connection_param)) {
-                fprintf(stderr, "Error creating thread for connection %d\n", count);
+                libp2p_logger_log("null", LOGLEVEL_DEBUG, "Error creating thread for connection %d\n", count);
                 close (s);
             } else {
                 pthread_detach (pth_connection);
