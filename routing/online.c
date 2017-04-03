@@ -77,11 +77,11 @@ int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const char* peer_
  * @returns true(1) on success, otherwise false
  */
 int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t key_size) {
-	struct Libp2pPeer local_peer;
-	local_peer.id_size = strlen(routing->local_node->identity->peer_id);
-	local_peer.id = routing->local_node->identity->peer_id;
-	local_peer.connection_type = CONNECTION_TYPE_CONNECTED;
-	local_peer.addr_head = NULL;
+	struct Libp2pPeer* local_peer = libp2p_peer_new();
+	local_peer->id_size = strlen(routing->local_node->identity->peer_id);
+	local_peer->id = routing->local_node->identity->peer_id;
+	local_peer->connection_type = CONNECTION_TYPE_CONNECTED;
+	local_peer->addr_head = NULL;
 
 	struct Libp2pMessage* msg = libp2p_message_new();
 	msg->key_size = key_size;
@@ -89,7 +89,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t k
 	memcpy(msg->key, key, msg->key_size);
 	msg->message_type = MESSAGE_TYPE_ADD_PROVIDER;
 	msg->provider_peer_head = libp2p_utils_linked_list_new();
-	msg->provider_peer_head->item = &local_peer;
+	msg->provider_peer_head->item = local_peer;
 
 	struct Libp2pLinkedList *current = routing->local_node->peerstore->head_entry;
 	while (current != NULL) {
@@ -102,6 +102,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t k
 		current = current->next;
 	}
 
+	// this will take care of local_peer too
 	libp2p_message_free(msg);
 
 	return 1;
