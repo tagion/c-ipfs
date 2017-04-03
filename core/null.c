@@ -58,6 +58,10 @@ void *ipfs_null_connection (void *ptr)
 			size_t bytes_read;
 			session.default_stream->read(&session, &results, &bytes_read);
 			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
+			for(int i = 0; i < bytes_read; i++) {
+				libp2p_logger_debug("null", "%02x ", results[i]);
+			}
+			libp2p_logger_debug("null", "\n");
 			if (protocol_compare(results, bytes_read, "/secio")) {
 				libp2p_logger_debug("null", "Attempting secure io connection...\n");
 				if (!libp2p_secio_handshake(&session, &connection_param->local_node->identity->private_key, 1)) {
