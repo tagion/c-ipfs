@@ -1,5 +1,6 @@
 #pragma once
 
+#include "libp2p/peer/peer.h"
 #include "libp2p/crypto/rsa.h"
 #include "libp2p/record/message.h"
 #include "ipfs/core/ipfs_node.h"
@@ -50,7 +51,7 @@ struct IpfsRouting {
 	 * @param 5 the size of the results
 	 * @returns 0 or error code
 	 */
-	int (*FindPeer)      (struct IpfsRouting*, const char*, size_t, void**, size_t*);
+	int (*FindPeer)      (struct IpfsRouting*, const char*, size_t, struct Libp2pPeer** result);
 	/**
 	 * Announce to the network that this host can provide this key
 	 * @param 1 the context
@@ -62,10 +63,10 @@ struct IpfsRouting {
 	/**
 	 * Ping
 	 * @param routing the context
-	 * @param message the message
+	 * @param peer the peer
 	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*Ping)          (struct IpfsRouting*, struct Libp2pMessage*);
+	int (*Ping)          (struct IpfsRouting* routing, struct Libp2pPeer* peer);
 	/**
 	 * Get everything going
 	 * @param routing the context

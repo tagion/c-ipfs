@@ -267,8 +267,6 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
  */
 struct Libp2pPeer* ipfs_resolver_find_peer(const char* path, const struct IpfsNode* ipfs_node) {
 	struct FSRepo* fs_repo = ipfs_node->repo;
-	unsigned char* results = NULL;
-	size_t results_size = 0;
 	struct Libp2pLinkedList *addresses = NULL;
 	struct Libp2pPeer* peer = NULL;
 
@@ -292,20 +290,8 @@ struct Libp2pPeer* ipfs_resolver_find_peer(const char* path, const struct IpfsNo
 
 	// ask the swarm for the peer
 	const char* address_string = ipfs_resolver_remove_path_prefix(path, fs_repo);
-	if (ipfs_node->routing->FindPeer(ipfs_node->routing, address_string, strlen(address_string), (void**)&results, &results_size) != 0)
-		goto exit;
+	ipfs_node->routing->FindPeer(ipfs_node->routing, address_string, strlen(address_string), &peer);
 
-	// we should have gotten a protobuf'd peer
-	if (!libp2p_peer_protobuf_decode(results, results_size, &peer))
-		goto exit;
-
-	if (peer == NULL)
-		goto exit;
-
-
-	exit:
-	if (results != NULL)
-		free(results);
 	return peer;
 }
 

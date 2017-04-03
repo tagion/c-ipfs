@@ -1,5 +1,6 @@
 
 #include "libp2p/peer/peer.h"
+#include "libp2p/utils/logger.h"
 #include "ipfs/routing/routing.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/thirdparty/ipfsaddr/ipfs_addr.h"
@@ -45,8 +46,8 @@ void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
 	int key_size = 0;
 	enum DatastoreCursorOp op = CURSOR_FIRST;
 	while (db->datastore_cursor_get(&key, &key_size, NULL, 0, op, db)) {
+		libp2p_logger_debug("bootstrap", "Announcing a file to the world.\n");
 		local_node->routing->Provide(local_node->routing, (char*)key, key_size);
-		// TODO announce the file
 		op = CURSOR_NEXT;
 		free(key);
 	}
@@ -55,15 +56,17 @@ void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
 }
 
 /***
- * Listen for connections on the API port (usually 5001)
+ * connect to the swarm
  * NOTE: This fills in the IpfsNode->routing struct
  *
  * @param param the IpfsNode information
  * @returns nothing useful
  */
 void *ipfs_bootstrap_routing(void* param) {
+	libp2p_logger_add_class("bootstrap");
 	struct IpfsNode* local_node = (struct IpfsNode*)param;
-	local_node->routing = ipfs_routing_new_kademlia(local_node, &local_node->identity->private_key, NULL);
+	local_node->routing = ipfs_routing_new_online(local_node, &local_node->identity->private_key, NULL);
+	local_node->routing->Bootstrap(local_node->routing);
 	ipfs_bootstrap_announce_files(local_node);
 	return (void*)2;
 }

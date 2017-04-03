@@ -92,7 +92,7 @@ int ipfs_routing_kademlia_find_providers(struct IpfsRouting* routing, char* key,
 /**
  * Find a peer
  */
-int ipfs_routing_kademlia_find_peer(struct IpfsRouting* routing, const char* param1, size_t param2, void** param3, size_t* param4) {
+int ipfs_routing_kademlia_find_peer(struct IpfsRouting* routing, const char* param1, size_t param2, struct Libp2pPeer **result) {
 	return 0;
 }
 
@@ -113,12 +113,12 @@ int ipfs_routing_kademlia_provide(struct IpfsRouting* routing, char* key, size_t
 }
 
 // declared here so as to have the code in 1 place
-int ipfs_routing_online_ping(struct IpfsRouting*, struct Libp2pMessage*);
+int ipfs_routing_online_ping(struct IpfsRouting*, struct Libp2pPeer*);
 /**
  * Ping this instance
  */
-int ipfs_routing_kademlia_ping(struct IpfsRouting* routing, struct Libp2pMessage* message) {
-	return ipfs_routing_online_ping(routing, message);
+int ipfs_routing_kademlia_ping(struct IpfsRouting* routing, struct Libp2pPeer* peer) {
+	return ipfs_routing_online_ping(routing, peer);
 }
 
 int ipfs_routing_kademlia_bootstrap(struct IpfsRouting* routing) {

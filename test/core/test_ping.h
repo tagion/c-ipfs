@@ -78,7 +78,7 @@ int test_ping() {
 }
 
 int test_ping_remote() {
-	char* argv[] = { "ipfs", "ping", "/ipfs/QmTjg669YQemhffXLrkA3as9jT8SzyRtWaLXHKwYN6wCBd" };
+	char* argv[] = { "ipfs", "ping", "QmTjg669YQemhffXLrkA3as9jT8SzyRtWaLXHKwYN6wCBd" };
 	int argc = 3;
 
 	return ipfs_ping(argc, argv);

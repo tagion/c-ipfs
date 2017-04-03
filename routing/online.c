@@ -3,10 +3,48 @@
 #include "ipfs/routing/routing.h"
 #include "libp2p/record/message.h"
 #include "libp2p/net/stream.h"
+#include "libp2p/conn/session.h"
+#include "libp2p/routing/dht_protocol.h"
 
 /**
  * Implements the routing interface for communicating with network clients
  */
+
+/**
+ * Helper method to send and receive a kademlia message
+ * @param session_context the session context
+ * @param message what to send
+ * @returns what was received
+ */
+struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct Stream* stream, struct Libp2pMessage* message) {
+	size_t protobuf_size = 0, results_size = 0;
+	unsigned char* protobuf = NULL, *results = NULL;
+	struct Libp2pMessage* return_message = NULL;
+	struct SessionContext session_context;
+
+	protobuf_size = libp2p_message_protobuf_encode_size(message);
+	protobuf = (unsigned char*)malloc(protobuf_size);
+	libp2p_message_protobuf_encode(message, &protobuf[0], protobuf_size, &protobuf_size);
+
+	session_context.default_stream = stream;
+	session_context.insecure_stream = stream;
+
+	// upgrade to kademlia protocol
+	if (!libp2p_routing_dht_upgrade_stream(&session_context)) {
+		goto exit;
+	}
+
+	// send the message, and expect the same back
+	session_context.default_stream->write(&session_context, protobuf, protobuf_size);
+	session_context.default_stream->read(&session_context, &results, &results_size);
+
+	// see if we can unprotobuf
+	if (!libp2p_message_protobuf_decode(results, results_size, &return_message))
+		goto exit;
+
+	exit:
+	return return_message;
+}
 
 int ipfs_routing_online_find_providers(struct IpfsRouting* routing, char* val1, size_t val2, struct Libp2pVector** multiaddresses) {
 	return 0;
@@ -17,51 +55,88 @@ int ipfs_routing_online_find_providers(struct IpfsRouting* routing, char* val1, 
  * @param routing the context
  * @param peer_id the id to look for
  * @param peer_id_size the size of the id
- * @param results the results of the search
- * @param results_size the size of results
- * @returns 0 on success, otherwise -1
+ * @param peer the result of the search
+ * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const char* peer_id, size_t peer_id_size, void** results, size_t* results_size) {
+int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const char* peer_id, size_t peer_id_size, struct Libp2pPeer **result) {
 	// first look to see if we have it in the peerstore
 	struct Peerstore* peerstore = routing->local_node->peerstore;
-	struct Libp2pPeer* peer = libp2p_peerstore_get_peer(peerstore, (unsigned char*)peer_id, peer_id_size);
-	if (peer != NULL) {
-		//we found it. Return it
-		*results_size = libp2p_peer_protobuf_encode_size(peer);
-		*results = malloc(*results_size);
-		if (!libp2p_peer_protobuf_encode(peer, *results, *results_size, results_size)) {
-			free(results);
-			*results = NULL;
-			*results_size = 0;
-			return -1;
-		}
-		return 0;
+	*result = libp2p_peerstore_get_peer(peerstore, (unsigned char*)peer_id, peer_id_size);
+	if (*result != NULL) {
+		return 1;
 	}
 	//TODO: ask the swarm to find the peer
-	return -1;
+	return 0;
 }
 
 /**
  * Notify the network that this host can provide this key
  * @param routing information about this host
- * @param val1 the key (hash) of the data
+ * @param key the key (hash) of the data
+ * @param key_size the length of the key
  * @returns true(1) on success, otherwise false
  */
-int ipfs_routing_online_provide(struct IpfsRouting* routing, char* val1, size_t val2) {
-	return 0;
-}
-int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pMessage* message) {
-	// send the same stuff back
-	size_t protobuf_size = libp2p_message_protobuf_encode_size(message);
-	unsigned char protobuf[protobuf_size];
+int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t key_size) {
+	struct Libp2pPeer local_peer;
+	local_peer.id_size = strlen(routing->local_node->identity->peer_id);
+	local_peer.id = routing->local_node->identity->peer_id;
+	local_peer.connection_type = CONNECTION_TYPE_CONNECTED;
+	local_peer.addr_head = NULL;
 
-	if (!libp2p_message_protobuf_encode(message, protobuf, protobuf_size, &protobuf_size)) {
-		return -1;
+	struct Libp2pMessage* msg = libp2p_message_new();
+	msg->key_size = key_size;
+	msg->key = malloc(msg->key_size);
+	memcpy(msg->key, key, msg->key_size);
+	msg->message_type = MESSAGE_TYPE_ADD_PROVIDER;
+	msg->provider_peer_head = libp2p_utils_linked_list_new();
+	msg->provider_peer_head->item = &local_peer;
+
+	struct Libp2pLinkedList *current = routing->local_node->peerstore->head_entry;
+	while (current != NULL) {
+		struct PeerEntry* current_peer_entry = (struct PeerEntry*)current->item;
+		struct Libp2pPeer* current_peer = current_peer_entry->peer;
+		if (current_peer->connection_type == CONNECTION_TYPE_CONNECTED) {
+			// ignoring results is okay this time
+			ipfs_routing_online_send_receive_message(current_peer->connection, msg);
+		}
+		current = current->next;
 	}
 
-	int retVal = routing->stream->write(routing->stream, protobuf, protobuf_size);
-	if (retVal == 0)
-		retVal = -1;
+	libp2p_message_free(msg);
+
+	return 1;
+}
+
+/**
+ * Ping a remote
+ * @param routing the context
+ * @param message the message that we want to send
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* peer) {
+	int retVal = 0;
+	struct Libp2pMessage* msg = NULL, *msg_returned = NULL;
+
+	if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
+		if (!libp2p_peer_connect(peer))
+			return 0;
+	}
+	if (peer->connection_type == CONNECTION_TYPE_CONNECTED) {
+
+		// build the message
+		msg = libp2p_message_new();
+		msg->message_type = MESSAGE_TYPE_PING;
+
+		msg_returned = ipfs_routing_online_send_receive_message(peer->connection, msg);
+
+		if (msg_returned == NULL)
+			goto exit;
+		if (msg_returned->message_type != msg->message_type)
+			goto exit;
+	}
+
+	retVal = 1;
+	exit:
 	return retVal;
 }
 
@@ -94,6 +169,13 @@ int ipfs_routing_online_bootstrap(struct IpfsRouting* routing) {
 			peer->addr_head->item = address;
 			libp2p_peerstore_add_peer(routing->local_node->peerstore, peer);
 			libp2p_peer_free(peer);
+			// now find it and attempt to connect
+			peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (const unsigned char*)peer_id, strlen(peer_id));
+			if (peer == NULL)
+				return -1; // this should never happen
+			if (peer->connection == NULL) { // should always be true unless we added it twice (TODO: we should prevent that earlier)
+				libp2p_peer_connect(peer);
+			}
 		}
 	}
 

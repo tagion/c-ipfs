@@ -59,7 +59,7 @@ int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, char *key
     return ErrOffline;
 }
 
-int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, const char *peer_id, size_t pid_size, void **ret, size_t *rlen)
+int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, const char *peer_id, size_t pid_size, struct Libp2pPeer **result)
 {
     return ErrOffline;
 }
@@ -69,7 +69,7 @@ int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, char *cid, size_
     return ErrOffline;
 }
 
-int ipfs_routing_offline_ping (ipfs_routing* offlineRouting, struct Libp2pMessage* message)
+int ipfs_routing_offline_ping (ipfs_routing* offlineRouting, struct Libp2pPeer* peer)
 {
     return ErrOffline;
 }
