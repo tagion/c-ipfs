@@ -92,16 +92,22 @@ void *ipfs_null_connection (void *ptr)
 					}
 				}
 			} else if (protocol_compare(results, bytes_read, "/kad/")) {
-				if (!libp2p_routing_dht_handshake(&session))
+				fprintf(stderr, "Attempting kademlia connection...\n");
+				if (!libp2p_routing_dht_handshake(&session)) {
+					fprintf(stderr, "kademlia connection handshake failed\n");
 					break;
+				}
 				// this handles 1 transaction
 				libp2p_routing_dht_handle_message(&session, connection_param->local_node->peerstore, connection_param->local_node->providerstore);
+				fprintf(stderr, "kademlia message handled\n");
 			}
 			else {
 				// oops there was a problem
 				//TODO: Handle this
 			}
 		}
+   	} else {
+   		fprintf(stderr, "Multistream negotiation failed\n");
    	}
 
 	if (session.default_stream != NULL) {

@@ -97,10 +97,12 @@ int ipfs_ping (int argc, char **argv)
 		goto exit;
 	}
 
-	// try to switch to secio
+	//TODO: Fix mac problem, then use this to try to switch to secio
+	/*
 	if (!libp2p_secio_handshake(&session, &fs_repo->config->identity->private_key, 0)) {
 		fprintf(stderr, "Unable to switch to secure connection. Attempting insecure ping...\n");
 	}
+	*/
 
 	// prepare the PING message
 	msg = libp2p_message_new();
@@ -109,6 +111,10 @@ int ipfs_ping (int argc, char **argv)
 	protobuf_size = libp2p_message_protobuf_encode_size(msg);
 	protobuf = (unsigned char*)malloc(protobuf_size);
 	libp2p_message_protobuf_encode(msg, &protobuf[0], protobuf_size, &protobuf_size);
+	if (!libp2p_routing_dht_upgrade_stream(&session)) {
+		fprintf(stderr, "PING unsuccessful. Unable to switch to kademlia protocol\n");
+		goto exit;
+	}
 	session.default_stream->write(&session, protobuf, protobuf_size);
 	session.default_stream->read(&session, &results, &results_size);
 
