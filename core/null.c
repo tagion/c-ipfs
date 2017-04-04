@@ -4,6 +4,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/record/message.h"
 #include "libp2p/net/multistream.h"
@@ -45,10 +48,10 @@ void *ipfs_null_connection (void *ptr)
     // TODO: when should we exit the for loop and disconnect?
 
     struct SessionContext session;
-    session.insecure_stream = libp2p_net_multistream_stream_new(connection_param->socket);
+    session.insecure_stream = libp2p_net_multistream_stream_new(connection_param->file_descriptor, connection_param->ip, connection_param->port);
     session.default_stream = session.insecure_stream;
 
-    libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->socket, *(connection_param->count));
+    libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
 	if (libp2p_net_multistream_negotiate(session.insecure_stream)) {
 
@@ -153,9 +156,16 @@ void *ipfs_null_listen (void *ptr)
         count++;
         connection_param = malloc (sizeof (struct null_connection_params));
         if (connection_param) {
-            connection_param->socket = s;
+            connection_param->file_descriptor = s;
             connection_param->count = &count;
             connection_param->local_node = listen_param->local_node;
+            connection_param->port = listen_param->port;
+            connection_param->ip = malloc(INET_ADDRSTRLEN);
+            if (inet_ntop(AF_INET, &(listen_param->ipv4), connection_param->ip, INET_ADDRSTRLEN) == NULL) {
+            	free(connection_param->ip);
+            	connection_param->ip = NULL;
+            	connection_param->port = 0;
+            }
             // Create pthread for ipfs_null_connection.
             if (pthread_create(&pth_connection, NULL, ipfs_null_connection, connection_param)) {
                 libp2p_logger_log("null", LOGLEVEL_DEBUG, "Error creating thread for connection %d\n", count);

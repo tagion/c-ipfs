@@ -9,13 +9,14 @@
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/core/bootstrap.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "libp2p/utils/logger.h"
 
 int ipfs_daemon_start(char* repo_path) {
     int count_pths = 0;
     pthread_t work_pths[MAX];
     struct IpfsNodeListenParams listen_param;
 
-    fprintf(stderr, "Initializing daemon...\n");
+    libp2p_logger_info("daemon", "Initializing daemon...\n");
 
     // read the configuration
     struct FSRepo* fs_repo;
@@ -43,7 +44,7 @@ int ipfs_daemon_start(char* repo_path) {
 
     // Create pthread for swarm listener.
     if (pthread_create(&work_pths[count_pths++], NULL, ipfs_null_listen, &listen_param)) {
-        fprintf(stderr, "Error creating thread for ipfs_null_listen\n");
+    	libp2p_logger_error("daemon", "Error creating thread for ipfs null listen\n");
         return 1;
     }
 
@@ -54,12 +55,12 @@ int ipfs_daemon_start(char* repo_path) {
     }
     */
 
-    fprintf(stderr, "Daemon is ready\n");
+    libp2p_logger_info("daemon", "Daemon is ready\n");
 
     // Wait for pthreads to finish.
     while (count_pths) {
         if (pthread_join(work_pths[--count_pths], NULL)) {
-            fprintf(stderr, "Error joining thread\n");
+        	libp2p_logger_error("daemon", "Error joining thread\n");
             return 2;
         }
     }
@@ -71,5 +72,8 @@ int ipfs_daemon_start(char* repo_path) {
 
 int ipfs_daemon (int argc, char **argv)
 {
+	libp2p_logger_add_class("peerstore");
+	libp2p_logger_add_class("providerstore");
+	libp2p_logger_add_class("daemon");
 	return ipfs_daemon_start(NULL);
 }

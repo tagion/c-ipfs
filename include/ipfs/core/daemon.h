@@ -8,8 +8,10 @@
 #define CONNECTIONS 50
 
 struct null_connection_params {
-	int socket;
+	int file_descriptor;
 	int *count;
+	char* ip;
+	int port;
 	struct IpfsNode* local_node;
 };
 
