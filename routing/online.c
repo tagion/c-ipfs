@@ -5,6 +5,7 @@
 #include "libp2p/net/stream.h"
 #include "libp2p/conn/session.h"
 #include "libp2p/routing/dht_protocol.h"
+#include "libp2p/utils/logger.h"
 
 /**
  * Implements the routing interface for communicating with network clients
@@ -82,9 +83,13 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t k
 	local_peer->id = routing->local_node->identity->peer_id;
 	local_peer->connection_type = CONNECTION_TYPE_CONNECTED;
 	local_peer->addr_head = libp2p_utils_linked_list_new();
+	struct MultiAddress* temp_ma = multiaddress_new_from_string((char*)routing->local_node->repo->config->addresses->swarm_head->item);
+	int port = multiaddress_get_ip_port(temp_ma);
+	multiaddress_free(temp_ma);
 	char str[255];
-	sprintf(str, "%s/ipfs/%s", (char*)routing->local_node->repo->config->addresses->swarm_head->item, routing->local_node->repo->config->identity->peer_id);
+	sprintf(str, "/ip4/127.1.2.3/tcp/%d", port);
 	struct MultiAddress* ma = multiaddress_new_from_string(str);
+	libp2p_logger_debug("online", "Adding local MultiAddress %s to peer.\n", ma->string);
 	local_peer->addr_head->item = ma;
 
 	struct Libp2pMessage* msg = libp2p_message_new();

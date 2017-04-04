@@ -75,5 +75,6 @@ int ipfs_daemon (int argc, char **argv)
 	libp2p_logger_add_class("peerstore");
 	libp2p_logger_add_class("providerstore");
 	libp2p_logger_add_class("daemon");
+	libp2p_logger_add_class("online");
 	return ipfs_daemon_start(NULL);
 }
