@@ -81,7 +81,11 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t k
 	local_peer->id_size = strlen(routing->local_node->identity->peer_id);
 	local_peer->id = routing->local_node->identity->peer_id;
 	local_peer->connection_type = CONNECTION_TYPE_CONNECTED;
-	local_peer->addr_head = NULL;
+	local_peer->addr_head = libp2p_utils_linked_list_new();
+	char str[255];
+	sprintf(str, "%s/ipfs/%s", (char*)routing->local_node->repo->config->addresses->swarm_head->item, routing->local_node->repo->config->identity->peer_id);
+	struct MultiAddress* ma = multiaddress_new_from_string(str);
+	local_peer->addr_head->item = ma;
 
 	struct Libp2pMessage* msg = libp2p_message_new();
 	msg->key_size = key_size;
