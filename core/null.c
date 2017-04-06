@@ -50,6 +50,7 @@ void *ipfs_null_connection (void *ptr)
     struct SessionContext session;
     session.insecure_stream = libp2p_net_multistream_stream_new(connection_param->file_descriptor, connection_param->ip, connection_param->port);
     session.default_stream = session.insecure_stream;
+    session.datastore = connection_param->local_node->repo->config->datastore;
 
     libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
