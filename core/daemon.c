@@ -9,6 +9,7 @@
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/core/bootstrap.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "ipfs/repo/init.h"
 #include "libp2p/utils/logger.h"
 
 int ipfs_daemon_start(char* repo_path) {
@@ -38,8 +39,9 @@ int ipfs_daemon_start(char* repo_path) {
     local_node.identity = fs_repo->config->identity;
 
     // Set null router param
+    struct MultiAddress *ma = multiaddress_new_from_string(fs_repo->config->addresses->swarm_head->item);
+    listen_param.port = multiaddress_get_ip_port(ma);
     listen_param.ipv4 = 0; // ip 0.0.0.0, all interfaces
-    listen_param.port = 4001;
     listen_param.local_node = &local_node;
 
     // Create pthread for swarm listener.
@@ -72,9 +74,17 @@ int ipfs_daemon_start(char* repo_path) {
 
 int ipfs_daemon (int argc, char **argv)
 {
+	char* repo_path = NULL;
+
+	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
+		fprintf(stderr, "Unable to open repo: %s\n", repo_path);
+		return 0;
+	}
+
 	libp2p_logger_add_class("peerstore");
 	libp2p_logger_add_class("providerstore");
 	libp2p_logger_add_class("daemon");
 	libp2p_logger_add_class("online");
-	return ipfs_daemon_start(NULL);
+
+	return ipfs_daemon_start(repo_path);
 }

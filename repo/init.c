@@ -6,6 +6,57 @@
 #include "ipfs/repo/config/config.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 
+/**
+ * Get the correct repo home directory. This first looks at the
+ * command line, then the IPFS_PATH environment variable,
+ * then the user's home directory. This is where the .ipfs directory
+ * is or will be.
+ * @param argc number of command line parameters
+ * @param argv command line parameters
+ * @returns the repo home directory
+ */
+char* ipfs_repo_get_home_directory(int argc, char** argv) {
+	char *result = NULL;
+	// first check the command line
+	for(int i = 0; i < argc; i++) {
+		if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--config") == 0) {
+			if (i + 1 < argc) {
+				result = argv[i+1];
+				break;
+			}
+		}
+	}
+	if (result == NULL) { // we didn't pass it on the command line
+		// check IPFS_PATH
+		result = os_utils_getenv("IPFS_PATH");
+	}
+	if (result == NULL) { // not on command line nor environment var.
+		result = os_utils_get_homedir();
+	}
+	return result;
+}
+
+/**
+ * Get the correct repo directory. Looks in all the appropriate places
+ * for the ipfs directory.
+ * @param argc number of command line arguments
+ * @param argv command line arguments
+ * @param repo_dir the results. This will point to the [IPFS_PATH]/.ipfs directory
+ * @returns true(1) if the directory is there, false(0) if it is not.
+ */
+int ipfs_repo_get_directory(int argc, char** argv, char** repo_dir) {
+	char* home = ipfs_repo_get_home_directory(argc, argv);
+	int dir_len = strlen(home) + 7;
+	*repo_dir = malloc(dir_len);
+	os_utils_filepath_join(home, ".ipfs", *repo_dir, dir_len);
+	return os_utils_directory_exists(*repo_dir);
+}
+
+/**
+ * Make an IPFS directory at the passed in path
+ * @param path the path
+ * @returns true(1) on success, false(0) on failure
+ */
 int make_ipfs_repository(const char* path) {
 	int retVal;
 	char currDirectory[1024];
@@ -47,41 +98,27 @@ int make_ipfs_repository(const char* path) {
 	return retVal;
 }
 
-
 /**
  * Initialize a repository
+ * @param argc number of command line arguments
+ * @param argv command line arguments
+ * @returns true(1) on succes, false(0) otherwise
  */
 int ipfs_repo_init(int argc, char** argv) {
-	// the default is the user's home directory
-	char* home_directory = os_utils_get_homedir();
-	//allow user to pass directory on command line
-	if (argc > 2) {
-		home_directory = argv[2];
-	} else {
-		// check the IPFS_PATH
-		char* temp = os_utils_getenv("IPFS_PATH");
-		if (temp != NULL)
-			home_directory = temp;
-	}
-	// get the full path
-	int dir_len = strlen(home_directory) + 7;
-	char dir[dir_len];
-	strcpy(dir, home_directory);
-	os_utils_filepath_join(home_directory, ".ipfs", dir, dir_len);
-	// make sure it doesn't already exist
-	if (os_utils_file_exists(dir)) {
-		printf("Directory already exists: %s\n", dir);
+	char* repo_directory = NULL;
+	if (ipfs_repo_get_directory(argc, argv, &repo_directory)) {
+		printf("Directory already exists: %s\n", repo_directory);
 		return 0;
 	}
 	// make the directory
 #ifdef __MINGW32__
-	if (mkdir(dir) == -1) {
+	if (mkdir(repo_directory) == -1) {
 #else
-	if (mkdir(dir, S_IRWXU) == -1) {
+	if (mkdir(repo_directory, S_IRWXU) == -1) {
 #endif
-		printf("Unable to create the directory: %s\n", dir);
+		printf("Unable to create the directory: %s\n", repo_directory);
 		return 0;
 	}
 	// make the repository
-	return make_ipfs_repository(dir);
+	return make_ipfs_repository(repo_directory);
 }

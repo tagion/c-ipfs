@@ -6,6 +6,7 @@
 #include "ipfs/merkledag/merkledag.h"
 #include "libp2p/os/utils.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "ipfs/repo/init.h"
 #include "ipfs/unixfs/unixfs.h"
 
 #define MAX_DATA_SIZE 262144 // 1024 * 256;
@@ -332,11 +333,22 @@ int ipfs_import_files(int argc, char** argv) {
 	}
 
 	// open the repo
-	int retVal = ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo);
-	if (retVal == 0) {
+	char* repo_path = NULL;
+	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
+		// dir doesn't exist
+		fprintf(stderr, "Repo does not exist: %s\n", repo_path);
 		return 0;
 	}
-	retVal = ipfs_repo_fsrepo_open(fs_repo);
+	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
+		fprintf(stderr, "Unable to build the repo struct: %s\n", repo_path);
+		return 0;
+	}
+	if (!ipfs_repo_fsrepo_open(fs_repo)) {
+		fprintf(stderr, "Unable to open repository: %s\n", repo_path);
+		return 0;
+	}
+
+	int retVal = 0;
 
 	// import the file(s)
 	struct FileList* current = first;

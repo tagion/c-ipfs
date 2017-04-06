@@ -10,6 +10,7 @@
 #include "libp2p/secio/secio.h"
 #include "libp2p/routing/dht_protocol.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "ipfs/repo/init.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/routing/routing.h"
 #include "ipfs/importer/resolver.h"
@@ -27,11 +28,16 @@ int ipfs_ping (int argc, char **argv)
 	struct Libp2pPeer* peer_to_ping = NULL;
 	char* id = NULL;
     struct FSRepo* fs_repo = NULL;
+    char* repo_path = NULL;
 
 	// sanity check
 	if (argc < 3)
 		goto exit;
 
+	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
+		fprintf(stderr, "Unable to open repo: %s\n", repo_path);
+		return 0;
+	}
     // read the configuration
 	if (!ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo))
 		goto exit;

@@ -5,17 +5,19 @@
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/merkledag/node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "ipfs/repo/init.h"
 /**
  * pull objects from ipfs
  */
 
-/**
- * get a file by its hash, and write the data to a file
+
+/***
+ * Get a file by its hash, and write the data to a filestream
  * @param hash the base58 multihash of the cid
- * @param file_name the file name to write to
- * @returns true(1) on success
+ * @param file_descriptor where to write
+ * @param fs_repo the repo
  */
-int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, const struct FSRepo* fs_repo) {
+int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor, const struct FSRepo* fs_repo) {
 	// convert hash to cid
 	struct Cid* cid = NULL;
 	if ( ipfs_cid_decode_hash_from_base58(hash, strlen((char*)hash), &cid) == 0) {
@@ -32,20 +34,13 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 	// no longer need the cid
 	ipfs_cid_free(cid);
 
-	// process blocks
-	FILE* file = fopen(file_name, "wb");
-	if (file == NULL) {
-		ipfs_node_free(read_node);
-		return 0;
-	}
-
 	if (read_node->head_link == NULL) {
 		// convert the node's data into a UnixFS data block
 		struct UnixFS* unix_fs;
 		ipfs_unixfs_protobuf_decode(read_node->data, read_node->data_size, &unix_fs);
-		size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file);
+		size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file_descriptor);
 		if (bytes_written != unix_fs->bytes_size) {
-			fclose(file);
+			fclose(file_descriptor);
 			ipfs_node_free(read_node);
 			ipfs_unixfs_free(unix_fs);
 			return 0;
@@ -56,16 +51,16 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 		struct Node* link_node = NULL;
 		while (link != NULL) {
 			if ( ipfs_merkledag_get(link->hash, link->hash_size, &link_node, fs_repo) == 0) {
-				fclose(file);
+				fclose(file_descriptor);
 				ipfs_node_free(read_node);
 				return 0;
 			}
 			struct UnixFS* unix_fs;
 			ipfs_unixfs_protobuf_decode(link_node->data, link_node->data_size, &unix_fs);
-			size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file);
+			size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file_descriptor);
 			if (bytes_written != unix_fs->bytes_size) {
 				ipfs_node_free(link_node);
-				fclose(file);
+				fclose(file_descriptor);
 				ipfs_node_free(read_node);
 				ipfs_unixfs_free(unix_fs);
 				return 0;
@@ -75,12 +70,28 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
 			link = link->next;
 		}
 	}
-	fclose(file);
+	fclose(file_descriptor);
 
 	if (read_node != NULL)
 		ipfs_node_free(read_node);
 
 	return 1;
+}
+
+
+/**
+ * get a file by its hash, and write the data to a file
+ * @param hash the base58 multihash of the cid
+ * @param file_name the file name to write to
+ * @returns true(1) on success
+ */
+int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, const struct FSRepo* fs_repo) {
+	// process blocks
+	FILE* file = fopen(file_name, "wb");
+	if (file == NULL) {
+		return 0;
+	}
+	return ipfs_exporter_to_filestream(hash, file, fs_repo);
 }
 
 /**
@@ -135,12 +146,19 @@ int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_
  */
 int ipfs_exporter_object_get(int argc, char** argv) {
 	struct FSRepo* fs_repo = NULL;
+	char* repo_path = NULL;
 
-	// open the repo
-	int retVal = ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo);
+	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
+		fprintf(stderr, "Unable to open repository: %s\n", repo_path);
+		return 0;
+	}
+
+	// build the struct
+	int retVal = ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo);
 	if (retVal == 0) {
 		return 0;
 	}
+	// open the repo
 	retVal = ipfs_repo_fsrepo_open(fs_repo);
 	if (retVal == 0) {
 		return 0;
@@ -183,9 +201,15 @@ int ipfs_exporter_cat_node(struct Node* node, const struct FSRepo* fs_repo) {
  */
 int ipfs_exporter_object_cat(int argc, char** argv) {
 	struct FSRepo* fs_repo = NULL;
+	char* repo_dir = NULL;
+
+	if (!ipfs_repo_get_directory(argc, argv, &repo_dir)) {
+		fprintf(stderr, "Unable to open repo: %s\n", repo_dir);
+		return 0;
+	}
 
 	// open the repo
-	int retVal = ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo);
+	int retVal = ipfs_repo_fsrepo_new(repo_dir, NULL, &fs_repo);
 	if (retVal == 0) {
 		return 0;
 	}
