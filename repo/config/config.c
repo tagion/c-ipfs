@@ -4,7 +4,7 @@
 
 #include "libp2p/utils/linked_list.h"
 #include "ipfs/repo/config/config.h"
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 #include "ipfs/repo/config/bootstrap_peers.h"
 #include "ipfs/repo/config/swarm.h"
 
@@ -92,7 +92,7 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 		return 0;
 	
 	// datastore
-	retVal = ipfs_repo_config_datastore_init(config->datastore, repo_path);
+	retVal = libp2p_datastore_init(config->datastore, repo_path);
 	if (retVal == 0)
 		return 0;
 
@@ -149,7 +149,7 @@ int ipfs_repo_config_new(struct RepoConfig** config) {
 	if (retVal == 0)
 		return 0;
 
-	retVal = ipfs_repo_config_datastore_new(&((*config)->datastore));
+	retVal = libp2p_datastore_new(&((*config)->datastore));
 	if (retVal == 0)
 		return 0;
 
@@ -176,7 +176,7 @@ int ipfs_repo_config_free(struct RepoConfig* config) {
 		if (&(config->bootstrap_peers) != NULL)
 			repo_config_bootstrap_peers_free(config->bootstrap_peers);
 		if (config->datastore != NULL)
-			ipfs_repo_config_datastore_free(config->datastore);
+			libp2p_datastore_free(config->datastore);
 		if (config->addresses != NULL)
 			repo_config_addresses_free(config->addresses);
 		if (config->gateway != NULL)

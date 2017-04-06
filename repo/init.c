@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 #include "ipfs/repo/config/config.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 

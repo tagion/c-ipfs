@@ -9,6 +9,7 @@
 #include "ipfs/repo/config/config.h"
 #include "ipfs/unixfs/unixfs.h"
 #include "ipfs/merkledag/node.h"
+#include "ipfs/blocks/block.h"
 
 /**
  * a structure to hold the repo info

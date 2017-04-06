@@ -1,7 +1,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#include "datastore.h"
+#include "libp2p/db/datastore.h"
 #include "identity.h"
 #include "swarm.h"
 #include "bootstrap_peers.h"

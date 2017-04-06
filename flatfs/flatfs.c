@@ -9,7 +9,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 
 #define FLATFS_MAX_PREFIX_LENGTH 16
 

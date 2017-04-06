@@ -4,7 +4,7 @@
 
 #include "ipfs/importer/importer.h"
 #include "ipfs/merkledag/merkledag.h"
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/unixfs/unixfs.h"
 

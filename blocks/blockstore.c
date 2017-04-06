@@ -6,7 +6,7 @@
 #include "ipfs/blocks/block.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 
 /**
  * Delete a block based on its Cid

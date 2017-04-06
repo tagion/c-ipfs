@@ -1,7 +1,7 @@
 #include <pthread.h>
 
 #include "ipfs/importer/resolver.h"
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 #include "multiaddr/multiaddr.h"
 #include "ipfs/core/daemon.h"
 

@@ -4,7 +4,7 @@
 
 #include "ipfs/repo/init.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 
 /***
  * Helper to create a test file in the OS

@@ -1,7 +1,7 @@
 #ifndef __FS_REPO_LMDB_DATASTORE_H__
 #define __FS_REPO_LMDB_DATASTORE_H__
 
-#include "ipfs/repo/config/datastore.h"
+#include "libp2p/db/datastore.h"
 
 /***
  * Places the LMDB methods into the datastore's function pointers

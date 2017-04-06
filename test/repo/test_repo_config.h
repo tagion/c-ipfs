@@ -3,7 +3,7 @@
 #include <sys/stat.h>
 #include "ipfs/repo/config/config.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 
 int test_repo_config_new() {
 	struct RepoConfig* repoConfig;

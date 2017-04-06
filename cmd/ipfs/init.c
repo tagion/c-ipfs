@@ -4,7 +4,7 @@
 #include "ipfs/cmd/ipfs/init.h"
 #include "ipfs/commands/request.h"
 #include "ipfs/commands/command_option.h"
-#include "ipfs/os/utils.h"
+#include "libp2p/os/utils.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/core/builder.h"
 #include "ipfs/repo/config/config.h"

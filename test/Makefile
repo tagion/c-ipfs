@@ -17,11 +17,10 @@ OBJS = testit.o test_helper.o \
 	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \
 	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \
-	../os/utils.o \
 	../repo/init.o \
 	../repo/fsrepo/fs_repo.o ../repo/fsrepo/jsmn.o ../repo/fsrepo/lmdb_datastore.o \
 	../repo/config/config.o ../repo/config/identity.o \
-	../repo/config/bootstrap_peers.o ../repo/config/datastore.o ../repo/config/gateway.o \
+	../repo/config/bootstrap_peers.o ../repo/config/gateway.o \
 	../repo/config/addresses.o ../repo/config/swarm.o ../repo/config/peer.o \
 	../routing/offline.o \
 	../routing/online.o \
