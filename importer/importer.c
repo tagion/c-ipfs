@@ -294,6 +294,58 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 	return 1;
 }
 
+/**
+ * Pulls list of files from command line parameters
+ * @param argc number of command line parameters
+ * @param argv command line parameters
+ * @returns a FileList linked list of filenames
+ */
+struct FileList* ipfs_import_get_filelist(int argc, char** argv) {
+	struct FileList* first = NULL;
+	struct FileList* last = NULL;
+	int skipNext = 0;
+
+	for (int i = 2; i < argc; i++) {
+		if (skipNext) {
+			skipNext = 0;
+			continue;
+		}
+		if (strcmp(argv[i], "-r") == 0) {
+			continue;
+		}
+		if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--config") == 0) {
+			skipNext = 1;
+			continue;
+		}
+		struct FileList* current = (struct FileList*)malloc(sizeof(struct FileList));
+		current->next = NULL;
+		current->file_name = argv[i];
+		// now wire it in
+		if (first == NULL) {
+			first = current;
+		}
+		if (last != NULL) {
+			last->next = current;
+		}
+		// now set last to current
+		last = current;
+	}
+	return first;
+}
+
+/**
+ * See if the recursive flag was passed on the command line
+ * @param argc number of command line parameters
+ * @param argv command line parameters
+ * @returns true(1) if -r was passed, false(0) otherwise
+ */
+int ipfs_import_is_recursive(int argc, char** argv) {
+	for(int i = 0; i < argc; i++) {
+		if (strcmp(argv[i], "-r") == 0)
+			return 1;
+	}
+	return 0;
+}
 
 /**
  * called from the command line to import multiple files or directories
@@ -308,29 +360,10 @@ int ipfs_import_files(int argc, char** argv) {
 	 * param 3: directoryname
 	 */
 	struct FSRepo* fs_repo = NULL;
-	struct FileList* first = NULL;
-	struct FileList* last = NULL;
-	int recursive = 0; // false
+	int recursive = ipfs_import_is_recursive(argc, argv);
 
 	// parse the command line
-	for (int i = 2; i < argc; i++) {
-		if (strcmp(argv[i], "-r") == 0) {
-			recursive = 1;
-		} else {
-			struct FileList* current = (struct FileList*)malloc(sizeof(struct FileList));
-			current->next = NULL;
-			current->file_name = argv[i];
-			// now wire it in
-			if (first == NULL) {
-				first = current;
-			}
-			if (last != NULL) {
-				last->next = current;
-			}
-			// now set last to current
-			last = current;
-		}
-	}
+	struct FileList* first = ipfs_import_get_filelist(argc, argv);
 
 	// open the repo
 	char* repo_path = NULL;

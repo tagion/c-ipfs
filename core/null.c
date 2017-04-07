@@ -145,7 +145,7 @@ void *ipfs_null_listen (void *ptr)
         exit (1);
     }
 
-    libp2p_logger_log("null", LOGLEVEL_ERROR, "Null listening on %d\n", listen_param->port);
+    libp2p_logger_log("null", LOGLEVEL_ERROR, "Ipfs listening on %d\n", listen_param->port);
 
     for (;;) {
         s = socket_accept4(socketfd, &(listen_param->ipv4), &(listen_param->port));
