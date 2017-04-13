@@ -18,7 +18,7 @@ int test_import_large_file() {
 	create_file(fileName, file_bytes, bytes_size);
 
 	// get the repo
-	drop_and_build_repository("/tmp/.ipfs");
+	drop_and_build_repository("/tmp/.ipfs", 4001, NULL, NULL);
 	struct FSRepo* fs_repo;
 	ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, &fs_repo);
 	ipfs_repo_fsrepo_open(fs_repo);
@@ -167,7 +167,7 @@ int test_import_small_file() {
 	create_file(fileName, file_bytes, bytes_size);
 
 	// get the repo
-	drop_and_build_repository("/tmp/.ipfs");
+	drop_and_build_repository("/tmp/.ipfs", 4001, NULL, NULL);
 	struct FSRepo* fs_repo;
 	ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, &fs_repo);
 	ipfs_repo_fsrepo_open(fs_repo);

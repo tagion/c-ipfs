@@ -5,7 +5,7 @@
 struct FSRepo* createAndOpenRepo(const char* dir) {
 	int retVal = 1;
 	// create a fresh repo
-	retVal = drop_and_build_repository(dir);
+	retVal = drop_and_build_repository(dir, 4001, NULL, NULL);
 	if (retVal == 0)
 		return NULL;
 

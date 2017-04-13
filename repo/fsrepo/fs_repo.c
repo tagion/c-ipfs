@@ -3,6 +3,7 @@
 
 #include "libp2p/crypto/encoding/base64.h"
 #include "libp2p/crypto/key.h"
+#include "libp2p/utils/vector.h"
 #include "ipfs/blocks/blockstore.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "libp2p/db/datastore.h"
@@ -92,16 +93,14 @@ int repo_config_write_config_file(char* full_filename, struct RepoConfig* config
 	fprintf(out_file, "  \"RecordLifetime\": \"\",\n");
 	fprintf(out_file, "  \"ResolveCacheSize\": %d\n", config->ipns.resolve_cache_size);
 	fprintf(out_file, " },\n \"Bootstrap\": [\n");
-	/*
-	for(int i = 0; i < config->peer_addresses.num_peers; i++) {
-		struct IPFSAddr* peer = config->peer_addresses.peers[i];
-		fprintf(out_file, "  \"%s\"", peer->entire_string);
-		if (i < config->peer_addresses.num_peers - 1)
+	for(int i = 0; i < config->bootstrap_peers->total; i++) {
+		struct MultiAddress* peer = libp2p_utils_vector_get(config->bootstrap_peers, i);
+		fprintf(out_file, "  \"%s\"", peer->string);
+		if (i < config->bootstrap_peers->total - 1)
 			fprintf(out_file, ",\n");
 		else
 			fprintf(out_file, "\n");
 	}
-	*/
 	fprintf(out_file, " ],\n \"Tour\": {\n  \"Last\": \"\"\n },\n");
 	fprintf(out_file, " \"Gateway\": {\n");
 	fprintf(out_file, "  \"HTTPHeaders\": {\n");

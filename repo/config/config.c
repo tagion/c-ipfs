@@ -78,18 +78,27 @@ int repo_config_get_file_name(char* path, char** result) {
  * create a configuration based on the passed in parameters
  * @param config the configuration struct to be filled in
  * @param num_bits_for_keypair number of bits for the key pair
+ * @param repo_path the path to the configuration
+ * @param swarm_port the port to run on
+ * @param bootstrap_peers vector of Multiaddresses of fellow peers
  * @returns true(1) on success, otherwise 0
  */
-int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_keypair, const char* repo_path) {
+int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_keypair, const char* repo_path, int swarm_port, struct Libp2pVector *bootstrap_peers) {
 	// identity
 	int retVal = repo_config_identity_init(config->identity, num_bits_for_keypair);
 	if (retVal == 0)
 		return 0;
 	
 	// bootstrap peers
-	retVal = repo_config_bootstrap_peers_retrieve(&(config->bootstrap_peers));
-	if (retVal == 0)
-		return 0;
+	if (bootstrap_peers != NULL) {
+		config->bootstrap_peers = libp2p_utils_vector_new(bootstrap_peers->total);
+		for(int i = 0; i < bootstrap_peers->total; i++)
+			libp2p_utils_vector_add(config->bootstrap_peers, libp2p_utils_vector_get(bootstrap_peers, i));
+	}
+	else {
+		if (!repo_config_bootstrap_peers_retrieve(&(config->bootstrap_peers)))
+			return 0;
+	}
 	
 	// datastore
 	retVal = libp2p_datastore_init(config->datastore, repo_path);
@@ -97,14 +106,17 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 		return 0;
 
 	// swarm addresses
-	const char* addr1 = "/ip4/0.0.0.0/tcp/4001";
-	const char* addr2 = "/ip6/::/tcp/4001";
+	char* addr1 = malloc(50);
+	sprintf(addr1, "/ip4/0.0.0.0/tcp/%d", swarm_port);
 	config->addresses->swarm_head = libp2p_utils_linked_list_new();
 	config->addresses->swarm_head->item = malloc(strlen(addr1) + 1);
 	strcpy(config->addresses->swarm_head->item, addr1);
+
+	sprintf(addr1, "/ip6/::/tcp/%d", swarm_port);
 	config->addresses->swarm_head->next = libp2p_utils_linked_list_new();
-	config->addresses->swarm_head->next->item = malloc(strlen(addr2) + 1);
-	strcpy(config->addresses->swarm_head->next->item, addr2);
+	config->addresses->swarm_head->next->item = malloc(strlen(addr1) + 1);
+	strcpy(config->addresses->swarm_head->next->item, addr1);
+	free(addr1);
 	
 	config->discovery.mdns.enabled = 1;
 	config->discovery.mdns.interval = 10;

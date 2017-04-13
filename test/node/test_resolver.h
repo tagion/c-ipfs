@@ -10,7 +10,7 @@ int test_resolver_get() {
 	const char* ipfs_path = "/tmp/.ipfs";
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
 
-	drop_and_build_repository(ipfs_path);
+	drop_and_build_repository(ipfs_path, 4001, NULL, NULL);
 
 	// this should point to a test directory with files and directories
 	char* home_dir = os_utils_get_homedir();
@@ -79,11 +79,11 @@ void* test_resolver_daemon_start(void* arg) {
 
 int test_resolver_remote_get() {
 	// clean out repository
-	const char* ipfs_path = "/tmp/.ipfs";
+	const char* ipfs_path = "/tmp";
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
 	char remote_peer_id[255];
 	char path[255];
-	drop_and_build_repository(ipfs_path);
+	drop_and_build_repository(ipfs_path, 4001, NULL, NULL);
 
 	// start the daemon in a separate thread
 	pthread_t thread;

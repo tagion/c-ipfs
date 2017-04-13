@@ -1,12 +1,16 @@
 #pragma once
 
-/***
- * Makes a new ipfs repository
- * @param path the path to the repository, should end
- * with .ipfs, and the directory should already exist.
- * @returns true(1) on success
+#include "libp2p/utils/vector.h"
+
+/**
+ * Make an IPFS directory at the passed in path
+ * @param path the path
+ * @param swarm_port the port that the swarm will run on
+ * @param bootstrap_peers a Vector of MultiAddress of fellow peers
+ * @param peer_id the peer id generated
+ * @returns true(1) on success, false(0) on failure
  */
-int make_ipfs_repository(const char* path);
+int make_ipfs_repository(const char* path, int swarm_port, struct Libp2pVector* bootstrap_peers, char **peer_id);
 
 /**
  * Initialize a repository, called from the command line

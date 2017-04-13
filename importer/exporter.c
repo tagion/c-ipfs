@@ -139,7 +139,9 @@ int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_
 }
 
 /***
- * Called from the command line with ipfs object get [hash]. Retrieves the object pointed to by hash, and displays its block data (links and data elements)
+ * Called from the command line with ipfs object get [hash].
+ * Retrieves the object pointed to by hash, and displays
+ * its block data (links and data elements)
  * @param argc number of arguments
  * @param argv arguments
  * @returns true(1) on success

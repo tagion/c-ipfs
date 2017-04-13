@@ -9,6 +9,7 @@
 #include "repo/test_repo_config.h"
 #include "repo/test_repo_fsrepo.h"
 #include "repo/test_repo_identity.h"
+#include "routing/test_routing.h"
 #include "routing/test_supernode.h"
 #include "storage/test_ds_helper.h"
 #include "storage/test_datastore.h"
@@ -59,6 +60,7 @@ const char* names[] = {
 		"test_resolver_get",
 		"test_routing_supernode_get_value",
 		"test_routing_supernode_get_remote_value",
+		"test_routing_find_peer",
 		"test_unixfs_encode_decode",
 		"test_unixfs_encode_smallfile",
 		"test_ping",
@@ -99,6 +101,7 @@ int (*funcs[])(void) = {
 		test_resolver_get,
 		test_routing_supernode_get_value,
 		test_routing_supernode_get_remote_value,
+		test_routing_find_peer,
 		test_unixfs_encode_decode,
 		test_unixfs_encode_smallfile,
 		test_ping,

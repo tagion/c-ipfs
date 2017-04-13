@@ -18,7 +18,7 @@ int test_ipfs_datastore_put() {
 	const unsigned char* input = (unsigned char*)"Hello, world!";
 
 	// build the ipfs repository, then shut it down, so we can start fresh
-	retVal = drop_and_build_repository("/tmp/.ipfs");
+	retVal = drop_and_build_repository("/tmp/.ipfs", 4001, NULL, NULL);
 	if (retVal == 0)
 		return 0;
 

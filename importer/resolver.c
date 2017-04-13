@@ -4,6 +4,8 @@
 
 #include "ipfs/importer/resolver.h"
 #include "libp2p/crypto/encoding/base58.h"
+#include "libp2p/conn/session.h"
+#include "libp2p/routing/dht_protocol.h"
 #include "ipfs/merkledag/node.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
@@ -142,11 +144,17 @@ struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const
 	size_t message_protobuf_size = libp2p_message_protobuf_encode_size(message);
 	unsigned char message_protobuf[message_protobuf_size];
 	libp2p_message_protobuf_encode(message, message_protobuf, message_protobuf_size, &message_protobuf_size);
-	stream->write(stream, message_protobuf, message_protobuf_size);
+	struct SessionContext session_context;
+	session_context.insecure_stream = stream;
+	session_context.default_stream = stream;
+	// switch to kademlia
+	if (!libp2p_routing_dht_upgrade_stream(&session_context))
+		return NULL;
+	stream->write(&session_context, message_protobuf, message_protobuf_size);
 	unsigned char* response;
 	size_t response_size;
 	// we should get back a protobuf'd record
-	stream->read(stream, &response, &response_size);
+	stream->read(&session_context, &response, &response_size);
 	if (response_size == 1)
 		return NULL;
 	// turn the protobuf into a Node

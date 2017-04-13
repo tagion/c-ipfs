@@ -70,9 +70,11 @@ int config_path(char* config_root, char* extension, char* result, int max_len);
  * create a configuration based on the passed in parameters
  * @param config the configuration struct
  * @param num_bits_for_keypair number of bits for the key pair
+ * @param swarm_port port for swarm
+ * @param bootstrap_peers a vector of Multiaddress of fellow peers
  * @returns true(1) on success, otherwise 0
  */
-int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_keypair, const char* repo_path);
+int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_keypair, const char* repo_path, int swarm_port, struct Libp2pVector *bootstrap_peers);
 
 /***
  * Initialize memory for a RepoConfig struct

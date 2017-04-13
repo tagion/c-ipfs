@@ -51,6 +51,29 @@ int ipfs_routing_online_find_providers(struct IpfsRouting* routing, char* val1, 
 	return 0;
 }
 
+/***
+ * helper method. Connect to a peer and ask it for information
+ * about another peer
+ */
+int ipfs_routing_online_ask_peer_for_peer(struct Libp2pPeer* whoToAsk, const char* peer_id, size_t peer_id_size, struct Libp2pPeer **result) {
+	if (whoToAsk->connection_type == CONNECTION_TYPE_CONNECTED) {
+		struct Libp2pMessage *message = libp2p_message_new();
+		if (message == NULL)
+			return 0;
+		message->message_type = MESSAGE_TYPE_FIND_NODE;
+		message->key_size = peer_id_size;
+		message->key = malloc(peer_id_size);
+		if (message->key == NULL)
+			return 0;
+		memcpy(message->key, peer_id, peer_id_size);
+		struct Libp2pMessage *return_message = ipfs_routing_online_send_receive_message(whoToAsk->connection, message);
+		if (return_message != NULL)
+			*result = return_message->provider_peer_head->item;
+			return 1;
+	}
+	return 0;
+}
+
 /**
  * Find a peer
  * @param routing the context
@@ -66,7 +89,16 @@ int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const char* peer_
 	if (*result != NULL) {
 		return 1;
 	}
-	//TODO: ask the swarm to find the peer
+	//ask the swarm to find the peer
+	// TODO: Multithread
+	struct Libp2pLinkedList *current = peerstore->head_entry;
+	while(current != NULL) {
+		struct Libp2pPeer *current_peer = ((struct PeerEntry*)current->item)->peer;
+		ipfs_routing_online_ask_peer_for_peer(current_peer, peer_id, peer_id_size, result);
+		if (*result != NULL)
+			return 1;
+		current = current->next;
+	}
 	return 0;
 }
 

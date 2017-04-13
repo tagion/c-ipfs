@@ -55,9 +55,12 @@ int ipfs_repo_get_directory(int argc, char** argv, char** repo_dir) {
 /**
  * Make an IPFS directory at the passed in path
  * @param path the path
+ * @param swarm_port the port that the swarm will run on
+ * @param bootstrap_peers a Vector of MultiAddress of fellow peers
+ * @param peer_id the peer id generated
  * @returns true(1) on success, false(0) on failure
  */
-int make_ipfs_repository(const char* path) {
+int make_ipfs_repository(const char* path, int swarm_port, struct Libp2pVector* bootstrap_peers, char **peer_id) {
 	int retVal;
 	char currDirectory[1024];
 	struct RepoConfig* repo_config;
@@ -68,7 +71,7 @@ int make_ipfs_repository(const char* path) {
 	if (retVal == 0)
 		return 0;
 	printf("generating 2048-bit RSA keypair...");
-	retVal = ipfs_repo_config_init(repo_config, 2048, path);
+	retVal = ipfs_repo_config_init(repo_config, 2048, path, swarm_port, bootstrap_peers);
 	if (retVal == 0)
 		return 0;
 	printf("done\n");
@@ -86,6 +89,10 @@ int make_ipfs_repository(const char* path) {
 
 	// give some results to the user
 	printf("peer identity: %s\n", fs_repo->config->identity->peer_id);
+	if (peer_id != NULL) {
+		*peer_id = malloc(strlen(fs_repo->config->identity->peer_id) + 1);
+		strcpy(*peer_id, fs_repo->config->identity->peer_id);
+	}
 
 	// clean up
 	ipfs_repo_fsrepo_free(fs_repo);
@@ -120,5 +127,5 @@ int ipfs_repo_init(int argc, char** argv) {
 		return 0;
 	}
 	// make the repository
-	return make_ipfs_repository(repo_directory);
+	return make_ipfs_repository(repo_directory, 4001, NULL, NULL);
 }
