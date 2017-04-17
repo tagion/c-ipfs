@@ -16,6 +16,7 @@
 #include "storage/test_blocks.h"
 #include "storage/test_unixfs.h"
 #include "core/test_ping.h"
+#include "core/test_null.h"
  		 
 int testit(const char* name, int (*func)(void)) {
 	printf("Testing %s...\n", name);
@@ -58,13 +59,15 @@ const char* names[] = {
 		"test_merkledag_add_node",
 		"test_merkledag_add_node_with_links",
 		"test_resolver_get",
+		"test_routing_find_peer",
+		"test_routing_find_providers",
 		"test_routing_supernode_get_value",
 		"test_routing_supernode_get_remote_value",
-		"test_routing_find_peer",
 		"test_unixfs_encode_decode",
 		"test_unixfs_encode_smallfile",
 		"test_ping",
 		"test_ping_remote",
+		"test_null_add_provider",
 		"test_resolver_remote_get"
 };
 
@@ -99,13 +102,15 @@ int (*funcs[])(void) = {
 		test_merkledag_add_node,
 		test_merkledag_add_node_with_links,
 		test_resolver_get,
+		test_routing_find_peer,
+		test_routing_find_providers,
 		test_routing_supernode_get_value,
 		test_routing_supernode_get_remote_value,
-		test_routing_find_peer,
 		test_unixfs_encode_decode,
 		test_unixfs_encode_smallfile,
 		test_ping,
 		test_ping_remote,
+		test_null_add_provider,
 		test_resolver_remote_get
 };
 

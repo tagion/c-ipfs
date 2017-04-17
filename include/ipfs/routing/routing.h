@@ -35,13 +35,13 @@ struct IpfsRouting {
 	int (*GetValue)      (struct IpfsRouting*, char*, size_t, void**, size_t*);
 	/**
 	 * Find a provider
-	 * @param 1 the context
-	 * @param 2 the information that is being looked for
-	 * @param 3 the size of param 2
-	 * @param 4 the information found
-	 * @param 5 the size of the information found
+	 * @param routing the context
+	 * @param key the information that is being looked for
+	 * @param key_size the size of param 2
+	 * @param peers a vector of peers found that can provide the value for the key
+	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*FindProviders) (struct IpfsRouting*, char*, size_t, struct Libp2pVector** multiaddresses);
+	int (*FindProviders) (struct IpfsRouting* routing, unsigned char* key, size_t key_size, struct Libp2pVector** peers);
 	/**
 	 * Find a peer
 	 * @param 1 the context

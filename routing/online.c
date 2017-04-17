@@ -47,8 +47,80 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct Stream* st
 	return return_message;
 }
 
-int ipfs_routing_online_find_providers(struct IpfsRouting* routing, char* val1, size_t val2, struct Libp2pVector** multiaddresses) {
-	return 0;
+/***
+ * Ask the network for anyone that can provide a hash
+ * @param routing the context
+ * @param key the hash to look for
+ * @param key_size the size of the hash
+ * @param peers an array of Peer structs that can provide the hash
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, unsigned char* key, size_t key_size, struct Libp2pVector** peers) {
+	int found = 0;
+	// build the message to be transmitted
+	struct Libp2pMessage* message = libp2p_message_new();
+	message->message_type = MESSAGE_TYPE_GET_PROVIDERS;
+	message->key_size = key_size;
+	message->key = malloc(message->key_size);
+	memcpy(message->key, key, message->key_size);
+	// loop through the connected peers, asking for the hash
+	struct Libp2pLinkedList* current_entry = routing->local_node->peerstore->head_entry;
+	while (current_entry != NULL) {
+		struct Libp2pPeer* peer = ((struct PeerEntry*)current_entry->item)->peer;
+		if (peer->connection_type == CONNECTION_TYPE_CONNECTED) {
+			// Ask for hash, if it has it, break out of the loop and stop looking
+			struct Libp2pMessage* return_message = ipfs_routing_online_send_receive_message(peer->connection, message);
+			if (return_message != NULL && return_message->provider_peer_head != NULL) {
+				found = 1;
+				*peers = libp2p_utils_vector_new(1);
+				struct Libp2pLinkedList * current_provider_peer_list_item = return_message->provider_peer_head;
+				while (current_provider_peer_list_item != NULL) {
+					struct Libp2pPeer *current_peer = current_provider_peer_list_item->item;
+					libp2p_utils_vector_add(*peers, libp2p_peer_copy(current_peer));
+					current_provider_peer_list_item = current_provider_peer_list_item->next;
+				}
+				libp2p_message_free(return_message);
+				break;
+			}
+			// TODO: Make this multithreaded
+		}
+		if (found)
+			current_entry = NULL;
+		else
+			current_entry = current_entry->next;
+	}
+	// clean up
+	libp2p_message_free(message);
+	return found;
+}
+
+/**
+ * Looking for a provider of a hash. This first looks locally, then asks the network
+ * @param routing the context
+ * @param key the hash to look for
+ * @param key_size the size of the hash
+ * @param multiaddresses the results
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_routing_online_find_providers(struct IpfsRouting* routing, unsigned char* key, size_t key_size, struct Libp2pVector** peers) {
+	unsigned char* peer_id;
+	int peer_id_size;
+	struct Libp2pPeer *peer;
+
+	// see if we can find the key, and retrieve the peer who has it
+	if (!libp2p_providerstore_get(routing->local_node->providerstore, key, key_size, &peer_id, &peer_id_size)) {
+		// we need to look remotely
+		return ipfs_routing_online_find_remote_providers(routing, key, key_size, peers);
+	}
+
+	// now translate the peer id into a peer to get the multiaddresses
+	peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, peer_id, peer_id_size);
+	if (peer == NULL)
+		return 0;
+
+	*peers = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(*peers, peer);
+	return 1;
 }
 
 /***
@@ -119,7 +191,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t k
 	int port = multiaddress_get_ip_port(temp_ma);
 	multiaddress_free(temp_ma);
 	char str[255];
-	sprintf(str, "/ip4/127.1.2.3/tcp/%d", port);
+	sprintf(str, "/ip4/127.0.0.1/tcp/%d/ipfs/%s/", port, routing->local_node->identity->peer_id);
 	struct MultiAddress* ma = multiaddress_new_from_string(str);
 	libp2p_logger_debug("online", "Adding local MultiAddress %s to peer.\n", ma->string);
 	local_peer->addr_head->item = ma;

@@ -98,7 +98,7 @@ int test_routing_supernode_get_remote_value() {
 		goto exit;
 
 	// ask the network who can provide this
-	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, (char*)hash, hash_size, &multiaddresses))
+	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, hash, hash_size, &multiaddresses))
 		goto exit;
 
 	// get the file
@@ -203,7 +203,7 @@ int test_routing_supernode_get_value() {
 		goto exit;
 
 	// ask the network who can provide this
-	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, (char*)write_node->hash, write_node->hash_size, &multiaddresses))
+	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, write_node->hash, write_node->hash_size, &multiaddresses))
 		goto exit;
 
 	struct MultiAddress* addr = NULL;

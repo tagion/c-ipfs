@@ -111,9 +111,11 @@ int test_resolver_remote_get() {
 
 	// put the server in the peer store and change our peer id so we think it is remote (hack for now)
 	strcpy(remote_peer_id, fs_repo->config->identity->peer_id);
-	struct MultiAddress* remote_addr = multiaddress_new_from_string("/ip4/127.0.0.1/tcp/4001");
+	char multiaddress_string[100];
+	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", remote_peer_id);
+	struct MultiAddress* remote_addr = multiaddress_new_from_string(multiaddress_string);
 	struct Peerstore* peerstore = libp2p_peerstore_new();
-	struct Libp2pPeer* peer = libp2p_peer_new_from_data(remote_peer_id, strlen(remote_peer_id), remote_addr);
+	struct Libp2pPeer* peer = libp2p_peer_new_from_multiaddress(remote_addr);
 	libp2p_peerstore_add_peer(peerstore, peer);
 	strcpy(fs_repo->config->identity->peer_id, "QmABCD");
 

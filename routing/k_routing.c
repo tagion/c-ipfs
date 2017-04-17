@@ -46,7 +46,7 @@ int ipfs_routing_kademlia_get_value(struct IpfsRouting* routing, char* key, size
  * @param results_size the size of the results buffer
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_routing_kademlia_find_providers(struct IpfsRouting* routing, char* key, size_t key_size, struct Libp2pVector** results) {
+int ipfs_routing_kademlia_find_providers(struct IpfsRouting* routing, unsigned char* key, size_t key_size, struct Libp2pVector** results) {
 	*results = libp2p_utils_vector_new(1);
 	struct Libp2pVector* vector = *results;
 	// see if I can provide it
@@ -67,7 +67,7 @@ int ipfs_routing_kademlia_find_providers(struct IpfsRouting* routing, char* key,
 	if (vector->total == 0) {
 		// search requires null terminated key
 		char* key_nt = malloc(key_size + 1);
-		strncpy(key_nt, key, key_size);
+		strncpy(key_nt, (char*)key, key_size);
 		key_nt[key_size] = 0;
 		struct MultiAddress** list = search_kademlia(key_nt, 3);
 		free(key_nt);

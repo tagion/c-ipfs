@@ -54,7 +54,7 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, char *key, size_t key
     return 0;
 }
 
-int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, char *key, size_t key_size, struct Libp2pVector** multiaddresses)
+int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, unsigned char *key, size_t key_size, struct Libp2pVector** peers)
 {
     return ErrOffline;
 }
