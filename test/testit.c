@@ -17,6 +17,7 @@
 #include "storage/test_unixfs.h"
 #include "core/test_ping.h"
 #include "core/test_null.h"
+#include "core/test_daemon.h"
  		 
 int testit(const char* name, int (*func)(void)) {
 	printf("Testing %s...\n", name);
@@ -33,12 +34,14 @@ const char* names[] = {
 		"test_cid_cast_multihash",
 		"test_cid_cast_non_multihash",
 		"test_cid_protobuf_encode_decode",
+		"test_daemon_startup_shutdown",
 		"test_repo_config_new",
 		"test_repo_config_init",
 		"test_repo_config_write",
 		"test_repo_config_identity_new",
 		"test_repo_config_identity_private_key",
 		"test_repo_fsrepo_write_read_block",
+		"test_repo_fsrepo_build",
 		"test_routing_supernode_start",
 		"test_get_init_command",
 		"test_import_small_file",
@@ -76,12 +79,14 @@ int (*funcs[])(void) = {
 		test_cid_cast_multihash,
 		test_cid_cast_non_multihash,
 		test_cid_protobuf_encode_decode,
+		test_daemon_startup_shutdown,
 		test_repo_config_new,
 		test_repo_config_init,
 		test_repo_config_write,
 		test_repo_config_identity_new,
 		test_repo_config_identity_private_key,
 		test_repo_fsrepo_write_read_block,
+		test_repo_fsrepo_build,
 		test_routing_supernode_start,
 		test_get_init_command,
 		test_import_small_file,

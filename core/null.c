@@ -22,6 +22,8 @@
 
 #define BUF_SIZE 4096
 
+static int null_shutting_down = 0;
+
 /***
  * Compare incoming to see if they are requesting a protocol upgrade
  * @param incoming the incoming string
@@ -70,12 +72,15 @@ void *ipfs_null_connection (void *ptr)
 				if (!libp2p_secio_handshake(&session, &connection_param->local_node->identity->private_key, 1)) {
 					// rejecting connection
 					libp2p_logger_debug("null", "Secure IO connection failed\n");
+					free(results);
 					break;
 				}
 			} else if (protocol_compare(results, bytes_read, "/nodeio")) {
 				libp2p_logger_debug("null", "Attempting a nodeio connection.\n");
-				if (!libp2p_nodeio_handshake(&session))
+				if (!libp2p_nodeio_handshake(&session)) {
+					free(results);
 					break;
+				}
 				// loop through file requests
 				int _continue = 1;
 				while(_continue) {
@@ -107,6 +112,7 @@ void *ipfs_null_connection (void *ptr)
 				libp2p_logger_log("null", LOGLEVEL_DEBUG, "Attempting kademlia connection...\n");
 				if (!libp2p_routing_dht_handshake(&session)) {
 					libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia connection handshake failed\n");
+					free(results);
 					break;
 				}
 				// this handles 1 transaction
@@ -118,6 +124,7 @@ void *ipfs_null_connection (void *ptr)
 				// oops there was a problem
 				//TODO: Handle this
 			}
+			free(results);
 		}
    	} else {
    		libp2p_logger_log("null", LOGLEVEL_DEBUG, "Multistream negotiation failed\n");
@@ -125,6 +132,9 @@ void *ipfs_null_connection (void *ptr)
 
 	if (session.default_stream != NULL) {
 		session.default_stream->close(&session);
+	}
+	if (session.insecure_stream != NULL) {
+		libp2p_net_multistream_stream_free(session.insecure_stream);
 	}
     (*(connection_param->count))--; // update counter.
     free (connection_param);
@@ -148,34 +158,45 @@ void *ipfs_null_listen (void *ptr)
     libp2p_logger_log("null", LOGLEVEL_ERROR, "Ipfs listening on %d\n", listen_param->port);
 
     for (;;) {
-        s = socket_accept4(socketfd, &(listen_param->ipv4), &(listen_param->port));
-        if (count >= CONNECTIONS) { // limit reached.
-            close (s);
-            continue;
-        }
+    	int numDescriptors = socket_read_select4(socketfd, 5);
+    	if (null_shutting_down) {
+    		break;
+    	}
+    	if (numDescriptors > 0) {
+			s = socket_accept4(socketfd, &(listen_param->ipv4), &(listen_param->port));
+			if (count >= CONNECTIONS) { // limit reached.
+				close (s);
+				continue;
+			}
 
-        count++;
-        connection_param = malloc (sizeof (struct null_connection_params));
-        if (connection_param) {
-            connection_param->file_descriptor = s;
-            connection_param->count = &count;
-            connection_param->local_node = listen_param->local_node;
-            connection_param->port = listen_param->port;
-            connection_param->ip = malloc(INET_ADDRSTRLEN);
-            if (inet_ntop(AF_INET, &(listen_param->ipv4), connection_param->ip, INET_ADDRSTRLEN) == NULL) {
-            	free(connection_param->ip);
-            	connection_param->ip = NULL;
-            	connection_param->port = 0;
-            }
-            // Create pthread for ipfs_null_connection.
-            if (pthread_create(&pth_connection, NULL, ipfs_null_connection, connection_param)) {
-                libp2p_logger_log("null", LOGLEVEL_DEBUG, "Error creating thread for connection %d\n", count);
-                close (s);
-            } else {
-                pthread_detach (pth_connection);
-            }
-        }
+			count++;
+			connection_param = malloc (sizeof (struct null_connection_params));
+			if (connection_param) {
+				connection_param->file_descriptor = s;
+				connection_param->count = &count;
+				connection_param->local_node = listen_param->local_node;
+				connection_param->port = listen_param->port;
+				connection_param->ip = malloc(INET_ADDRSTRLEN);
+				if (inet_ntop(AF_INET, &(listen_param->ipv4), connection_param->ip, INET_ADDRSTRLEN) == NULL) {
+					free(connection_param->ip);
+					connection_param->ip = NULL;
+					connection_param->port = 0;
+				}
+				// Create pthread for ipfs_null_connection.
+				if (pthread_create(&pth_connection, NULL, ipfs_null_connection, connection_param)) {
+					libp2p_logger_log("null", LOGLEVEL_DEBUG, "Error creating thread for connection %d\n", count);
+					close (s);
+				} else {
+					pthread_detach (pth_connection);
+				}
+			}
+    	}
     }
 
     return (void*) 2;
+}
+
+int ipfs_null_shutdown() {
+	null_shutting_down = 1;
+	return 1;
 }

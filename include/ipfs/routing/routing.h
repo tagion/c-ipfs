@@ -80,6 +80,7 @@ typedef struct IpfsRouting ipfs_routing;
 ipfs_routing* ipfs_routing_new_offline (struct IpfsNode* local_node, struct RsaPrivateKey *private_key);
 // online using secio, should probably be deprecated
 ipfs_routing* ipfs_routing_new_online (struct IpfsNode* local_node, struct RsaPrivateKey* private_key, struct Stream* stream);
+int ipfs_routing_online_free(ipfs_routing*);
 // online using DHT/kademlia, the recommended router
 ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key, struct Stream* stream);
 // generic routines

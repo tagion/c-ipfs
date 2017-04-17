@@ -3,27 +3,26 @@
 
 int test_repo_fsrepo_open_config() {
 	struct FSRepo* fs_repo = NULL;
-	struct RepoConfig* repo_config = NULL;
 
 	const char* path = "/tmp/.ipfs";
 
-	// create the struct
-	int retVal = ipfs_repo_fsrepo_new((char*)path, repo_config, &fs_repo);
-	if (retVal == 0)
+	if (!drop_build_and_open_repo(path, &fs_repo))
 		return 0;
 
-	// open the repository and read the file
-	retVal = ipfs_repo_fsrepo_open(fs_repo);
-	if (retVal == 0) {
-		ipfs_repo_fsrepo_free(fs_repo);
-		return 0;
-	}
-
-	retVal = ipfs_repo_fsrepo_free(fs_repo);
-	if (retVal == 0)
+	if (!ipfs_repo_fsrepo_free(fs_repo))
 		return 0;
 
 	return 1;
+}
+
+int test_repo_fsrepo_build() {
+	const char* path = "/tmp/.ipfs";
+	char* peer_id = NULL;
+
+	int retVal = drop_and_build_repository(path, 4001, NULL, &peer_id);
+	if (peer_id != NULL)
+		free(peer_id);
+	return retVal;
 }
 
 int test_repo_fsrepo_write_read_block() {

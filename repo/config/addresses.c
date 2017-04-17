@@ -12,22 +12,16 @@ char* alloc_and_copy(char* source) {
 	return result;
 }
 
-int repo_config_addresses_new(struct Addresses** addresses, char* api, char* gateway) {
+int repo_config_addresses_new(struct Addresses** addresses) {
 	*addresses = (struct Addresses*)malloc(sizeof(struct Addresses));
 	if (*addresses == NULL)
 		return 0;
 
 	struct Addresses* addr = *addresses;
-	// allocate memory to store api and gateway
-	addr->api = alloc_and_copy(api);
-	addr->gateway = alloc_and_copy(gateway);
-	if ( addr->api == NULL || addr->gateway == NULL)
-		return 0;
 
-	// allocate memory for swarm_addresses
-	//if (repo_config_swarm_address_new(&((*addresses)->swarm)) == 0)
-	//	return 0;
-	// this is now allocated when it is filled
+	// allocate memory to store api and gateway
+	addr->api = NULL;
+	addr->gateway = NULL;
 	addr->swarm_head = NULL;
 
 	return 1;

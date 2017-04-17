@@ -6,6 +6,7 @@
 
 int repo_config_bootstrap_peers_retrieve(struct Libp2pVector** list) {
 
+	/*
 	char* default_bootstrap_addresses[] = {
 		"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",  // mars.i.ipfs.io
 		"/ip4/104.236.176.52/tcp/4001/ipfs/QmSoLnSGccFuZQJzRadHn95W2CrSFmZuTdDWP8HXaHca9z",  // neptune.i.ipfs.io
@@ -17,16 +18,25 @@ int repo_config_bootstrap_peers_retrieve(struct Libp2pVector** list) {
 		"/ip4/178.62.61.185/tcp/4001/ipfs/QmSoLMeWqB7YGVLJN3pNLQpmmEk35v6wYtsMGLzSr5QBU3",   // mercury.i.ipfs.io
 		"/ip4/104.236.151.122/tcp/4001/ipfs/QmSoLju6m7xTh3DuokvT3886QRYqxAzb1kShaanJgW36yx", // jupiter.i.ipfs.io
 	};
-	*list = libp2p_utils_vector_new(9);
+	*/
+	*list = libp2p_utils_vector_new(1);
 	
+	/*
 	for(int i = 0; i < 9; i++) {
 		struct MultiAddress* currAddr = multiaddress_new_from_string(default_bootstrap_addresses[i]);
 		libp2p_utils_vector_add(*list, currAddr);
 	}
+	*/
 	return 1;
 }
 
 int repo_config_bootstrap_peers_free(struct Libp2pVector* list) {
-	libp2p_utils_vector_free(list);
+	if (list != NULL) {
+		for(int i = 0; i < list->total; i++) {
+			struct MultiAddress* currAddr = libp2p_utils_vector_get(list, i);
+			multiaddress_free(currAddr);
+		}
+		libp2p_utils_vector_free(list);
+	}
 	return 1;
 }

@@ -52,6 +52,9 @@ void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
 		free(key);
 	}
 
+	// close cursor
+	db->datastore_cursor_close(db);
+
 	return;
 }
 

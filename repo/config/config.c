@@ -74,6 +74,12 @@ int repo_config_get_file_name(char* path, char** result) {
 	return os_utils_filepath_join(path, "config", *result, max_len);
 }
 
+int ipfs_repo_config_is_valid_identity(struct Identity* identity) {
+	if (identity->peer_id == NULL || identity->peer_id[0] != 'Q' || identity->peer_id[1] != 'm')
+		return 0;
+	return 1;
+}
+
 /***
  * create a configuration based on the passed in parameters
  * @param config the configuration struct to be filled in
@@ -86,8 +92,9 @@ int repo_config_get_file_name(char* path, char** result) {
 int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_keypair, const char* repo_path, int swarm_port, struct Libp2pVector *bootstrap_peers) {
 	// identity
 	int retVal = repo_config_identity_init(config->identity, num_bits_for_keypair);
-	if (retVal == 0)
+	if (retVal == 0 || !ipfs_repo_config_is_valid_identity(config->identity)) {
 		return 0;
+	}
 	
 	// bootstrap peers
 	if (bootstrap_peers != NULL) {
@@ -165,7 +172,7 @@ int ipfs_repo_config_new(struct RepoConfig** config) {
 	if (retVal == 0)
 		return 0;
 
-	retVal = repo_config_addresses_new(&((*config)->addresses), "/ip4/127.0.0.1/tcp/5001", "/ip4/127.0.0.1/tcp/8080");
+	retVal = repo_config_addresses_new(&((*config)->addresses));
 	if (retVal == 0)
 		return 0;
 

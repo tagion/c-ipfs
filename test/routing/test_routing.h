@@ -1,10 +1,14 @@
 #include <pthread.h>
 
 #include "libp2p/os/utils.h"
+#include "libp2p/utils/logger.h"
+
 #include "multiaddr/multiaddr.h"
+
 #include "ipfs/core/daemon.h"
-#include "../test_helper.h"
 #include "ipfs/routing/routing.h"
+
+#include "../test_helper.h"
 
 void* test_routing_daemon_start(void* arg) {
 	ipfs_daemon_start((char*)arg);
@@ -95,13 +99,17 @@ int test_routing_find_providers() {
 	// clean out repository
 	char* ipfs_path = "/tmp/test1";
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
-	char* peer_id_1;
-	char* peer_id_2;
-	struct FSRepo* fs_repo_2;
-	char* peer_id_3;
+	char* peer_id_1 = NULL;
+	char* peer_id_2 = NULL;
+	struct FSRepo* fs_repo_2 = NULL;;
+	char* peer_id_3 = NULL;
+	char* remote_peer_id = NULL;
 	pthread_t thread1, thread2;
 	int thread1_started = 0, thread2_started = 0;
-	struct MultiAddress* ma_peer1;
+	struct MultiAddress* ma_peer1 = NULL;
+	struct Libp2pVector* ma_vector2 = NULL, *ma_vector3 = NULL;
+    struct IpfsNode local_node;
+    struct FSRepo* fs_repo = NULL;
 
 	// create peer 1
 	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
@@ -118,9 +126,11 @@ int test_routing_find_providers() {
 	// create peer 2
 	ipfs_path = "/tmp/test2";
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
-	struct Libp2pVector* ma_vector = libp2p_utils_vector_new(1);
-	libp2p_utils_vector_add(ma_vector, ma_peer1);
-	drop_and_build_repository(ipfs_path, 4002, ma_vector, &peer_id_2);
+	// create a vector to hold peer1's multiaddress so we can connect as a peer
+	ma_vector2 = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector2, ma_peer1);
+	// note: this distroys some things, as it frees the fs_repo:
+	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
 	// add a file, to prime the connection to peer 1
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
@@ -143,14 +153,15 @@ int test_routing_find_providers() {
     // create my peer, peer 3
 	ipfs_path = "/tmp/test3";
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
-	drop_and_build_repository(ipfs_path, 4003, ma_vector, &peer_id_3);
+	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
+	ma_vector3 = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector3, ma_peer1);
+	drop_and_build_repository(ipfs_path, 4003, ma_vector3, &peer_id_3);
 
-	struct FSRepo* fs_repo;
 	ipfs_repo_fsrepo_new(ipfs_path, NULL, &fs_repo);
 	ipfs_repo_fsrepo_open(fs_repo);
 
 	// We know peer 1, try to find peer 2
-    struct IpfsNode local_node;
     local_node.mode = MODE_ONLINE;
     local_node.peerstore = libp2p_peerstore_new();
     local_node.providerstore = libp2p_providerstore_new();
@@ -186,16 +197,45 @@ int test_routing_find_providers() {
 		goto exit;
 	}
 
-	fprintf(stderr, "Remote address is: %s\n", remote_peer->id);
+	remote_peer_id = malloc(remote_peer->id_size + 1);
+	memcpy(remote_peer_id, remote_peer->id, remote_peer->id_size);
+	remote_peer_id[remote_peer->id_size] = 0;
+	fprintf(stderr, "Remote address is: %s\n", remote_peer_id);
+	free(remote_peer_id);
+	remote_peer_id = NULL;
 
 	retVal = 1;
 	exit:
+	ipfs_daemon_stop();
 	if (fs_repo != NULL)
-	ipfs_repo_fsrepo_free(fs_repo);
+		ipfs_repo_fsrepo_free(fs_repo);
+	if (peer_id_1 != NULL)
+		free(peer_id_1);
+	if (peer_id_2 != NULL)
+		free(peer_id_2);
+	if (peer_id_3 != NULL)
+		free(peer_id_3);
 	if (thread1_started)
-		pthread_cancel(thread1);
+		pthread_join(thread1, NULL);
 	if (thread2_started)
-		pthread_cancel(thread2);
+		pthread_join(thread2, NULL);
+	if (ma_vector2 != NULL) {
+		libp2p_utils_vector_free(ma_vector2);
+	}
+	if (ma_vector3 != NULL) {
+		libp2p_utils_vector_free(ma_vector3);
+	}
+	if (local_node.providerstore != NULL)
+		libp2p_providerstore_free(local_node.providerstore);
+	if (local_node.peerstore != NULL) {
+		libp2p_peerstore_free(local_node.peerstore);
+	}
+	if (local_node.routing != NULL) {
+		ipfs_routing_online_free(local_node.routing);
+	}
+	if (node != NULL)
+		ipfs_node_free(node);
+	libp2p_logger_free();
 	return retVal;
 
 }

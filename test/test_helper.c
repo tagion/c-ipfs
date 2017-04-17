@@ -127,17 +127,16 @@ int drop_and_build_repository(const char* path, int swarm_port, struct Libp2pVec
 
 
 int drop_build_and_open_repo(const char* path, struct FSRepo** fs_repo) {
-	int retVal = 0;
 
-	retVal = drop_and_build_repository("/tmp/.ipfs", 4001, NULL, NULL);
-	if (retVal == 0)
+	if (!drop_and_build_repository(path, 4001, NULL, NULL))
 		return 0;
-	retVal = ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, fs_repo);
-	if (retVal == 0)
+
+	if (!ipfs_repo_fsrepo_new(path, NULL, fs_repo))
 		return 0;
-	retVal = ipfs_repo_fsrepo_open(*fs_repo);
-	if (retVal == 0) {
+
+	if (!ipfs_repo_fsrepo_open(*fs_repo)) {
 		free(*fs_repo);
+		*fs_repo = NULL;
 		return 0;
 	}
 	return 1;

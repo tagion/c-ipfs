@@ -13,21 +13,21 @@
 #include "libp2p/utils/logger.h"
 
 int ipfs_daemon_start(char* repo_path) {
-    int count_pths = 0;
+    int count_pths = 0, retVal = 0;
     pthread_t work_pths[MAX];
     struct IpfsNodeListenParams listen_param;
+    struct MultiAddress* ma = NULL;
 
     libp2p_logger_info("daemon", "Initializing daemon...\n");
 
     // read the configuration
-    struct FSRepo* fs_repo;
+    struct FSRepo* fs_repo = NULL;
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo))
-		return 0;
+		goto exit;
 
 	// open the repository and read the file
 	if (!ipfs_repo_fsrepo_open(fs_repo)) {
-		ipfs_repo_fsrepo_free(fs_repo);
-		return 0;
+		goto exit;
 	}
 
     // create a new IpfsNode
@@ -39,7 +39,7 @@ int ipfs_daemon_start(char* repo_path) {
     local_node.identity = fs_repo->config->identity;
 
     // Set null router param
-    struct MultiAddress *ma = multiaddress_new_from_string(fs_repo->config->addresses->swarm_head->item);
+    ma = multiaddress_new_from_string(fs_repo->config->addresses->swarm_head->item);
     listen_param.port = multiaddress_get_ip_port(ma);
     listen_param.ipv4 = 0; // ip 0.0.0.0, all interfaces
     listen_param.local_node = &local_node;
@@ -47,15 +47,10 @@ int ipfs_daemon_start(char* repo_path) {
     // Create pthread for swarm listener.
     if (pthread_create(&work_pths[count_pths++], NULL, ipfs_null_listen, &listen_param)) {
     	libp2p_logger_error("daemon", "Error creating thread for ipfs null listen\n");
-        return 1;
+    	goto exit;
     }
 
     ipfs_bootstrap_routing(&local_node);
-    /*
-    if (pthread_create(&work_pths[count_pths++], NULL, ipfs_bootstrap_routing, &local_node)) {
-    	fprintf(stderr, "Error creating thread for routing\n");
-    }
-    */
 
     libp2p_logger_info("daemon", "Daemon is ready\n");
 
@@ -63,13 +58,31 @@ int ipfs_daemon_start(char* repo_path) {
     while (count_pths) {
         if (pthread_join(work_pths[--count_pths], NULL)) {
         	libp2p_logger_error("daemon", "Error joining thread\n");
-            return 2;
+            goto exit;
         }
     }
 
-    // All pthreads aborted?
-    return 0;
+    retVal = 1;
+    exit:
+	fprintf(stderr, "Cleaning up daemon processes\n");
+    // clean up
+    if (fs_repo != NULL)
+    	ipfs_repo_fsrepo_free(fs_repo);
+    if (local_node.peerstore != NULL)
+    	libp2p_peerstore_free(local_node.peerstore);
+    if (local_node.providerstore != NULL)
+    	libp2p_providerstore_free(local_node.providerstore);
+    if (ma != NULL)
+    	multiaddress_free(ma);
+    if (local_node.routing != NULL) {
+    	ipfs_routing_online_free(local_node.routing);
+    }
+    return retVal;
 
+}
+
+int ipfs_daemon_stop() {
+	return ipfs_null_shutdown();
 }
 
 int ipfs_daemon (int argc, char **argv)

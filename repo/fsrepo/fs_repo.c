@@ -393,16 +393,21 @@ int fs_repo_open_config(struct FSRepo* repo) {
 		return 0;
 	}
 	// the next should be the array, then string "PeerID"
-	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PeerID", &repo->config->identity->peer_id);
+	//NOTE: the code below compares the peer id of the file with the peer id generated
+	// by the key. If they don't match, we fail.
+	char* peer_id = NULL;
+	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PeerID", &peer_id);
 	char* priv_key_base64;
 	// then PrivKey
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PrivKey", &priv_key_base64);
 	retVal = repo_config_identity_build_private_key(repo->config->identity, priv_key_base64);
-	if (retVal == 0) {
+	if (retVal == 0 || strcmp(peer_id, repo->config->identity->peer_id) != 0) {
 		free(data);
 		free(priv_key_base64);
+		free(peer_id);
 		return 0;
 	}
+	free(peer_id);
 	// now the datastore
 	//int datastore_position = _find_token(data, tokens, num_tokens, 0, "Datastore");
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Type", &repo->config->datastore->type);

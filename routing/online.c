@@ -44,6 +44,12 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct Stream* st
 		goto exit;
 
 	exit:
+
+	if (protobuf != NULL)
+		free(protobuf);
+	if (results != NULL)
+		free(results);
+
 	return return_message;
 }
 
@@ -210,7 +216,9 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t k
 		struct Libp2pPeer* current_peer = current_peer_entry->peer;
 		if (current_peer->connection_type == CONNECTION_TYPE_CONNECTED) {
 			// ignoring results is okay this time
-			ipfs_routing_online_send_receive_message(current_peer->connection, msg);
+			struct Libp2pMessage* rslt = ipfs_routing_online_send_receive_message(current_peer->connection, msg);
+			if (rslt != NULL)
+				libp2p_message_free(rslt);
 		}
 		current = current->next;
 	}
@@ -260,33 +268,43 @@ int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* pee
  * @returns 0 on success, otherwise error code
  */
 int ipfs_routing_online_bootstrap(struct IpfsRouting* routing) {
+	char* peer_id = NULL;
+	int peer_id_size = 0;
+	struct MultiAddress* address = NULL;
+	struct Libp2pPeer *peer = NULL;
+
 	// for each address in our bootstrap list, add info into the peerstore
 	struct Libp2pVector* bootstrap_peers = routing->local_node->repo->config->bootstrap_peers;
 	for(int i = 0; i < bootstrap_peers->total; i++) {
-		struct MultiAddress* address = (struct MultiAddress*)libp2p_utils_vector_get(bootstrap_peers, i);
+		address = (struct MultiAddress*)libp2p_utils_vector_get(bootstrap_peers, i);
 		// attempt to get the peer ID
-		const char* peer_id = multiaddress_get_peer_id(address);
+		peer_id = multiaddress_get_peer_id(address);
 		if (peer_id != NULL) {
-			struct Libp2pPeer* peer = libp2p_peer_new();
-			peer->id_size = strlen(peer_id);
+			peer_id_size = strlen(peer_id);
+			peer = libp2p_peer_new();
+			peer->id_size = peer_id_size;
 			peer->id = malloc(peer->id_size);
 			if (peer->id == NULL) { // out of memory?
 				libp2p_peer_free(peer);
+				free(peer_id);
 				return -1;
 			}
 			memcpy(peer->id, peer_id, peer->id_size);
 			peer->addr_head = libp2p_utils_linked_list_new();
 			if (peer->addr_head == NULL) { // out of memory?
 				libp2p_peer_free(peer);
+				free(peer_id);
 				return -1;
 			}
-			peer->addr_head->item = address;
+			peer->addr_head->item = multiaddress_copy(address);
 			libp2p_peerstore_add_peer(routing->local_node->peerstore, peer);
 			libp2p_peer_free(peer);
 			// now find it and attempt to connect
-			peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (const unsigned char*)peer_id, strlen(peer_id));
-			if (peer == NULL)
+			peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (const unsigned char*)peer_id, peer_id_size);
+			free(peer_id);
+			if (peer == NULL) {
 				return -1; // this should never happen
+			}
 			if (peer->connection == NULL) { // should always be true unless we added it twice (TODO: we should prevent that earlier)
 				libp2p_peer_connect(peer);
 			}
@@ -321,4 +339,9 @@ ipfs_routing* ipfs_routing_new_online (struct IpfsNode* local_node, struct RsaPr
     }
 
     return onlineRouting;
+}
+
+int ipfs_routing_online_free(ipfs_routing* incoming) {
+	free(incoming);
+	return 1;
 }

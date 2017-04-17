@@ -71,8 +71,13 @@ int make_ipfs_repository(const char* path, int swarm_port, struct Libp2pVector* 
 	if (retVal == 0)
 		return 0;
 	printf("generating 2048-bit RSA keypair...");
-	retVal = ipfs_repo_config_init(repo_config, 2048, path, swarm_port, bootstrap_peers);
-	if (retVal == 0)
+	while (!ipfs_repo_config_init(repo_config, 2048, path, swarm_port, bootstrap_peers)) {
+		// we got a bad identity... try again
+		ipfs_repo_config_free(repo_config);
+		if (!ipfs_repo_config_new(&repo_config))
+			break;
+	}
+	if (repo_config == NULL)
 		return 0;
 	printf("done\n");
 	// now the fs_repo
