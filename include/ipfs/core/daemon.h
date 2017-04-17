@@ -26,7 +26,7 @@ struct IpfsNodeListenParams {
 	struct IpfsNode* local_node;
 };
 
-void *ipfs_null_connection (void *ptr);
+//void *ipfs_null_connection (void *ptr);
 void *ipfs_null_listen (void *ptr);
 int ipfs_null_shutdown();
 int ipfs_daemon (int argc, char **argv);

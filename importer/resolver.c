@@ -154,7 +154,7 @@ struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const
 	unsigned char* response;
 	size_t response_size;
 	// we should get back a protobuf'd record
-	stream->read(&session_context, &response, &response_size);
+	stream->read(&session_context, &response, &response_size, 5);
 	if (response_size == 1)
 		return NULL;
 	// turn the protobuf into a Node

@@ -235,6 +235,90 @@ int test_routing_find_providers() {
 	}
 	if (node != NULL)
 		ipfs_node_free(node);
+	if (result != NULL) {
+		// we have a vector of peers. Clean 'em up:
+		for(int i = 0; i < result->total; i++) {
+			struct Libp2pPeer* p = (struct Libp2pPeer*)libp2p_utils_vector_get(result, i);
+			libp2p_peer_free(p);
+		}
+		libp2p_utils_vector_free(result);
+	}
+	libp2p_logger_free();
+	return retVal;
+
+}
+
+/***
+ * Fire up a "client" and "server" and let the client tell the server he's providing a file
+ */
+int test_routing_provide() {
+	int retVal = 0;
+	// clean out repository
+	char* ipfs_path = "/tmp/test1";
+	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
+	char* peer_id_1 = NULL;
+	char* peer_id_2 = NULL;
+	struct FSRepo* fs_repo_2 = NULL;
+	pthread_t thread1, thread2;
+	int thread1_started = 0, thread2_started = 0;
+	struct MultiAddress* ma_peer1 = NULL;
+	struct Libp2pVector* ma_vector2 = NULL;
+
+	// create peer 1
+	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
+	char multiaddress_string[255];
+	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
+	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
+	// start the daemon in a separate thread
+	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+		fprintf(stderr, "Unable to start thread 1\n");
+		goto exit;
+	}
+	thread1_started = 1;
+
+	// create peer 2
+	ipfs_path = "/tmp/test2";
+	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
+	// create a vector to hold peer1's multiaddress so we can connect as a peer
+	ma_vector2 = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector2, ma_peer1);
+	// note: this distroys some things, as it frees the fs_repo:
+	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
+	// add a file, to prime the connection to peer 1
+	//TODO: Find a better way to do this...
+	size_t bytes_written = 0;
+	ipfs_repo_fsrepo_new(ipfs_path, NULL, &fs_repo_2);
+	ipfs_repo_fsrepo_open(fs_repo_2);
+	struct Node* node = NULL;
+	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, fs_repo_2, &bytes_written, 0);
+	ipfs_repo_fsrepo_free(fs_repo_2);
+	// start the daemon in a separate thread
+	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+		fprintf(stderr, "Unable to start thread 2\n");
+		goto exit;
+	}
+	thread2_started = 1;
+
+    // wait for everything to start up
+    // JMJ debugging =
+    sleep(3);
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (peer_id_1 != NULL)
+		free(peer_id_1);
+	if (peer_id_2 != NULL)
+		free(peer_id_2);
+	if (thread1_started)
+		pthread_join(thread1, NULL);
+	if (thread2_started)
+		pthread_join(thread2, NULL);
+	if (ma_vector2 != NULL) {
+		libp2p_utils_vector_free(ma_vector2);
+	}
+	if (node != NULL)
+		ipfs_node_free(node);
 	libp2p_logger_free();
 	return retVal;
 

@@ -19,6 +19,7 @@
 #include "libp2p/routing/dht_protocol.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/merkledag/node.h"
+#include "ipfs/util/thread_pool.h"
 
 #define BUF_SIZE 4096
 
@@ -41,7 +42,7 @@ int protocol_compare(unsigned char* incoming, size_t incoming_size, const char* 
 /**
  * We've received a connection. Find out what they want
  */
-void *ipfs_null_connection (void *ptr)
+void ipfs_null_connection (void *ptr)
 {
     struct null_connection_params *connection_param = NULL;
 
@@ -62,9 +63,15 @@ void *ipfs_null_connection (void *ptr)
 			// check if they're looking for an upgrade (i.e. secio)
 			unsigned char* results = NULL;
 			size_t bytes_read = 0;
-			if (!session.default_stream->read(&session, &results, &bytes_read) ) {
+			if (!session.default_stream->read(&session, &results, &bytes_read, 5) ) {
 				libp2p_logger_debug("null", "stream transaction read returned false\n");
 				break;
+			}
+			if (null_shutting_down) {
+				break;
+			}
+			if (bytes_read == 0) { // timeout
+				continue;
 			}
 			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
 			if (protocol_compare(results, bytes_read, "/secio")) {
@@ -86,7 +93,7 @@ void *ipfs_null_connection (void *ptr)
 				while(_continue) {
 					unsigned char* hash;
 					size_t hash_length = 0;
-					_continue = session.default_stream->read(&session, &hash, &hash_length);
+					_continue = session.default_stream->read(&session, &hash, &hash_length, 5);
 					if (hash_length < 20) {
 						_continue = 0;
 						continue;
@@ -120,9 +127,8 @@ void *ipfs_null_connection (void *ptr)
 				libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia message handled\n");
 			}
 			else {
-				libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Looping to try again.\n");
-				// oops there was a problem
-				//TODO: Handle this
+				libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Disconnecting.\n");
+				break;
 			}
 			free(results);
 		}
@@ -137,14 +143,16 @@ void *ipfs_null_connection (void *ptr)
 		libp2p_net_multistream_stream_free(session.insecure_stream);
 	}
     (*(connection_param->count))--; // update counter.
+    if (connection_param->ip != NULL)
+    	free(connection_param->ip);
     free (connection_param);
-    return (void*) 1;
+    return;
 }
 
 void *ipfs_null_listen (void *ptr)
 {
     int socketfd, s, count = 0;
-    pthread_t pth_connection;
+    threadpool thpool = thpool_init(25);
     struct IpfsNodeListenParams *listen_param;
     struct null_connection_params *connection_param;
 
@@ -183,15 +191,12 @@ void *ipfs_null_listen (void *ptr)
 					connection_param->port = 0;
 				}
 				// Create pthread for ipfs_null_connection.
-				if (pthread_create(&pth_connection, NULL, ipfs_null_connection, connection_param)) {
-					libp2p_logger_log("null", LOGLEVEL_DEBUG, "Error creating thread for connection %d\n", count);
-					close (s);
-				} else {
-					pthread_detach (pth_connection);
-				}
+				thpool_add_work(thpool, ipfs_null_connection, connection_param);
 			}
     	}
     }
+
+    thpool_destroy(thpool);
 
     return (void*) 2;
 }

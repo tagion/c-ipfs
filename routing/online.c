@@ -37,7 +37,7 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct Stream* st
 
 	// send the message, and expect the same back
 	session_context.default_stream->write(&session_context, protobuf, protobuf_size);
-	session_context.default_stream->read(&session_context, &results, &results_size);
+	session_context.default_stream->read(&session_context, &results, &results_size, 5);
 
 	// see if we can unprotobuf
 	if (!libp2p_message_protobuf_decode(results, results_size, &return_message))
@@ -190,7 +190,8 @@ int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const char* peer_
 int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t key_size) {
 	struct Libp2pPeer* local_peer = libp2p_peer_new();
 	local_peer->id_size = strlen(routing->local_node->identity->peer_id);
-	local_peer->id = routing->local_node->identity->peer_id;
+	local_peer->id = malloc(local_peer->id_size);
+	memcpy(local_peer->id, routing->local_node->identity->peer_id, local_peer->id_size);
 	local_peer->connection_type = CONNECTION_TYPE_CONNECTED;
 	local_peer->addr_head = libp2p_utils_linked_list_new();
 	struct MultiAddress* temp_ma = multiaddress_new_from_string((char*)routing->local_node->repo->config->addresses->swarm_head->item);
