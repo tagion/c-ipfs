@@ -35,14 +35,14 @@ int test_resolver_get() {
 	ipfs_node.repo = fs_repo;
 
 	// find something that is already in the repository
-	struct Node* result = ipfs_resolver_get("QmbMecmXESf96ZNry7hRuzaRkEBhjqXpoYfPCwgFzVGDzB", NULL, &ipfs_node);
+	struct HashtableNode* result = ipfs_resolver_get("QmbMecmXESf96ZNry7hRuzaRkEBhjqXpoYfPCwgFzVGDzB", NULL, &ipfs_node);
 	if (result == NULL) {
 		free(test_dir);
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
 
-	ipfs_node_free(result);
+	ipfs_hashtable_node_free(result);
 
 	// find something where path includes the local node
 	char path[255];
@@ -55,7 +55,7 @@ int test_resolver_get() {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
-	ipfs_node_free(result);
+	ipfs_hashtable_node_free(result);
 
 	// find something by path
 	result = ipfs_resolver_get("QmZBvycPAYScBoPEzm35zXHt6gYYV5t9PyWmr4sksLPNFS/hello_world.txt", NULL, &ipfs_node);
@@ -65,7 +65,7 @@ int test_resolver_get() {
 		return 0;
 	}
 
-	ipfs_node_free(result);
+	ipfs_hashtable_node_free(result);
 	free(test_dir);
 	ipfs_repo_fsrepo_free(fs_repo);
 
@@ -129,14 +129,14 @@ int test_resolver_remote_get() {
 	strcpy(path, "/ipfs/");
 	strcat(path, remote_peer_id);
 	strcat(path, "/QmZBvycPAYScBoPEzm35zXHt6gYYV5t9PyWmr4sksLPNFS/hello_world.txt");
-	struct Node* result = ipfs_resolver_get(path, NULL, &local_node);
+	struct HashtableNode* result = ipfs_resolver_get(path, NULL, &local_node);
 	if (result == NULL) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		pthread_cancel(thread);
 		return 0;
 	}
 
-	ipfs_node_free(result);
+	ipfs_hashtable_node_free(result);
 	ipfs_repo_fsrepo_free(fs_repo);
 	pthread_cancel(thread);
 	return 1;

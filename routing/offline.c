@@ -8,13 +8,13 @@
 #include "ipfs/routing/routing.h"
 #include "ipfs/importer/resolver.h"
 
-int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void *val, size_t vlen)
+int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, const unsigned char *key, size_t key_size, const void *val, size_t vlen)
 {
     int err;
     char *record, *nkey;
     size_t len, nkey_len;
 
-    err = libp2p_record_make_put_record (&record, &len, offlineRouting->sk, key, val, vlen, 0);
+    err = libp2p_record_make_put_record (&record, &len, offlineRouting->sk, (const char*)key, val, vlen, 0);
 
     if (err) {
         return err;
@@ -26,7 +26,7 @@ int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, siz
         return -1;
     }
 
-    if (!ipfs_datastore_helper_ds_key_from_binary((unsigned char*)key, key_size, (unsigned char*)nkey, key_size+1, &nkey_len)) {
+    if (!ipfs_datastore_helper_ds_key_from_binary(key, key_size, (unsigned char*)nkey, key_size+1, &nkey_len)) {
         free (nkey);
         free (record);
         return -1;
@@ -37,34 +37,34 @@ int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, siz
     return 0; // success.
 }
 
-int ipfs_routing_generic_get_value (ipfs_routing* routing, char *key, size_t key_size, void **val, size_t *vlen)
+int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *key, size_t key_size, void **val, size_t *vlen)
 {
 	char key_str[key_size + 1];
-	strncpy(key_str, key, key_size);
+	strncpy(key_str, (const char*)key, key_size);
 	key_str[key_size] = 0;
-    struct Node* node = ipfs_resolver_get(key_str, NULL, routing->local_node);
+    struct HashtableNode* node = ipfs_resolver_get(key_str, NULL, routing->local_node);
     if (node == NULL)
     	return -1;
     // protobuf the node
-    int protobuf_size = ipfs_node_protobuf_encode_size(node);
+    int protobuf_size = ipfs_hashtable_node_protobuf_encode_size(node);
     *val = malloc(protobuf_size);
-    if (ipfs_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0)
+    if (ipfs_hashtable_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0)
     	return -1;
 
     return 0;
 }
 
-int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, unsigned char *key, size_t key_size, struct Libp2pVector** peers)
+int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, const unsigned char *key, size_t key_size, struct Libp2pVector** peers)
 {
     return ErrOffline;
 }
 
-int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, const char *peer_id, size_t pid_size, struct Libp2pPeer **result)
+int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, const unsigned char *peer_id, size_t pid_size, struct Libp2pPeer **result)
 {
     return ErrOffline;
 }
 
-int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, char *cid, size_t cid_size)
+int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, const unsigned char *cid, size_t cid_size)
 {
     return ErrOffline;
 }

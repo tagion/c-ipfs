@@ -235,7 +235,7 @@ int ipfs_blockstore_get_unixfs(const unsigned char* hash, size_t hash_length, st
  * @param bytes_written the number of bytes written to the blockstore
  * @returns true(1) on success
  */
-int ipfs_blockstore_put_node(const struct Node* node, const struct FSRepo* fs_repo, size_t* bytes_written) {
+int ipfs_blockstore_put_node(const struct HashtableNode* node, const struct FSRepo* fs_repo, size_t* bytes_written) {
 	// from blockstore.go line 118
 	int retVal = 0;
 
@@ -249,9 +249,9 @@ int ipfs_blockstore_put_node(const struct Node* node, const struct FSRepo* fs_re
 	//TODO: put this in subdirectories
 
 	// turn the block into a binary array
-	size_t protobuf_len = ipfs_node_protobuf_encode_size(node);
+	size_t protobuf_len = ipfs_hashtable_node_protobuf_encode_size(node);
 	unsigned char protobuf[protobuf_len];
-	retVal = ipfs_node_protobuf_encode(node, protobuf, protobuf_len, &protobuf_len);
+	retVal = ipfs_hashtable_node_protobuf_encode(node, protobuf, protobuf_len, &protobuf_len);
 	if (retVal == 0) {
 		free(key);
 		return 0;
@@ -286,7 +286,7 @@ int ipfs_blockstore_put_node(const struct Node* node, const struct FSRepo* fs_re
  * @param fs_repo where to look for the data
  * @returns true(1) on success
  */
-int ipfs_blockstore_get_node(const unsigned char* hash, size_t hash_length, struct Node** node, const struct FSRepo* fs_repo) {
+int ipfs_blockstore_get_node(const unsigned char* hash, size_t hash_length, struct HashtableNode** node, const struct FSRepo* fs_repo) {
 	// get datastore key, which is a base32 key of the multihash
 	unsigned char* key = ipfs_blockstore_hash_to_base32(hash, hash_length);
 
@@ -299,7 +299,7 @@ int ipfs_blockstore_get_node(const unsigned char* hash, size_t hash_length, stru
 	size_t bytes_read = fread(buffer, 1, file_size, file);
 	fclose(file);
 
-	int retVal = ipfs_node_protobuf_decode(buffer, bytes_read, node);
+	int retVal = ipfs_hashtable_node_protobuf_decode(buffer, bytes_read, node);
 
 	free(key);
 	free(filename);

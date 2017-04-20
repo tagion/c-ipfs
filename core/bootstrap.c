@@ -47,7 +47,7 @@ void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
 	enum DatastoreCursorOp op = CURSOR_FIRST;
 	while (db->datastore_cursor_get(&key, &key_size, NULL, 0, op, db)) {
 		libp2p_logger_debug("bootstrap", "Announcing a file to the world.\n");
-		local_node->routing->Provide(local_node->routing, (char*)key, key_size);
+		local_node->routing->Provide(local_node->routing, key, key_size);
 		op = CURSOR_NEXT;
 		free(key);
 	}
@@ -66,7 +66,6 @@ void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
  * @returns nothing useful
  */
 void *ipfs_bootstrap_routing(void* param) {
-	libp2p_logger_add_class("bootstrap");
 	struct IpfsNode* local_node = (struct IpfsNode*)param;
 	local_node->routing = ipfs_routing_new_online(local_node, &local_node->identity->private_key, NULL);
 	local_node->routing->Bootstrap(local_node->routing);

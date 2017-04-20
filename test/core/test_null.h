@@ -4,7 +4,7 @@ int test_null_add_provider() {
 	int retVal = 0;
 	char* peer_id_1;
 	char* peer_id_2;
-	struct FSRepo *fs_repo_2 = NULL;
+	struct IpfsNode *local_node2 = NULL;
 	pthread_t thread1;
 	pthread_t thread2;
 	struct MultiAddress* ma_peer1;
@@ -29,11 +29,10 @@ int test_null_add_provider() {
 	// add a file, to prime the connection to peer 1
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
-	ipfs_repo_fsrepo_new(ipfs_path, NULL, &fs_repo_2);
-	ipfs_repo_fsrepo_open(fs_repo_2);
-	struct Node* node = NULL;
-	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, fs_repo_2, &bytes_written, 0);
-	ipfs_repo_fsrepo_free(fs_repo_2);
+	ipfs_node_online_new(ipfs_path, &local_node2);
+	struct HashtableNode* node = NULL;
+	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
+	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
 	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
@@ -46,8 +45,8 @@ int test_null_add_provider() {
 
 	retVal = 1;
 	exit:
-	if (fs_repo_2 != NULL)
-		ipfs_repo_fsrepo_free(fs_repo_2);
+	if (local_node2 != NULL)
+		ipfs_node_free(local_node2);
 	if (ma_peer1 != NULL)
 		multiaddress_free(ma_peer1);
 	pthread_cancel(thread1);

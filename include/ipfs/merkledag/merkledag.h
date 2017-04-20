@@ -14,7 +14,7 @@
  * @param bytes_written the number of bytes written
  * @returns true(1) on success
  */
-int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo, size_t* bytes_written);
+int ipfs_merkledag_add(struct HashtableNode* node, struct FSRepo* fs_repo, size_t* bytes_written);
 
 /***
  * Retrieves a node from the datastore based on the cid
@@ -23,7 +23,7 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo, size_t* bytes_
  * @param fs_repo the repository
  * @returns true(1) on success
  */
-int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node** node, const struct FSRepo* fs_repo);
+int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct HashtableNode** node, const struct FSRepo* fs_repo);
 
 /***
  * Retrieves a node from the datastore based on the multihash
@@ -32,6 +32,6 @@ int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node*
  * @param fs_repo the repository
  * @returns true(1) on success
  */
-int ipfs_merkledag_get_by_multihash(const unsigned char* multihash, size_t multihash_length, struct Node** node, const struct FSRepo* fs_repo);
+int ipfs_merkledag_get_by_multihash(const unsigned char* multihash, size_t multihash_length, struct HashtableNode** node, const struct FSRepo* fs_repo);
 
 #endif

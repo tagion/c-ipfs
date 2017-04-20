@@ -16,14 +16,14 @@ int test_node() {
 	retVal = ipfs_node_link_create(name2, ahash2, strlen((char*)ahash2), &mylink2);
 
 	//Nodes
-	struct Node * Mynode;
-	retVal = ipfs_node_new_from_link(mylink, &Mynode);
+	struct HashtableNode * Mynode;
+	retVal = ipfs_hashtable_node_new_from_link(mylink, &Mynode);
 	//mylink->name = "HAHA";//Testing for valid node creation
-	retVal =  ipfs_node_add_link(Mynode, mylink2);
+	retVal =  ipfs_hashtable_node_add_link(Mynode, mylink2);
 	//mylink2->name = "HAHA";//Testing for valid node creation
 	//struct NodeLink * ResultLink = ipfs_node_get_link_by_name(Mynode, "Simo");
-	ipfs_node_remove_link_by_name("Simo", Mynode);
-	ipfs_node_free(Mynode);
+	ipfs_hashtable_node_remove_link_by_name("Simo", Mynode);
+	ipfs_hashtable_node_free(Mynode);
 	return 1;
 }
 
@@ -86,8 +86,8 @@ l_exit:
  * Test a node with 2 links
  */
 int test_node_encode_decode() {
-	struct Node* control = NULL;
-	struct Node* results = NULL;
+	struct HashtableNode* control = NULL;
+	struct HashtableNode* results = NULL;
 	struct NodeLink* link1 = NULL;
 	struct NodeLink* link2 = NULL;
 	int retVal = 0;
@@ -95,29 +95,29 @@ int test_node_encode_decode() {
 	unsigned char* buffer = NULL;
 
 	// node
-	if (ipfs_node_new(&control) == 0)
+	if (ipfs_hashtable_node_new(&control) == 0)
 		goto ed_exit;
 
 	// first link
 	if (ipfs_node_link_create((char*)"Link1", (unsigned char*)"QmLink1", 7, &link1) == 0)
 		goto ed_exit;
 
-	if ( ipfs_node_add_link(control, link1) == 0)
+	if ( ipfs_hashtable_node_add_link(control, link1) == 0)
 		goto ed_exit;
 
 	// second link
 	if (ipfs_node_link_create((char*)"Link2", (unsigned char*)"QmLink2", 7, &link2) == 0)
 		goto ed_exit;
-	if ( ipfs_node_add_link(control, link2) == 0)
+	if ( ipfs_hashtable_node_add_link(control, link2) == 0)
 		goto ed_exit;
 	// encode
-	buffer_length = ipfs_node_protobuf_encode_size(control);
+	buffer_length = ipfs_hashtable_node_protobuf_encode_size(control);
 	buffer = (unsigned char*)malloc(buffer_length);
-	if (ipfs_node_protobuf_encode(control, buffer, buffer_length, &buffer_length) == 0)
+	if (ipfs_hashtable_node_protobuf_encode(control, buffer, buffer_length, &buffer_length) == 0)
 		goto ed_exit;
 
 	// decode
-	if (ipfs_node_protobuf_decode(buffer, buffer_length, &results) == 0)
+	if (ipfs_hashtable_node_protobuf_decode(buffer, buffer_length, &results) == 0)
 		goto ed_exit;
 
 	// compare results
@@ -144,9 +144,9 @@ int test_node_encode_decode() {
 ed_exit:
 	// clean up
 	if (control != NULL)
-		ipfs_node_free(control);
+		ipfs_hashtable_node_free(control);
 	if (results != NULL)
-		ipfs_node_free(results);
+		ipfs_hashtable_node_free(results);
 	if (buffer != NULL)
 		free(buffer);
 

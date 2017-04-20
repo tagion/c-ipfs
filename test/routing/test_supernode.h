@@ -64,7 +64,7 @@ int test_routing_supernode_get_remote_value() {
 	struct SessionContext context;
 	unsigned char* results = NULL;
 	size_t results_size = 0;
-	struct Node* node;
+	struct HashtableNode* node;
 
 	// unencode the base58
 	if (!libp2p_crypto_encoding_base58_decode(orig_multihash, strlen((char*)orig_multihash), &hash_ptr, &hash_size))
@@ -130,7 +130,7 @@ int test_routing_supernode_get_remote_value() {
 	if (!libp2p_nodeio_get(&context, hash, hash_size, &results, &results_size))
 		goto exit;
 
-	if (!ipfs_node_protobuf_decode(results, results_size, &node))
+	if (!ipfs_hashtable_node_protobuf_decode(results, results_size, &node))
 		goto exit;
 
 	//we got it
@@ -155,12 +155,12 @@ int test_routing_supernode_get_value() {
 	int file_size = 1000;
 	unsigned char bytes[file_size];
 	char* fullFileName = "/tmp/temp_file.bin";
-	struct Node* write_node = NULL;
+	struct HashtableNode* write_node = NULL;
 	size_t bytes_written = 0;
 	struct Libp2pVector* multiaddresses;
 	unsigned char* results;
 	size_t results_size = 0;
-	struct Node* node = NULL;
+	struct HashtableNode* node = NULL;
 	char* ip = NULL;
 
 	if (!drop_build_and_open_repo("/tmp/.ipfs", &fs_repo))
@@ -194,13 +194,15 @@ int test_routing_supernode_get_value() {
 	create_file(fullFileName, bytes, file_size);
 
 	// write to ipfs
-	if (ipfs_import_file("/tmp", fullFileName, &write_node, fs_repo, &bytes_written, 1) == 0) {
+	if (ipfs_import_file("/tmp", fullFileName, &write_node, ipfs_node, &bytes_written, 1) == 0) {
 		goto exit;
 	}
 
 	// announce to network that this can be provided
-	if (!ipfs_node->routing->Provide(ipfs_node->routing, (char*)write_node->hash, write_node->hash_size))
+	/*
+	if (!ipfs_node->routing->Provide(ipfs_node->routing, (unsigned char*)write_node->hash, write_node->hash_size))
 		goto exit;
+	*/
 
 	// ask the network who can provide this
 	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, write_node->hash, write_node->hash_size, &multiaddresses))
@@ -236,7 +238,7 @@ int test_routing_supernode_get_value() {
 	if (!libp2p_nodeio_get(&context, write_node->hash, write_node->hash_size, &results, &results_size))
 		goto exit;
 
-	if (!ipfs_node_protobuf_decode(results, results_size, &node))
+	if (!ipfs_hashtable_node_protobuf_decode(results, results_size, &node))
 		goto exit;
 
 	//we got it

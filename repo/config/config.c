@@ -7,6 +7,7 @@
 #include "libp2p/os/utils.h"
 #include "ipfs/repo/config/bootstrap_peers.h"
 #include "ipfs/repo/config/swarm.h"
+#include "libp2p/db/filestore.h"
 
 /***
  * public
@@ -172,6 +173,8 @@ int ipfs_repo_config_new(struct RepoConfig** config) {
 	if (retVal == 0)
 		return 0;
 
+	(*config)->filestore = libp2p_filestore_new();
+
 	retVal = repo_config_addresses_new(&((*config)->addresses));
 	if (retVal == 0)
 		return 0;
@@ -196,6 +199,8 @@ int ipfs_repo_config_free(struct RepoConfig* config) {
 			repo_config_bootstrap_peers_free(config->bootstrap_peers);
 		if (config->datastore != NULL)
 			libp2p_datastore_free(config->datastore);
+		if (config->filestore != NULL)
+			libp2p_filestore_free(config->filestore);
 		if (config->addresses != NULL)
 			repo_config_addresses_free(config->addresses);
 		if (config->gateway != NULL)

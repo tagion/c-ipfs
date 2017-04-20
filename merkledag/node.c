@@ -223,7 +223,7 @@ exit:
 /***
  * return an approximate size of the encoded node
  */
-size_t ipfs_node_protobuf_encode_size(const struct Node* node) {
+size_t ipfs_hashtable_node_protobuf_encode_size(const struct HashtableNode* node) {
 	size_t size = 0;
 	// links
 	struct NodeLink* current = node->head_link;
@@ -246,7 +246,7 @@ size_t ipfs_node_protobuf_encode_size(const struct Node* node) {
  * @param bytes_written how much of buffer was used
  * @returns true(1) on success
  */
-int ipfs_node_protobuf_encode(const struct Node* node, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written) {
+int ipfs_hashtable_node_protobuf_encode(const struct HashtableNode* node, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written) {
 	size_t bytes_used = 0;
 	*bytes_written = 0;
 	int retVal = 0;
@@ -282,7 +282,7 @@ int ipfs_node_protobuf_encode(const struct Node* node, unsigned char* buffer, si
  * @param node pointer to the Node to be created
  * @returns true(1) on success
  */
-int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct Node** node) {
+int ipfs_hashtable_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct HashtableNode** node) {
 	/*
 	 * Field 1: data
 	 * Field 2: link
@@ -293,7 +293,7 @@ int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struc
 	size_t temp_size;
 	struct NodeLink* temp_link = NULL;
 
-	if (ipfs_node_new(node) == 0)
+	if (ipfs_hashtable_node_new(node) == 0)
 		goto exit;
 
 	while(pos < buffer_length) {
@@ -319,7 +319,7 @@ int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struc
 					goto exit;
 				free(temp_buffer);
 				temp_buffer = NULL;
-				ipfs_node_add_link(*node, temp_link);
+				ipfs_hashtable_node_add_link(*node, temp_link);
 				break;
 			}
 		}
@@ -329,7 +329,7 @@ int ipfs_node_protobuf_decode(unsigned char* buffer, size_t buffer_length, struc
 
 exit:
 	if (retVal == 0) {
-		ipfs_node_free(*node);
+		ipfs_hashtable_node_free(*node);
 	}
 	if (temp_buffer != NULL)
 		free(temp_buffer);
@@ -344,9 +344,9 @@ exit:
  * Creates an empty node, allocates the required memory
  * Returns a fresh new node with no data set in it.
  */
-int ipfs_node_new(struct Node** node)
+int ipfs_hashtable_node_new(struct HashtableNode** node)
 {
-	*node = (struct Node *)malloc(sizeof(struct Node));
+	*node = (struct HashtableNode *)malloc(sizeof(struct HashtableNode));
 	if (*node == NULL)
 		return 0;
 	(*node)->hash = NULL;
@@ -364,30 +364,30 @@ int ipfs_node_new(struct Node** node)
  * @param node the node to initialize
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_node_create_directory(struct Node** node) {
+int ipfs_hashtable_node_create_directory(struct HashtableNode** node) {
 	// initialize parent_node
-	if (ipfs_node_new(node) == 0)
+	if (ipfs_hashtable_node_new(node) == 0)
 		return 0;
 	// put a UnixFS protobuf in the data section
 	struct UnixFS* unix_fs;
 	if (ipfs_unixfs_new(&unix_fs) == 0) {
-		ipfs_node_free(*node);
+		ipfs_hashtable_node_free(*node);
 		return 0;
 	}
 	unix_fs->data_type = UNIXFS_DIRECTORY;
 	size_t protobuf_len = ipfs_unixfs_protobuf_encode_size(unix_fs);
 	unsigned char protobuf[protobuf_len];
 	if (ipfs_unixfs_protobuf_encode(unix_fs, protobuf, protobuf_len, &protobuf_len) == 0) {
-		ipfs_node_free(*node);
+		ipfs_hashtable_node_free(*node);
 		ipfs_unixfs_free(unix_fs);
 		return 0;
 	}
 	ipfs_unixfs_free(unix_fs);
-	ipfs_node_set_data(*node, protobuf, protobuf_len);
+	ipfs_hashtable_node_set_data(*node, protobuf, protobuf_len);
 	return 1;
 }
 
-int ipfs_node_is_directory(struct Node* node) {
+int ipfs_hashtable_node_is_directory(struct HashtableNode* node) {
 	if (node->data_size < 2) {
 		return 0;
 	}
@@ -406,7 +406,7 @@ int ipfs_node_is_directory(struct Node* node) {
  * @param cid the Cid to be copied into the Node->cached element
  * @returns true(1) on success
  */
-int ipfs_node_set_hash(struct Node* node, const unsigned char* hash, size_t hash_size)
+int ipfs_hashtable_node_set_hash(struct HashtableNode* node, const unsigned char* hash, size_t hash_size)
 {
 	// don't reallocate if it is the same size
 	if (node->hash != NULL && hash_size != node->hash_size) {
@@ -434,7 +434,7 @@ int ipfs_node_set_hash(struct Node* node, const unsigned char* hash, size_t hash
  * Sets pointers of encoded & cached to NULL /following go method
  * returns 1 on success 0 on failure
  */
-int ipfs_node_set_data(struct Node* node, unsigned char * Data, size_t data_size)
+int ipfs_hashtable_node_set_data(struct HashtableNode* node, unsigned char * Data, size_t data_size)
 {
 	if(!node || !Data)
 	{
@@ -457,7 +457,7 @@ int ipfs_node_set_data(struct Node* node, unsigned char * Data, size_t data_size
  * @param Data: The data you wish to set in encoded.(unsigned char *)
  * returns 1 on success 0 on failure
  */
-int ipfs_node_set_encoded(struct Node * N, unsigned char * Data)
+int ipfs_hashtable_node_set_encoded(struct HashtableNode * N, unsigned char * Data)
 {
 	if(!N || !Data)
 	{
@@ -474,14 +474,14 @@ int ipfs_node_set_encoded(struct Node * N, unsigned char * Data)
  * @param Node: = The node you want to get data from. (unsigned char *)
  * Returns data of node.
  */
-unsigned char * ipfs_node_get_data(struct Node * N)
+unsigned char * ipfs_hashtable_node_get_data(struct HashtableNode * N)
 {
 	unsigned char * DATA;
 	DATA = N->data;
 	return DATA;
 }
 
-struct NodeLink* ipfs_node_link_last(struct Node* node) {
+struct NodeLink* ipfs_node_link_last(struct HashtableNode* node) {
 	struct NodeLink* current = node->head_link;
 	while(current != NULL) {
 		if (current->next == NULL)
@@ -491,7 +491,7 @@ struct NodeLink* ipfs_node_link_last(struct Node* node) {
 	return current;
 }
 
-int ipfs_node_remove_link(struct Node* node, struct NodeLink* toRemove) {
+int ipfs_node_remove_link(struct HashtableNode* node, struct NodeLink* toRemove) {
 	struct NodeLink* current = node->head_link;
 	struct NodeLink* previous = NULL;
 	while(current != NULL && current != toRemove) {
@@ -519,7 +519,7 @@ int ipfs_node_remove_link(struct Node* node, struct NodeLink* toRemove) {
  * It will take care of the links inside it.
  * @param N: the node you want to free. (struct Node *)
  */
-int ipfs_node_free(struct Node * N)
+int ipfs_hashtable_node_free(struct HashtableNode * N)
 {
 	if(N != NULL)
 	{
@@ -552,7 +552,7 @@ int ipfs_node_free(struct Node * N)
  * @param Name: (char * name) searches for link with this name
  * Returns the link struct if it's found otherwise returns NULL
  */
-struct NodeLink * ipfs_node_get_link_by_name(struct Node * N, char * Name)
+struct NodeLink * ipfs_hashtable_node_get_link_by_name(struct HashtableNode * N, char * Name)
 {
 	struct NodeLink* current = N->head_link;
 	while(current != NULL && strcmp(Name, current->name) != 0) {
@@ -566,7 +566,7 @@ struct NodeLink * ipfs_node_get_link_by_name(struct Node * N, char * Name)
  * @param name: Name of link (char * name)
  * returns 1 on success, 0 on failure.
  */
-int ipfs_node_remove_link_by_name(char * Name, struct Node * mynode)
+int ipfs_hashtable_node_remove_link_by_name(char * Name, struct HashtableNode * mynode)
 {
 	struct NodeLink* current = mynode->head_link;
 	struct NodeLink* previous = NULL;
@@ -600,7 +600,7 @@ int ipfs_node_remove_link_by_name(char * Name, struct Node * mynode)
  * @param mylink: the link to add
  * @returns true(1) on success
  */
-int ipfs_node_add_link(struct Node* node, struct NodeLink * mylink)
+int ipfs_hashtable_node_add_link(struct HashtableNode* node, struct NodeLink * mylink)
 {
 	if(node->head_link != NULL) {
 		// add to existing by finding last one
@@ -624,13 +624,13 @@ int ipfs_node_add_link(struct Node* node, struct NodeLink * mylink)
  * @param linksize: sizeof(the link in mylink) (size_T)
  * Returns a fresh new node with the link you specified. Has to be freed with Node_Free preferably.
  */
-int ipfs_node_new_from_link(struct NodeLink * mylink, struct Node** node)
+int ipfs_hashtable_node_new_from_link(struct NodeLink * mylink, struct HashtableNode** node)
 {
-	*node = (struct Node *) malloc(sizeof(struct Node));
+	*node = (struct HashtableNode *) malloc(sizeof(struct HashtableNode));
 	if (*node == NULL)
 		return 0;
 	(*node)->head_link = NULL;
-	ipfs_node_add_link(*node, mylink);
+	ipfs_hashtable_node_add_link(*node, mylink);
 	(*node)->hash = NULL;
 	(*node)->hash_size = 0;
 	(*node)->data = NULL;
@@ -646,13 +646,13 @@ int ipfs_node_new_from_link(struct NodeLink * mylink, struct Node** node)
  * @param node a pointer to the node to be created
  * returns a node with the data you inputted.
  */
-int ipfs_node_new_from_data(unsigned char * data, size_t data_size, struct Node** node)
+int ipfs_hashtable_node_new_from_data(unsigned char * data, size_t data_size, struct HashtableNode** node)
 {
 	if(data)
 	{
-		if (ipfs_node_new(node) == 0)
+		if (ipfs_hashtable_node_new(node) == 0)
 			return 0;
-		return ipfs_node_set_data(*node, data, data_size);
+		return ipfs_hashtable_node_set_data(*node, data, data_size);
 	}
 	return 0;
 }
@@ -663,11 +663,11 @@ int ipfs_node_new_from_data(unsigned char * data, size_t data_size, struct Node*
  * @param node a pointer to the node that will be created
  * @returns true(1) on success
  */
-int ipfs_node_new_from_encoded(unsigned char * data, struct Node** node)
+int ipfs_hashtable_node_new_from_encoded(unsigned char * data, struct HashtableNode** node)
 {
 	if(data)
 	{
-		if (ipfs_node_new(node) == 0)
+		if (ipfs_hashtable_node_new(node) == 0)
 			return 0;
 		(*node)->encoded = data;
 		return 1;
@@ -734,7 +734,7 @@ int Node_Resolve(char ** result, char * input1)
  * @param N: The node you want to get links from
  * @param path: The "foo/bar/bin" path
  */
-struct Link_Proc * Node_Resolve_Links(struct Node * N, char * path)
+struct Link_Proc * Node_Resolve_Links(struct HashtableNode * N, char * path)
 {
 	if(!N || !path)
 	{
@@ -748,7 +748,7 @@ struct Link_Proc * Node_Resolve_Links(struct Node * N, char * path)
 	for(int i=0;i<expected_link_ammount; i++)
 	{
 		struct NodeLink * proclink;
-		proclink = ipfs_node_get_link_by_name(N, linknames[i]);
+		proclink = ipfs_hashtable_node_get_link_by_name(N, linknames[i]);
 		if(proclink)
 		{
 			LProc->links[i] = (struct NodeLink *)malloc(sizeof(struct NodeLink));

@@ -14,7 +14,7 @@
  * @param from the current node (or NULL if it is the first call)
  * @returns what we are looking for, or NULL if it wasn't found
  */
-struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct IpfsNode* ipfs_node);
+struct HashtableNode* ipfs_resolver_get(const char* path, struct HashtableNode* from, const struct IpfsNode* ipfs_node);
 
 /**
  * Interrogate the path, looking for the peer

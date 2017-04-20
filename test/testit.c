@@ -18,6 +18,7 @@
 #include "core/test_ping.h"
 #include "core/test_null.h"
 #include "core/test_daemon.h"
+#include "core/test_node.h"
  		 
 int testit(const char* name, int (*func)(void)) {
 	printf("Testing %s...\n", name);
@@ -57,6 +58,7 @@ const char* names[] = {
 		"test_node",
 		"test_node_link_encode_decode",
 		"test_node_encode_decode",
+		"test_node_peerstore",
 		"test_merkledag_add_data",
 		"test_merkledag_get_data",
 		"test_merkledag_add_node",
@@ -67,6 +69,7 @@ const char* names[] = {
 		"test_routing_provide",
 		"test_routing_supernode_get_value",
 		"test_routing_supernode_get_remote_value",
+		"test_routing_retrieve_file_third_party",
 		"test_unixfs_encode_decode",
 		"test_unixfs_encode_smallfile",
 		"test_ping",
@@ -103,6 +106,7 @@ int (*funcs[])(void) = {
 		test_node,
 		test_node_link_encode_decode,
 		test_node_encode_decode,
+		test_node_peerstore,
 		test_merkledag_add_data,
 		test_merkledag_get_data,
 		test_merkledag_add_node,
@@ -113,6 +117,7 @@ int (*funcs[])(void) = {
 		test_routing_provide,
 		test_routing_supernode_get_value,
 		test_routing_supernode_get_remote_value,
+		test_routing_retrieve_file_third_party,
 		test_unixfs_encode_decode,
 		test_unixfs_encode_smallfile,
 		test_ping,

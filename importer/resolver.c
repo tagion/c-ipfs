@@ -106,7 +106,7 @@ int ipfs_resolver_is_remote(const char* path, const struct FSRepo* fs_repo) {
  * @param fs_repo the local repo
  * @returns the node, or NULL if not found
  */
-struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const struct IpfsNode* ipfs_node) {
+struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct HashtableNode* from, const struct IpfsNode* ipfs_node) {
 	// parse the path
 	const char* temp = ipfs_resolver_remove_path_prefix(path, ipfs_node->repo);
 	if (temp == NULL)
@@ -158,8 +158,8 @@ struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const
 	if (response_size == 1)
 		return NULL;
 	// turn the protobuf into a Node
-	struct Node* node;
-	ipfs_node_protobuf_decode(response, response_size, &node);
+	struct HashtableNode* node;
+	ipfs_hashtable_node_protobuf_decode(response, response_size, &node);
 	return node;
 }
 
@@ -170,7 +170,7 @@ struct Node* ipfs_resolver_remote_get(const char* path, struct Node* from, const
  * @param from the current node (or NULL if it is the first call)
  * @returns what we are looking for, or NULL if it wasn't found
  */
-struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct IpfsNode* ipfs_node) {
+struct HashtableNode* ipfs_resolver_get(const char* path, struct HashtableNode* from, const struct IpfsNode* ipfs_node) {
 
 	struct FSRepo* fs_repo = ipfs_node->repo;
 
@@ -191,7 +191,7 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 	char* path_section;
 	if (ipfs_resolver_next_path(path, &path_section) == 0)
 		return NULL;
-	struct Node* current_node = NULL;
+	struct HashtableNode* current_node = NULL;
 	if (from == NULL) {
 		// this is the first time around. Grab the root node
 		if (path_section[0] == 'Q' && path_section[1] == 'm') {
@@ -215,7 +215,7 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 			} else {
 				// look on...
 				free(path_section);
-				struct Node* newNode = ipfs_resolver_get(&path[pos+1], current_node, ipfs_node); // the +1 is the slash
+				struct HashtableNode* newNode = ipfs_resolver_get(&path[pos+1], current_node, ipfs_node); // the +1 is the slash
 				return newNode;
 			}
 		} else {
@@ -225,7 +225,7 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 		}
 	} else {
 		// we were passed a node. If it is a directory, see if what we're looking for is in it
-		if (ipfs_node_is_directory(from)) {
+		if (ipfs_hashtable_node_is_directory(from)) {
 			struct NodeLink* curr_link = from->head_link;
 			while (curr_link != NULL) {
 				// if it matches the name, we found what we're looking for.
@@ -237,7 +237,7 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 					}
 					if (strlen(path_section) == strlen(path)) {
 						// we are at the end of our search
-						ipfs_node_free(from);
+						ipfs_hashtable_node_free(from);
 						free(path_section);
 						return current_node;
 					} else {
@@ -246,8 +246,8 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 						free(path_section);
 						// if we're at the end of the path, return the node
 						// continue looking for the next part of the path
-						ipfs_node_free(from);
-						struct Node* newNode = ipfs_resolver_get(next_path_section, current_node, ipfs_node);
+						ipfs_hashtable_node_free(from);
+						struct HashtableNode* newNode = ipfs_resolver_get(next_path_section, current_node, ipfs_node);
 						return newNode;
 					}
 				}
@@ -262,7 +262,7 @@ struct Node* ipfs_resolver_get(const char* path, struct Node* from, const struct
 	// it should never get here
 	free(path_section);
 	if (from != NULL)
-		ipfs_node_free(from);
+		ipfs_hashtable_node_free(from);
 	return NULL;
 }
 
@@ -298,7 +298,7 @@ struct Libp2pPeer* ipfs_resolver_find_peer(const char* path, const struct IpfsNo
 
 	// ask the swarm for the peer
 	const char* address_string = ipfs_resolver_remove_path_prefix(path, fs_repo);
-	ipfs_node->routing->FindPeer(ipfs_node->routing, address_string, strlen(address_string), &peer);
+	ipfs_node->routing->FindPeer(ipfs_node->routing, (const unsigned char*)address_string, strlen(address_string), &peer);
 
 	return peer;
 }

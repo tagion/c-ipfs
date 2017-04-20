@@ -23,16 +23,16 @@ struct IpfsRouting {
 	 * @param 5 the size of the value
 	 * @returns 0 on success, otherwise -1
 	 */
-	int (*PutValue)      (struct IpfsRouting*, char*, size_t, void*, size_t);
+	int (*PutValue)      (struct IpfsRouting*, const unsigned char*, size_t, const void*, size_t);
 	/**
-	 * Get a value from the datastore
+	 * Get a value from the filestore
 	 * @param 1 the struct that contains the connection information
 	 * @param 2 the key to look for
 	 * @param 3 the size of the key
 	 * @param 4 a place to store the value
 	 * @param 5 the size of the value
 	 */
-	int (*GetValue)      (struct IpfsRouting*, char*, size_t, void**, size_t*);
+	int (*GetValue)      (struct IpfsRouting*, const unsigned char*, size_t, void**, size_t*);
 	/**
 	 * Find a provider
 	 * @param routing the context
@@ -41,7 +41,7 @@ struct IpfsRouting {
 	 * @param peers a vector of peers found that can provide the value for the key
 	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*FindProviders) (struct IpfsRouting* routing, unsigned char* key, size_t key_size, struct Libp2pVector** peers);
+	int (*FindProviders) (struct IpfsRouting* routing, const unsigned char* key, size_t key_size, struct Libp2pVector** peers);
 	/**
 	 * Find a peer
 	 * @param 1 the context
@@ -51,7 +51,7 @@ struct IpfsRouting {
 	 * @param 5 the size of the results
 	 * @returns 0 or error code
 	 */
-	int (*FindPeer)      (struct IpfsRouting*, const char*, size_t, struct Libp2pPeer** result);
+	int (*FindPeer)      (struct IpfsRouting*, const unsigned char*, size_t, struct Libp2pPeer** result);
 	/**
 	 * Announce to the network that this host can provide this key
 	 * @param 1 the context
@@ -59,7 +59,7 @@ struct IpfsRouting {
 	 * @param 3 the key size
 	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*Provide)       (struct IpfsRouting*, char*, size_t);
+	int (*Provide)       (struct IpfsRouting*, const unsigned char*, size_t);
 	/**
 	 * Ping
 	 * @param routing the context
@@ -84,8 +84,8 @@ int ipfs_routing_online_free(ipfs_routing*);
 // online using DHT/kademlia, the recommended router
 ipfs_routing* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key, struct Stream* stream);
 // generic routines
-int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void *val, size_t vlen);
-int ipfs_routing_generic_get_value (ipfs_routing* offlineRouting, char *key, size_t key_size, void **val, size_t *vlen);
+int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, const unsigned char *key, size_t key_size, const void *val, size_t vlen);
+int ipfs_routing_generic_get_value (ipfs_routing* offlineRouting, const unsigned char *key, size_t key_size, void **val, size_t *vlen);
 
 // supernode
 int ipfs_routing_supernode_parse_provider(const unsigned char* in, size_t in_size, struct Libp2pLinkedList** multiaddresses);

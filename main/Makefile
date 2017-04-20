@@ -7,7 +7,7 @@ OBJS = main.o \
 	../cid/cid.o \
 	../cmd/ipfs/init.o \
 	../commands/argument.o ../commands/command_option.o ../commands/command.o ../commands/cli/parse.o \
-	../core/builder.o ../core/daemon.o ../core/null.o ../core/ping.o ../core/bootstrap.o \
+	../core/builder.o ../core/daemon.o ../core/null.o ../core/ping.o ../core/bootstrap.o ../core/ipfs_node.o \
 	../datastore/ds_helper.o \
 	../datastore/key.o \
 	../dnslink/*.o \

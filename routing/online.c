@@ -61,7 +61,7 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct Stream* st
  * @param peers an array of Peer structs that can provide the hash
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, unsigned char* key, size_t key_size, struct Libp2pVector** peers) {
+int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const unsigned char* key, size_t key_size, struct Libp2pVector** peers) {
 	int found = 0;
 	// build the message to be transmitted
 	struct Libp2pMessage* message = libp2p_message_new();
@@ -75,8 +75,10 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, unsig
 		struct Libp2pPeer* peer = ((struct PeerEntry*)current_entry->item)->peer;
 		if (peer->connection_type == CONNECTION_TYPE_CONNECTED) {
 			// Ask for hash, if it has it, break out of the loop and stop looking
+			libp2p_logger_debug("online", "FindRemoteProviders: Asking for who can provide\n");
 			struct Libp2pMessage* return_message = ipfs_routing_online_send_receive_message(peer->connection, message);
 			if (return_message != NULL && return_message->provider_peer_head != NULL) {
+				libp2p_logger_debug("online", "FindRemoteProviders: Return value is not null\n");
 				found = 1;
 				*peers = libp2p_utils_vector_new(1);
 				struct Libp2pLinkedList * current_provider_peer_list_item = return_message->provider_peer_head;
@@ -87,7 +89,10 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, unsig
 				}
 				libp2p_message_free(return_message);
 				break;
+			} else {
+				libp2p_logger_debug("online", "FindRemoteProviders: Return value is null or providers are empty.\n");
 			}
+			libp2p_message_free(return_message);
 			// TODO: Make this multithreaded
 		}
 		if (found)
@@ -108,17 +113,19 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, unsig
  * @param multiaddresses the results
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_routing_online_find_providers(struct IpfsRouting* routing, unsigned char* key, size_t key_size, struct Libp2pVector** peers) {
+int ipfs_routing_online_find_providers(struct IpfsRouting* routing, const unsigned char* key, size_t key_size, struct Libp2pVector** peers) {
 	unsigned char* peer_id;
 	int peer_id_size;
 	struct Libp2pPeer *peer;
 
 	// see if we can find the key, and retrieve the peer who has it
 	if (!libp2p_providerstore_get(routing->local_node->providerstore, key, key_size, &peer_id, &peer_id_size)) {
+		libp2p_logger_debug("online", "Unable to find provider locally... Asking network\n");
 		// we need to look remotely
 		return ipfs_routing_online_find_remote_providers(routing, key, key_size, peers);
 	}
 
+	libp2p_logger_debug("online", "FindProviders: Found provider locally. Searching for peer.\n");
 	// now translate the peer id into a peer to get the multiaddresses
 	peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, peer_id, peer_id_size);
 	if (peer == NULL)
@@ -133,7 +140,7 @@ int ipfs_routing_online_find_providers(struct IpfsRouting* routing, unsigned cha
  * helper method. Connect to a peer and ask it for information
  * about another peer
  */
-int ipfs_routing_online_ask_peer_for_peer(struct Libp2pPeer* whoToAsk, const char* peer_id, size_t peer_id_size, struct Libp2pPeer **result) {
+int ipfs_routing_online_ask_peer_for_peer(struct Libp2pPeer* whoToAsk, const unsigned char* peer_id, size_t peer_id_size, struct Libp2pPeer **result) {
 	if (whoToAsk->connection_type == CONNECTION_TYPE_CONNECTED) {
 		struct Libp2pMessage *message = libp2p_message_new();
 		if (message == NULL)
@@ -160,7 +167,7 @@ int ipfs_routing_online_ask_peer_for_peer(struct Libp2pPeer* whoToAsk, const cha
  * @param peer the result of the search
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const char* peer_id, size_t peer_id_size, struct Libp2pPeer **result) {
+int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const unsigned char* peer_id, size_t peer_id_size, struct Libp2pPeer **result) {
 	// first look to see if we have it in the peerstore
 	struct Peerstore* peerstore = routing->local_node->peerstore;
 	*result = libp2p_peerstore_get_peer(peerstore, (unsigned char*)peer_id, peer_id_size);
@@ -187,7 +194,7 @@ int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const char* peer_
  * @param key_size the length of the key
  * @returns true(1) on success, otherwise false
  */
-int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t key_size) {
+int ipfs_routing_online_provide(struct IpfsRouting* routing, const unsigned char* key, size_t key_size) {
 	struct Libp2pPeer* local_peer = libp2p_peer_new();
 	local_peer->id_size = strlen(routing->local_node->identity->peer_id);
 	local_peer->id = malloc(local_peer->id_size);
@@ -203,6 +210,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t k
 	libp2p_logger_debug("online", "Adding local MultiAddress %s to peer.\n", ma->string);
 	local_peer->addr_head->item = ma;
 
+	// create the message
 	struct Libp2pMessage* msg = libp2p_message_new();
 	msg->key_size = key_size;
 	msg->key = malloc(msg->key_size);
@@ -211,6 +219,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, char* key, size_t k
 	msg->provider_peer_head = libp2p_utils_linked_list_new();
 	msg->provider_peer_head->item = local_peer;
 
+	// loop through all peers in peerstre, and let them know (if we're still connected)
 	struct Libp2pLinkedList *current = routing->local_node->peerstore->head_entry;
 	while (current != NULL) {
 		struct PeerEntry* current_peer_entry = (struct PeerEntry*)current->item;
@@ -262,6 +271,120 @@ int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* pee
 	exit:
 	return retVal;
 }
+
+/***
+ * Ask a peer for a value
+ * @param routing the context
+ * @param peer the peer to ask
+ * @param key the key to ask for
+ * @param key_size the size of the key
+ * @param buffer where to put the results
+ * @param buffer_length the size of the buffer
+ * @returns true(1) on success
+ */
+int ipfs_routing_online_get_peer_value(ipfs_routing* routing, const struct Libp2pPeer* peer, const unsigned char* key, size_t key_size, void** buffer, size_t *buffer_size) {
+	// build message
+	struct Libp2pMessage* msg = libp2p_message_new();
+	msg->key_size = key_size;
+	msg->key = malloc(msg->key_size);
+	memcpy(msg->key, key, msg->key_size);
+	msg->message_type = MESSAGE_TYPE_GET_VALUE;
+
+	// send message and receive results
+	struct Libp2pMessage* ret_msg = ipfs_routing_online_send_receive_message(peer->connection, msg);
+	libp2p_message_free(msg);
+
+	if (ret_msg == NULL)
+		return 0;
+	if (ret_msg->record == NULL || ret_msg->record->value_size <= 0) {
+		libp2p_message_free(ret_msg);
+		return 0;
+	}
+	// put message results into buffer
+	*buffer_size = ret_msg->record->value_size;
+	*buffer = malloc(*buffer_size);
+	if (*buffer == NULL) {
+		*buffer_size = 0;
+		libp2p_message_free(ret_msg);
+		return 0;
+	}
+	memcpy(*buffer, ret_msg->record->value, *buffer_size);
+	libp2p_message_free(ret_msg);
+	return 1;
+}
+
+/**
+ * Retrieve a value from the dht
+ * @param routing the context
+ * @param key the key
+ * @param key_size the size of the key
+ * @param buffer where to put the results
+ * @param buffer_size the length of the buffer
+ */
+int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *key, size_t key_size, void **buffer, size_t *buffer_size)
+{
+	struct Libp2pVector *peers = NULL;
+	int retVal = 0;
+
+	// find a provider
+	routing->FindProviders(routing, key, key_size, &peers);
+	if (peers == NULL) {
+		libp2p_logger_debug("online", "online_get_value returned no providers\n");
+		goto exit;
+	}
+
+	libp2p_logger_debug("online", "FindProviders returned %d providers\n", peers->total);
+
+	for(int i = 0; i < peers->total; i++) {
+		struct Libp2pPeer* current_peer = libp2p_peerstore_get_or_add_peer(routing->local_node->peerstore, libp2p_utils_vector_get(peers, i));
+		if (libp2p_peer_matches_id(current_peer, (unsigned char*)routing->local_node->identity->peer_id)) {
+			// it's a local fetch. Retrieve it
+			if (!ipfs_routing_generic_get_value(routing, key, key_size, buffer, buffer_size))
+				continue;
+		}
+		if (libp2p_peer_is_connected(current_peer)) {
+			// ask a connected peer for the file. If unsuccessful, continue in the loop.
+			if (ipfs_routing_online_get_peer_value(routing, current_peer, key, key_size, buffer, buffer_size)) {
+				retVal = 1;
+				goto exit;
+			}
+		}
+	}
+	// we didn't get the file. Try to connect to the peers we're not connected to, and ask for the file
+	for(int i = 0; i < peers->total; i++) {
+		struct Libp2pPeer* current_peer = libp2p_utils_vector_get(peers, i);
+		if (libp2p_peer_matches_id(current_peer, (unsigned char*)routing->local_node->identity->peer_id)) {
+			// we tried this once, it didn't work. Skip it.
+			continue;
+		}
+		if (!libp2p_peer_is_connected(current_peer)) {
+			// attempt to connect. If unsuccessful, continue in the loop.
+			libp2p_logger_debug("online", "Attempting to connect to peer to retrieve file\n");
+			if (libp2p_peer_connect(current_peer)) {
+				libp2p_logger_debug("online", "Peer connected\n");
+				if (ipfs_routing_online_get_peer_value(routing, current_peer, key, key_size, buffer, buffer_size)) {
+					libp2p_logger_debug("online", "Retrieved a value\n");
+					retVal = 1;
+					goto exit;
+				} else {
+					libp2p_logger_debug("online", "Did not retrieve a value\n");
+				}
+			}
+		}
+	}
+
+	retVal = 0;
+	exit:
+	if (peers != NULL) {
+		for (int i = 0; i < peers->total; i++) {
+			struct Libp2pPeer* current = libp2p_utils_vector_get(peers, i);
+			libp2p_peer_free(current);
+		}
+		libp2p_utils_vector_free(peers);
+	}
+    return retVal;
+}
+
 
 /**
  * Connects to swarm
@@ -331,13 +454,15 @@ ipfs_routing* ipfs_routing_new_online (struct IpfsNode* local_node, struct RsaPr
         onlineRouting->stream = stream;
 
         onlineRouting->PutValue      = ipfs_routing_generic_put_value;
-        onlineRouting->GetValue      = ipfs_routing_generic_get_value;
+        onlineRouting->GetValue      = ipfs_routing_online_get_value;
         onlineRouting->FindProviders = ipfs_routing_online_find_providers;
         onlineRouting->FindPeer      = ipfs_routing_online_find_peer;
         onlineRouting->Provide       = ipfs_routing_online_provide;
         onlineRouting->Ping          = ipfs_routing_online_ping;
         onlineRouting->Bootstrap     = ipfs_routing_online_bootstrap;
     }
+
+    onlineRouting->local_node->mode = MODE_ONLINE;
 
     return onlineRouting;
 }

@@ -91,8 +91,8 @@ int ipfs_repo_fsrepo_unixfs_read(const unsigned char* hash, size_t hash_length, 
  * @param fs_repo the repo to write to
  * @returns true(1) on success
  */
-int ipfs_repo_fsrepo_node_write(const struct Node* unix_fs, const struct FSRepo* fs_repo, size_t* bytes_written);
-int ipfs_repo_fsrepo_node_read(const unsigned char* hash, size_t hash_length, struct Node** node, const struct FSRepo* fs_repo);
+int ipfs_repo_fsrepo_node_write(const struct HashtableNode* unix_fs, const struct FSRepo* fs_repo, size_t* bytes_written);
+int ipfs_repo_fsrepo_node_read(const unsigned char* hash, size_t hash_length, struct HashtableNode** node, const struct FSRepo* fs_repo);
 
 
 #endif /* fs_repo_h */

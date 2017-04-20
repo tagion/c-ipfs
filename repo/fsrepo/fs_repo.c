@@ -7,6 +7,7 @@
 #include "ipfs/blocks/blockstore.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "libp2p/db/datastore.h"
+#include "libp2p/db/filestore.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "libp2p/os/utils.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
@@ -512,6 +513,28 @@ int fs_repo_open_datastore(struct FSRepo* repo) {
 }
 
 /**
+ * For interface of Filestore. Retrieves a node from the filestore
+ * @param hash the hash to pull
+ * @param hash_length the length of the hash
+ * @param node_obj where to put the results
+ * @param filestore a reference to the filestore struct
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_repo_fsrepo_node_get(const unsigned char* hash, size_t hash_length, void** node_obj, size_t *node_size, const struct Filestore* filestore) {
+	struct FSRepo* fs_repo = (struct FSRepo*)filestore->handle;
+	struct HashtableNode* node = NULL;
+	int retVal = ipfs_repo_fsrepo_node_read(hash, hash_length, &node, fs_repo);
+	if (retVal == 1) {
+		*node_size = ipfs_hashtable_node_protobuf_encode_size(node);
+		*node_obj = malloc(*node_size);
+		retVal = ipfs_hashtable_node_protobuf_encode(node, *node_obj, *node_size, node_size);
+	}
+	if (node != NULL)
+		ipfs_hashtable_node_free(node);
+	return retVal;
+}
+
+/**
  * public methods
  */
 
@@ -539,6 +562,10 @@ int ipfs_repo_fsrepo_open(struct FSRepo* repo) {
 		return 0;
 	}
 	
+	// init the filestore
+	repo->config->filestore->handle = repo;
+	repo->config->filestore->node_get = ipfs_repo_fsrepo_node_get;
+
 	return 1;
 }
 
@@ -693,7 +720,7 @@ int ipfs_repo_fsrepo_unixfs_write(const struct UnixFS* unix_fs, const struct FSR
  * @param bytes_written number of bytes written to the repo
  * @returns true(1) on success
  */
-int ipfs_repo_fsrepo_node_write(const struct Node* node, const struct FSRepo* fs_repo, size_t* bytes_written) {
+int ipfs_repo_fsrepo_node_write(const struct HashtableNode* node, const struct FSRepo* fs_repo, size_t* bytes_written) {
 	/**
 	 * What is put in the blockstore is the node.
 	 * What is put in the datastore is the multihash as the key,
@@ -715,7 +742,7 @@ int ipfs_repo_fsrepo_node_write(const struct Node* node, const struct FSRepo* fs
 	return 1;
 }
 
-int ipfs_repo_fsrepo_node_read(const unsigned char* hash, size_t hash_length, struct Node** node, const struct FSRepo* fs_repo) {
+int ipfs_repo_fsrepo_node_read(const unsigned char* hash, size_t hash_length, struct HashtableNode** node, const struct FSRepo* fs_repo) {
 	int retVal = 0;
 
 	// get the base32 hash from the database
@@ -729,6 +756,7 @@ int ipfs_repo_fsrepo_node_read(const unsigned char* hash, size_t hash_length, st
 	retVal = ipfs_blockstore_get_node(hash, hash_length, node, fs_repo);
 	return retVal;
 }
+
 
 
 int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, struct Block** block, const struct FSRepo* fs_repo) {

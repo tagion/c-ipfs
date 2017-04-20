@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 	////Nodes/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	//N_Create_From_Link
-	struct Node * Mynode;
+	struct HashtableNode * Mynode;
 	Mynode = N_Create_From_Link(mylink);
 	mylink->name = "HAHA";//Testing for valid node creation
 	printf("Node Link[0] Name: %s\nHash: %s\n",Mynode->head_link[0]->name, Mynode->head_link[0]->Lcid->hash);
@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 	printf("Outlinkamt: %d\n", Mynode->link_ammount);
 
 	//Node Copy
-	struct Node * Node2;
+	struct HashtableNode * Node2;
 	Node2 = Node_Copy(Mynode);
 	printf("NODE COPY TEST: [0]: %s\n", Node2->head_link[0]->Lcid->hash);
 	Node_Delete(Node2);

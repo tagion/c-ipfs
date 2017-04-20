@@ -2,7 +2,7 @@
 #define __IPFS_IMPORTER_IMPORTER_H__
 
 #include "ipfs/merkledag/node.h"
-#include "ipfs/repo/fsrepo/fs_repo.h"
+#include "ipfs/core/ipfs_node.h"
 
 /**
  * Creates a node based on an incoming file or directory
@@ -19,7 +19,7 @@
  * @param recursive true if we should navigate directories
  * @returns true(1) on success
  */
-int ipfs_import_file(const char* root, const char* fileName, struct Node** parent_node, struct FSRepo* fs_repo, size_t* bytes_written, int recursive);
+int ipfs_import_file(const char* root, const char* fileName, struct HashtableNode** parent_node, struct IpfsNode *local_node, size_t* bytes_written, int recursive);
 
 /**
  * called from the command line

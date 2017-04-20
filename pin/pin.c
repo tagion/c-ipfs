@@ -119,7 +119,7 @@ int ipfs_pin_has_child (struct FSRepo *ds,
                         unsigned char *hash,  size_t hash_size,
                         unsigned char *child, size_t child_size)
 {
-    struct Node *node;
+    struct HashtableNode *node;
     struct NodeLink *node_link;
 
     if (ipfs_merkledag_get (hash, hash_size, &node, ds)) {

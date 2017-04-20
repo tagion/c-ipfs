@@ -6,18 +6,62 @@
 #include "ipfs/merkledag/node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/repo/init.h"
+#include "ipfs/core/ipfs_node.h"
+#include "libp2p/utils/logger.h"
+
 /**
  * pull objects from ipfs
  */
 
+/***
+ * Helper method to retrieve a protobuf'd Node from the router
+ * @param local_node the context
+ * @param hash the hash to retrieve
+ * @param hash_size the length of the hash
+ * @param result a place to store the Node
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_exporter_get_node(struct IpfsNode* local_node, const unsigned char* hash, const size_t hash_size,
+		struct HashtableNode** result) {
+	unsigned char *buffer = NULL;
+	size_t buffer_size = 0;
+	int retVal = 0;
+	struct Libp2pMessage* msg = NULL;
+
+	if (local_node->routing->GetValue(local_node->routing, hash, hash_size, (void**)&buffer, &buffer_size)) {
+		libp2p_logger_debug("exporter", "get_node got a value. Converting it to a HashtableNode\n");
+		// unprotobuf
+		if (ipfs_hashtable_node_protobuf_decode(buffer, buffer_size, result)) {
+			libp2p_logger_debug("exporter", "Conversion to HashtableNode successful\n");
+		}
+	} else {
+		libp2p_logger_debug("exporter", "get_node got no value. Returning false.\n");
+		goto exit;
+	}
+
+	// copy in the hash
+	(*result)->hash_size = hash_size;
+	(*result)->hash = malloc(hash_size);
+	memcpy((*result)->hash, hash, hash_size);
+
+	retVal = 1;
+	exit:
+	if (buffer != NULL)
+		free(buffer);
+	if (msg != NULL)
+		libp2p_message_free(msg);
+
+	return retVal;
+}
 
 /***
  * Get a file by its hash, and write the data to a filestream
  * @param hash the base58 multihash of the cid
  * @param file_descriptor where to write
- * @param fs_repo the repo
+ * @param local_node the context
  */
-int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor, const struct FSRepo* fs_repo) {
+int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor, struct IpfsNode* local_node) {
+
 	// convert hash to cid
 	struct Cid* cid = NULL;
 	if ( ipfs_cid_decode_hash_from_base58(hash, strlen((char*)hash), &cid) == 0) {
@@ -25,8 +69,8 @@ int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor
 	}
 
 	// find block
-	struct Node* read_node = NULL;
-	if (ipfs_merkledag_get(cid->hash, cid->hash_length, &read_node, fs_repo) == 0) {
+	struct HashtableNode* read_node = NULL;
+	if (!ipfs_exporter_get_node(local_node, cid->hash, cid->hash_length, &read_node)) {
 		ipfs_cid_free(cid);
 		return 0;
 	}
@@ -41,31 +85,31 @@ int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor
 		size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file_descriptor);
 		if (bytes_written != unix_fs->bytes_size) {
 			fclose(file_descriptor);
-			ipfs_node_free(read_node);
+			ipfs_hashtable_node_free(read_node);
 			ipfs_unixfs_free(unix_fs);
 			return 0;
 		}
 		ipfs_unixfs_free(unix_fs);
 	} else {
 		struct NodeLink* link = read_node->head_link;
-		struct Node* link_node = NULL;
+		struct HashtableNode* link_node = NULL;
 		while (link != NULL) {
-			if ( ipfs_merkledag_get(link->hash, link->hash_size, &link_node, fs_repo) == 0) {
+			if ( !ipfs_exporter_get_node(local_node, link->hash, link->hash_size, &link_node)) {
 				fclose(file_descriptor);
-				ipfs_node_free(read_node);
+				ipfs_hashtable_node_free(read_node);
 				return 0;
 			}
 			struct UnixFS* unix_fs;
 			ipfs_unixfs_protobuf_decode(link_node->data, link_node->data_size, &unix_fs);
 			size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file_descriptor);
 			if (bytes_written != unix_fs->bytes_size) {
-				ipfs_node_free(link_node);
+				ipfs_hashtable_node_free(link_node);
 				fclose(file_descriptor);
-				ipfs_node_free(read_node);
+				ipfs_hashtable_node_free(read_node);
 				ipfs_unixfs_free(unix_fs);
 				return 0;
 			}
-			ipfs_node_free(link_node);
+			ipfs_hashtable_node_free(link_node);
 			ipfs_unixfs_free(unix_fs);
 			link = link->next;
 		}
@@ -73,7 +117,7 @@ int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor
 	fclose(file_descriptor);
 
 	if (read_node != NULL)
-		ipfs_node_free(read_node);
+		ipfs_hashtable_node_free(read_node);
 
 	return 1;
 }
@@ -85,13 +129,13 @@ int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor
  * @param file_name the file name to write to
  * @returns true(1) on success
  */
-int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, const struct FSRepo* fs_repo) {
+int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, struct IpfsNode *local_node) {
 	// process blocks
 	FILE* file = fopen(file_name, "wb");
 	if (file == NULL) {
 		return 0;
 	}
-	return ipfs_exporter_to_filestream(hash, file, fs_repo);
+	return ipfs_exporter_to_filestream(hash, file, local_node);
 }
 
 /**
@@ -100,7 +144,7 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, cons
  * @param file_name the file name to write to
  * @returns true(1) on success
  */
-int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_repo) {
+int ipfs_exporter_to_console(const unsigned char* hash, struct IpfsNode *local_node) {
 	// convert hash to cid
 	struct Cid* cid = NULL;
 	if ( ipfs_cid_decode_hash_from_base58(hash, strlen((char*)hash), &cid) == 0) {
@@ -108,8 +152,8 @@ int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_
 	}
 
 	// find block
-	struct Node* read_node = NULL;
-	if (ipfs_merkledag_get(cid->hash, cid->hash_length, &read_node, fs_repo) == 0) {
+	struct HashtableNode* read_node = NULL;
+	if (!ipfs_exporter_get_node(local_node, cid->hash, cid->hash_length, &read_node)) {
 		ipfs_cid_free(cid);
 		return 0;
 	}
@@ -133,7 +177,7 @@ int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_
 	printf("\"}\n");
 
 	if (read_node != NULL)
-		ipfs_node_free(read_node);
+		ipfs_hashtable_node_free(read_node);
 
 	return 1;
 }
@@ -147,7 +191,6 @@ int ipfs_exporter_to_console(const unsigned char* hash, const struct FSRepo* fs_
  * @returns true(1) on success
  */
 int ipfs_exporter_object_get(int argc, char** argv) {
-	struct FSRepo* fs_repo = NULL;
 	char* repo_path = NULL;
 
 	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
@@ -155,22 +198,19 @@ int ipfs_exporter_object_get(int argc, char** argv) {
 		return 0;
 	}
 
-	// build the struct
-	int retVal = ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo);
-	if (retVal == 0) {
+	struct IpfsNode* local_node = NULL;
+	if (!ipfs_node_online_new(repo_path, &local_node))
 		return 0;
-	}
-	// open the repo
-	retVal = ipfs_repo_fsrepo_open(fs_repo);
-	if (retVal == 0) {
-		return 0;
-	}
+
 	// find hash
-	retVal = ipfs_exporter_to_console((unsigned char*)argv[3], fs_repo);
+	int retVal = ipfs_exporter_to_console((unsigned char*)argv[3], local_node);
+
+	ipfs_node_free(local_node);
+
 	return retVal;
 }
 
-int ipfs_exporter_cat_node(struct Node* node, const struct FSRepo* fs_repo) {
+int ipfs_exporter_cat_node(struct HashtableNode* node, struct IpfsNode* local_node) {
 	// process this node, then move on to the links
 
 	// build the unixfs
@@ -183,12 +223,12 @@ int ipfs_exporter_cat_node(struct Node* node, const struct FSRepo* fs_repo) {
 	struct NodeLink* current = node->head_link;
 	while (current != NULL) {
 		// find the node
-		struct Node* child_node = NULL;
-		if (ipfs_merkledag_get(current->hash, current->hash_size, &child_node, fs_repo) == 0) {
+		struct HashtableNode* child_node = NULL;
+		if (!ipfs_exporter_get_node(local_node, current->hash, current->hash_size, &child_node)) {
 			return 0;
 		}
-		ipfs_exporter_cat_node(child_node, fs_repo);
-		ipfs_node_free(child_node);
+		ipfs_exporter_cat_node(child_node, local_node);
+		ipfs_hashtable_node_free(child_node);
 		current = current->next;
 	}
 
@@ -202,7 +242,7 @@ int ipfs_exporter_cat_node(struct Node* node, const struct FSRepo* fs_repo) {
  * @returns true(1) on success
  */
 int ipfs_exporter_object_cat(int argc, char** argv) {
-	struct FSRepo* fs_repo = NULL;
+	struct IpfsNode *local_node = NULL;
 	char* repo_dir = NULL;
 
 	if (!ipfs_repo_get_directory(argc, argv, &repo_dir)) {
@@ -210,15 +250,9 @@ int ipfs_exporter_object_cat(int argc, char** argv) {
 		return 0;
 	}
 
-	// open the repo
-	int retVal = ipfs_repo_fsrepo_new(repo_dir, NULL, &fs_repo);
-	if (retVal == 0) {
+	if (!ipfs_node_online_new(repo_dir, &local_node))
 		return 0;
-	}
-	retVal = ipfs_repo_fsrepo_open(fs_repo);
-	if (retVal == 0) {
-		return 0;
-	}
+
 	// find hash
 	// convert hash to cid
 	struct Cid* cid = NULL;
@@ -227,16 +261,16 @@ int ipfs_exporter_object_cat(int argc, char** argv) {
 	}
 
 	// find block
-	struct Node* read_node = NULL;
-	if (ipfs_merkledag_get(cid->hash, cid->hash_length, &read_node, fs_repo) == 0) {
+	struct HashtableNode* read_node = NULL;
+	if (ipfs_exporter_get_node(local_node, cid->hash, cid->hash_length, &read_node)) {
 		ipfs_cid_free(cid);
 		return 0;
 	}
 	// no longer need the cid
 	ipfs_cid_free(cid);
 
-	ipfs_exporter_cat_node(read_node, fs_repo);
-	ipfs_node_free(read_node);
+	int retVal = ipfs_exporter_cat_node(read_node, local_node);
+	ipfs_hashtable_node_free(read_node);
 
 	return retVal;
 

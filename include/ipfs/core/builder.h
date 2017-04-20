@@ -5,6 +5,7 @@
 
 #include "ipfs/commands/context.h"
 #include "ipfs/repo/config/config.h"
+#include "ipfs/core/ipfs_node.h"
 
 struct BuildCfg {
 	int online;

@@ -5,6 +5,7 @@
 #include "ipfs/importer/importer.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "libp2p/os/utils.h"
+#include "ipfs/core/ipfs_node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/repo/init.h"
 #include "ipfs/unixfs/unixfs.h"
@@ -22,7 +23,7 @@
  * @param blocksize the blocksize to add
  * @returns true(1) on success
  */
-int ipfs_importer_add_filesize_to_data_section(struct Node* node, size_t bytes_read) {
+int ipfs_importer_add_filesize_to_data_section(struct HashtableNode* node, size_t bytes_read) {
 	// now add to the data section
 	struct UnixFS* data_section = NULL;
 	if (node->data == NULL) {
@@ -41,7 +42,7 @@ int ipfs_importer_add_filesize_to_data_section(struct Node* node, size_t bytes_r
 	unsigned char protobuf[protobuf_size];
 	ipfs_unixfs_protobuf_encode(data_section, protobuf, protobuf_size, &protobuf_size);
 	ipfs_unixfs_free(data_section);
-	ipfs_node_set_data(node, protobuf, protobuf_size);
+	ipfs_hashtable_node_set_data(node, protobuf, protobuf_size);
 	return 1;
 }
 
@@ -51,13 +52,13 @@ int ipfs_importer_add_filesize_to_data_section(struct Node* node, size_t bytes_r
  * @param node the node to add to
  * @returns number of bytes read
  */
-size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs_repo, size_t* total_size, size_t* bytes_written) {
+size_t ipfs_import_chunk(FILE* file, struct HashtableNode* parent_node, struct FSRepo* fs_repo, size_t* total_size, size_t* bytes_written) {
 	unsigned char buffer[MAX_DATA_SIZE];
 	size_t bytes_read = fread(buffer, 1, MAX_DATA_SIZE, file);
 
 	// structs used by this method
 	struct UnixFS* new_unixfs = NULL;
-	struct Node* new_node = NULL;
+	struct HashtableNode* new_node = NULL;
 	struct NodeLink* new_link = NULL;
 
 	// put the file bits into a new UnixFS file
@@ -90,63 +91,63 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
 	// if there is more to read, create a new node.
 	if (bytes_read == MAX_DATA_SIZE) {
 		// create a new node
-		if (ipfs_node_new_from_data(protobuf, *bytes_written, &new_node) == 0) {
+		if (ipfs_hashtable_node_new_from_data(protobuf, *bytes_written, &new_node) == 0) {
 			return 0;
 		}
 		// persist
 		size_t size_of_node = 0;
 		if (ipfs_merkledag_add(new_node, fs_repo, &size_of_node) == 0) {
-			ipfs_node_free(new_node);
+			ipfs_hashtable_node_free(new_node);
 			return 0;
 		}
 
 		// put link in parent node
 		if (ipfs_node_link_create(NULL, new_node->hash, new_node->hash_size, &new_link) == 0) {
-			ipfs_node_free(new_node);
+			ipfs_hashtable_node_free(new_node);
 			return 0;
 		}
 		new_link->t_size = size_of_node;
 		*total_size += new_link->t_size;
 		// NOTE: disposal of this link object happens when the parent is disposed
-		if (ipfs_node_add_link(parent_node, new_link) == 0) {
-			ipfs_node_free(new_node);
+		if (ipfs_hashtable_node_add_link(parent_node, new_link) == 0) {
+			ipfs_hashtable_node_free(new_node);
 			return 0;
 		}
 		ipfs_importer_add_filesize_to_data_section(parent_node, bytes_read);
-		ipfs_node_free(new_node);
+		ipfs_hashtable_node_free(new_node);
 		*bytes_written = size_of_node;
 		size_of_node = 0;
 	} else {
 		// if there are no existing links, put what we pulled from the file into parent_node
 		// otherwise, add it as a link
 		if (parent_node->head_link == NULL) {
-			ipfs_node_set_data(parent_node, protobuf, *bytes_written);
+			ipfs_hashtable_node_set_data(parent_node, protobuf, *bytes_written);
 		} else {
 			// there are existing links. put the data in a new node, save it, then put the link in parent_node
 			// create a new node
-			if (ipfs_node_new_from_data(protobuf, *bytes_written, &new_node) == 0) {
+			if (ipfs_hashtable_node_new_from_data(protobuf, *bytes_written, &new_node) == 0) {
 				return 0;
 			}
 			// persist
 			if (ipfs_merkledag_add(new_node, fs_repo, &size_of_node) == 0) {
-				ipfs_node_free(new_node);
+				ipfs_hashtable_node_free(new_node);
 				return 0;
 			}
 
 			// put link in parent node
 			if (ipfs_node_link_create(NULL, new_node->hash, new_node->hash_size, &new_link) == 0) {
-				ipfs_node_free(new_node);
+				ipfs_hashtable_node_free(new_node);
 				return 0;
 			}
 			new_link->t_size = size_of_node;
 			*total_size += new_link->t_size;
 			// NOTE: disposal of this link object happens when the parent is disposed
-			if (ipfs_node_add_link(parent_node, new_link) == 0) {
-				ipfs_node_free(new_node);
+			if (ipfs_hashtable_node_add_link(parent_node, new_link) == 0) {
+				ipfs_hashtable_node_free(new_node);
 				return 0;
 			}
 			ipfs_importer_add_filesize_to_data_section(parent_node, bytes_read);
-			ipfs_node_free(new_node);
+			ipfs_hashtable_node_free(new_node);
 		}
 		// persist the main node
 		ipfs_merkledag_add(parent_node, fs_repo, bytes_written);
@@ -162,7 +163,7 @@ size_t ipfs_import_chunk(FILE* file, struct Node* parent_node, struct FSRepo* fs
  * @param file_name the name of the file
  * @returns true(1) if successful, false(0) if couldn't generate the MultiHash to be displayed
  */
-int ipfs_import_print_node_results(const struct Node* node, const char* file_name) {
+int ipfs_import_print_node_results(const struct HashtableNode* node, const char* file_name) {
 	// give some results to the user
 	//TODO: if directory_entry is itself a directory, traverse and report files
 	int buffer_len = 100;
@@ -191,7 +192,7 @@ int ipfs_import_print_node_results(const struct Node* node, const char* file_nam
  * @param recursive true if we should navigate directories
  * @returns true(1) on success
  */
-int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** parent_node, struct FSRepo* fs_repo, size_t* bytes_written, int recursive) {
+int ipfs_import_file(const char* root_dir, const char* fileName, struct HashtableNode** parent_node, struct IpfsNode* local_node, size_t* bytes_written, int recursive) {
 	/**
 	 * NOTE: When this function completes, parent_node will be either:
 	 * 1) the complete file, in the case of a small file (<256k-ish)
@@ -217,7 +218,7 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 			new_root_dir = path;
 		}
 		// initialize parent_node as a directory
-		if (ipfs_node_create_directory(parent_node) == 0) {
+		if (ipfs_hashtable_node_create_directory(parent_node) == 0) {
 			if (path != NULL)
 				free(path);
 			if (file != NULL)
@@ -231,7 +232,7 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 			while (next != NULL) {
 				// process each file. NOTE: could be an embedded directory
 				*bytes_written = 0;
-				struct Node* file_node;
+				struct HashtableNode* file_node;
 				// put the filename together from fileName, which is the directory, and next->file_name
 				// which is a file (or a directory) within the directory we just found.
 				size_t filename_len = strlen(fileName) + strlen(next->file_name) + 2;
@@ -239,8 +240,8 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 				os_utils_filepath_join(fileName, next->file_name, full_file_name, filename_len);
 				// adjust root directory
 
-				if (ipfs_import_file(new_root_dir, full_file_name, &file_node, fs_repo, bytes_written, recursive) == 0) {
-					ipfs_node_free(*parent_node);
+				if (ipfs_import_file(new_root_dir, full_file_name, &file_node, local_node, bytes_written, recursive) == 0) {
+					ipfs_hashtable_node_free(*parent_node);
 					os_utils_free_file_list(first);
 					if (file != NULL)
 						free(file);
@@ -259,16 +260,16 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 				ipfs_node_link_create(next->file_name, file_node->hash, file_node->hash_size, &file_node_link);
 				file_node_link->t_size = *bytes_written;
 				// add file_node as link to parent_node
-				ipfs_node_add_link(*parent_node, file_node_link);
+				ipfs_hashtable_node_add_link(*parent_node, file_node_link);
 				// clean up file_node
-				ipfs_node_free(file_node);
+				ipfs_hashtable_node_free(file_node);
 				// move to next file in list
 				next = next->next;
 			} // while going through files
 		}
 		// save the parent_node (the directory)
 		size_t bytes_written;
-		ipfs_merkledag_add(*parent_node, fs_repo, &bytes_written);
+		ipfs_merkledag_add(*parent_node, local_node->repo, &bytes_written);
 		if (file != NULL)
 			free(file);
 		if (path != NULL)
@@ -277,7 +278,7 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 	} else {
 		// process this file
 		FILE* file = fopen(fileName, "rb");
-		retVal = ipfs_node_new(parent_node);
+		retVal = ipfs_hashtable_node_new(parent_node);
 		if (retVal == 0) {
 			return 0;
 		}
@@ -285,11 +286,14 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Node** p
 		// add all nodes (will be called multiple times for large files)
 		while ( bytes_read == MAX_DATA_SIZE) {
 			size_t written = 0;
-			bytes_read = ipfs_import_chunk(file, *parent_node, fs_repo, &total_size, &written);
+			bytes_read = ipfs_import_chunk(file, *parent_node, local_node->repo, &total_size, &written);
 			*bytes_written += written;
 		}
 		fclose(file);
 	}
+
+	// notify the network
+	local_node->routing->Provide(local_node->routing, (*parent_node)->hash, (*parent_node)->hash_size);
 
 	return 1;
 }
@@ -359,51 +363,45 @@ int ipfs_import_files(int argc, char** argv) {
 	 * param 2: -r (optional)
 	 * param 3: directoryname
 	 */
-	struct FSRepo* fs_repo = NULL;
+	struct IpfsNode* local_node = NULL;
+	char* repo_path = NULL;
+	int retVal = 0;
+
 	int recursive = ipfs_import_is_recursive(argc, argv);
 
 	// parse the command line
 	struct FileList* first = ipfs_import_get_filelist(argc, argv);
 
 	// open the repo
-	char* repo_path = NULL;
 	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
 		// dir doesn't exist
 		fprintf(stderr, "Repo does not exist: %s\n", repo_path);
 		return 0;
 	}
-	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
-		fprintf(stderr, "Unable to build the repo struct: %s\n", repo_path);
-		return 0;
-	}
-	if (!ipfs_repo_fsrepo_open(fs_repo)) {
-		fprintf(stderr, "Unable to open repository: %s\n", repo_path);
-		return 0;
-	}
+	ipfs_node_online_new(repo_path, &local_node);
 
-	int retVal = 0;
 
 	// import the file(s)
 	struct FileList* current = first;
 	while (current != NULL) {
-		struct Node* directory_entry = NULL;
+		struct HashtableNode* directory_entry = NULL;
 		char* path = NULL;
 		char* filename = NULL;
 		os_utils_split_filename(current->file_name, &path, &filename);
 		size_t bytes_written = 0;
-		retVal = ipfs_import_file(NULL, current->file_name, &directory_entry, fs_repo, &bytes_written, recursive);
+		retVal = ipfs_import_file(NULL, current->file_name, &directory_entry, local_node, &bytes_written, recursive);
 
 		ipfs_import_print_node_results(directory_entry, filename);
 		// cleanup
-		ipfs_node_free(directory_entry);
+		ipfs_hashtable_node_free(directory_entry);
 		if (path != NULL)
 			free(path);
 		free(filename);
 		current = current->next;
 	}
 
-	if (fs_repo != NULL)
-		ipfs_repo_fsrepo_free(fs_repo);
+	if (local_node!= NULL)
+		ipfs_node_free(local_node);
 	// free file list
 	current = first;
 	while (current != NULL) {

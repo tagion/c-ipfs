@@ -33,6 +33,7 @@ struct Reprovider {
 struct RepoConfig {
 	struct Identity* identity;
 	struct Datastore* datastore;
+	struct Filestore* filestore;
 	struct Addresses* addresses;
 	struct Mounts mounts;
 	struct Discovery discovery;

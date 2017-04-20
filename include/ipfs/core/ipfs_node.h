@@ -19,3 +19,17 @@ struct IpfsNode {
 	//struct Mount** mounts;
 	// TODO: Add more here
 };
+
+/***
+ * build an online IpfsNode
+ * @param repo_path where the IPFS repository directory is
+ * @param node the completed IpfsNode struct
+ * @returns true(1) on success
+ */
+int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node);
+/***
+ * Free resources from the creation of an IpfsNode
+ * @param node the node to free
+ * @returns true(1)
+ */
+int ipfs_node_free(struct IpfsNode* node);

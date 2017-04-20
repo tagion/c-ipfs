@@ -19,16 +19,16 @@
  * @param bytes_written the number of bytes written
  * @returns true(1) on success
  */
-int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo, size_t* bytes_written) {
+int ipfs_merkledag_add(struct HashtableNode* node, struct FSRepo* fs_repo, size_t* bytes_written) {
 	// taken from merkledag.go line 59
 	int retVal = 0;
 
 	// compute the hash if necessary
 	if (node->hash == NULL) {
-		size_t protobuf_size = ipfs_node_protobuf_encode_size(node);
+		size_t protobuf_size = ipfs_hashtable_node_protobuf_encode_size(node);
 		unsigned char protobuf[protobuf_size];
 		size_t bytes_encoded;
-		retVal = ipfs_node_protobuf_encode(node, protobuf, protobuf_size, &bytes_encoded);
+		retVal = ipfs_hashtable_node_protobuf_encode(node, protobuf, protobuf_size, &bytes_encoded);
 
 		node->hash_size = 32;
 		node->hash = (unsigned char*)malloc(node->hash_size);
@@ -59,7 +59,7 @@ int ipfs_merkledag_add(struct Node* node, struct FSRepo* fs_repo, size_t* bytes_
  * @param fs_repo the repository
  * @returns true(1) on success
  */
-int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node** node, const struct FSRepo* fs_repo) {
+int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct HashtableNode** node, const struct FSRepo* fs_repo) {
 	int retVal = 1;
 	size_t key_length = 100;
 	unsigned char key[key_length];
@@ -77,12 +77,12 @@ int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Node*
 	}
 
 	// set the hash
-	ipfs_node_set_hash(*node, hash, hash_size);
+	ipfs_hashtable_node_set_hash(*node, hash, hash_size);
 
 	return 1;
 }
 
-int ipfs_merkledag_get_by_multihash(const unsigned char* multihash, size_t multihash_length, struct Node** node, const struct FSRepo* fs_repo) {
+int ipfs_merkledag_get_by_multihash(const unsigned char* multihash, size_t multihash_length, struct HashtableNode** node, const struct FSRepo* fs_repo) {
 	// convert to hash
 	size_t hash_size = 0;
 	unsigned char* hash = NULL;

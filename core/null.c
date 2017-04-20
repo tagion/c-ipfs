@@ -54,6 +54,7 @@ void ipfs_null_connection (void *ptr)
     session.insecure_stream = libp2p_net_multistream_stream_new(connection_param->file_descriptor, connection_param->ip, connection_param->port);
     session.default_stream = session.insecure_stream;
     session.datastore = connection_param->local_node->repo->config->datastore;
+    session.filestore = connection_param->local_node->repo->config->filestore;
 
     libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
@@ -100,14 +101,14 @@ void ipfs_null_connection (void *ptr)
 					}
 					else {
 						// try to get the Node
-						struct Node* node = NULL;
+						struct HashtableNode* node = NULL;
 						if (!ipfs_merkledag_get(hash, hash_length, &node, connection_param->local_node->repo)) {
 							_continue = 0;
 							continue;
 						}
-						size_t results_size = ipfs_node_protobuf_encode_size(node);
+						size_t results_size = ipfs_hashtable_node_protobuf_encode_size(node);
 						unsigned char results[results_size];
-						if (!ipfs_node_protobuf_encode(node, results, results_size, &results_size)) {
+						if (!ipfs_hashtable_node_protobuf_encode(node, results, results_size, &results_size)) {
 							_continue = 0;
 							continue;
 						}

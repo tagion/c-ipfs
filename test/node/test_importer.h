@@ -7,27 +7,30 @@
 #include "mh/hashes.h"
 #include "mh/multihash.h"
 #include "libp2p/crypto/encoding/base58.h"
+#include "ipfs/core/ipfs_node.h"
 
 int test_import_large_file() {
 	size_t bytes_size = 1000000; //1mb
 	unsigned char file_bytes[bytes_size];
 	const char* fileName = "/tmp/test_import_large.tmp";
+	const char* repo_dir = "/tmp/.ipfs";
+	struct IpfsNode* local_node = NULL;
 
 	// create the necessary file
 	create_bytes(file_bytes, bytes_size);
 	create_file(fileName, file_bytes, bytes_size);
 
 	// get the repo
-	drop_and_build_repository("/tmp/.ipfs", 4001, NULL, NULL);
-	struct FSRepo* fs_repo;
-	ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, &fs_repo);
-	ipfs_repo_fsrepo_open(fs_repo);
+	drop_and_build_repository(repo_dir, 4001, NULL, NULL);
+	if (!ipfs_node_online_new(repo_dir, &local_node)) {
+		return 0;
+	}
 
 	// write to ipfs
-	struct Node* write_node;
+	struct HashtableNode* write_node;
 	size_t bytes_written;
-	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written, 1) == 0) {
-		ipfs_repo_fsrepo_free(fs_repo);
+	if (ipfs_import_file("/tmp", fileName, &write_node, local_node, &bytes_written, 1) == 0) {
+		ipfs_node_free(local_node);
 		return 0;
 	}
 
@@ -44,46 +47,46 @@ int test_import_large_file() {
 	for(int i = 0; i < 10; i++) {
 		if (write_node->hash[i] != cid_test[i]) {
 			printf("Hashes should be the same each time, and do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->hash[i]);
-			ipfs_repo_fsrepo_free(fs_repo);
-			ipfs_node_free(write_node);
+			ipfs_node_free(local_node);
+			ipfs_hashtable_node_free(write_node);
 			return 0;
 		}
 	}
 
 	// make sure all went okay
-	struct Node* read_node;
-	if (ipfs_merkledag_get(write_node->hash, write_node->hash_size, &read_node, fs_repo) == 0) {
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(write_node);
+	struct HashtableNode* read_node;
+	if (ipfs_merkledag_get(write_node->hash, write_node->hash_size, &read_node, local_node->repo) == 0) {
+		ipfs_node_free(local_node);
+		ipfs_hashtable_node_free(write_node);
 		return 0;
 	}
 
 	// the second block should be there
-	struct Node* read_node2;
-	if (ipfs_merkledag_get(read_node->head_link->hash, read_node->head_link->hash_size, &read_node2, fs_repo) == 0) {
+	struct HashtableNode* read_node2;
+	if (ipfs_merkledag_get(read_node->head_link->hash, read_node->head_link->hash_size, &read_node2, local_node->repo) == 0) {
 		printf("Unable to find the linked node.\n");
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(write_node);
+		ipfs_node_free(local_node);
+		ipfs_hashtable_node_free(write_node);
 		return 0;
 	}
 
-	ipfs_node_free(read_node2);
+	ipfs_hashtable_node_free(read_node2);
 
 	// compare data
 	if (write_node->data_size != read_node->data_size) {
 		printf("Data size of nodes are not equal. Should be %lu but are %lu\n", write_node->data_size, read_node->data_size);
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(write_node);
-		ipfs_node_free(read_node);
+		ipfs_node_free(local_node);
+		ipfs_hashtable_node_free(write_node);
+		ipfs_hashtable_node_free(read_node);
 		return 0;
 	}
 
 	for(int i = 0; i < write_node->data_size; i++) {
 		if (write_node->data[i] != read_node->data[i]) {
 			printf("Data within node is different at position %d. The value should be %02x, but was %02x.\n", i, write_node->data[i], read_node->data[i]);
-			ipfs_repo_fsrepo_free(fs_repo);
-			ipfs_node_free(write_node);
-			ipfs_node_free(read_node);
+			ipfs_node_free(local_node);
+			ipfs_hashtable_node_free(write_node);
+			ipfs_hashtable_node_free(read_node);
 			return 0;
 		}
 	}
@@ -93,18 +96,18 @@ int test_import_large_file() {
 	unsigned char base58[base58_size];
 	if ( ipfs_cid_hash_to_base58(read_node->hash, read_node->hash_size, base58, base58_size) == 0) {
 		printf("Unable to convert cid to multihash\n");
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(write_node);
-		ipfs_node_free(read_node);
+		ipfs_node_free(local_node);
+		ipfs_hashtable_node_free(write_node);
+		ipfs_hashtable_node_free(read_node);
 		return 0;
 	}
 
 	// attempt to write file
-	if (ipfs_exporter_to_file(base58, "/tmp/test_import_large_file.rsl", fs_repo) == 0) {
+	if (ipfs_exporter_to_file(base58, "/tmp/test_import_large_file.rsl", local_node->repo) == 0) {
 		printf("Unable to write file.\n");
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(write_node);
-		ipfs_node_free(read_node);
+		ipfs_node_free(local_node);
+		ipfs_hashtable_node_free(write_node);
+		ipfs_hashtable_node_free(read_node);
 		return 0;
 	}
 
@@ -112,9 +115,9 @@ int test_import_large_file() {
 	size_t new_file_size = os_utils_file_size("/tmp/test_import_large_file.rsl");
 	if (new_file_size != bytes_size) {
 		printf("File sizes are different. Should be %lu but the new one is %lu\n", bytes_size, new_file_size);
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(write_node);
-		ipfs_node_free(read_node);
+		ipfs_node_free(local_node);
+		ipfs_hashtable_node_free(write_node);
+		ipfs_hashtable_node_free(read_node);
 		return 0;
 	}
 
@@ -131,27 +134,27 @@ int test_import_large_file() {
 		bytes_read2 = fread(buf2, 1, 100, f2);
 		if (bytes_read1 != bytes_read2) {
 			printf("Error reading files for comparison. Read %lu bytes of file 1, but %lu bytes of file 2\n", bytes_read1, bytes_read2);
-			ipfs_repo_fsrepo_free(fs_repo);
-			ipfs_node_free(write_node);
-			ipfs_node_free(read_node);
+			ipfs_node_free(local_node);
+			ipfs_hashtable_node_free(write_node);
+			ipfs_hashtable_node_free(read_node);
 			fclose(f1);
 			fclose(f2);
 			return 0;
 		}
 		if (memcmp(buf1, buf2, bytes_read1) != 0) {
 			printf("The bytes between the files are different\n");
-			ipfs_repo_fsrepo_free(fs_repo);
-			ipfs_node_free(write_node);
-			ipfs_node_free(read_node);
+			ipfs_node_free(local_node);
+			ipfs_hashtable_node_free(write_node);
+			ipfs_hashtable_node_free(read_node);
 			fclose(f1);
 			fclose(f2);
 			return 0;
 		}
 	}
 
-	ipfs_repo_fsrepo_free(fs_repo);
-	ipfs_node_free(write_node);
-	ipfs_node_free(read_node);
+	ipfs_node_free(local_node);
+	ipfs_hashtable_node_free(write_node);
+	ipfs_hashtable_node_free(read_node);
 
 	return 1;
 
@@ -161,22 +164,22 @@ int test_import_small_file() {
 	size_t bytes_size = 1000;
 	unsigned char file_bytes[bytes_size];
 	const char* fileName = "/tmp/test_import_small.tmp";
+	const char* repo_path = "/tmp/.ipfs";
+	struct IpfsNode *local_node = NULL;
 
 	// create the necessary file
 	create_bytes(file_bytes, bytes_size);
 	create_file(fileName, file_bytes, bytes_size);
 
 	// get the repo
-	drop_and_build_repository("/tmp/.ipfs", 4001, NULL, NULL);
-	struct FSRepo* fs_repo;
-	ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, &fs_repo);
-	ipfs_repo_fsrepo_open(fs_repo);
+	drop_and_build_repository(repo_path, 4001, NULL, NULL);
+	ipfs_node_online_new(repo_path, &local_node);
 
 	// write to ipfs
-	struct Node* write_node;
+	struct HashtableNode* write_node;
 	size_t bytes_written;
-	if (ipfs_import_file("/tmp", fileName, &write_node, fs_repo, &bytes_written, 1) == 0) {
-		ipfs_repo_fsrepo_free(fs_repo);
+	if (ipfs_import_file("/tmp", fileName, &write_node, local_node, &bytes_written, 1) == 0) {
+		ipfs_node_free(local_node);
 		return 0;
 	}
 
@@ -192,42 +195,42 @@ int test_import_small_file() {
 	for(int i = 0; i < 10; i++) {
 		if (write_node->hash[i] != cid_test[i]) {
 			printf("Hashes do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->hash[i]);
-			ipfs_repo_fsrepo_free(fs_repo);
-			ipfs_node_free(write_node);
+			ipfs_node_free(local_node);
+			ipfs_hashtable_node_free(write_node);
 			return 0;
 		}
 	}
 
 	// make sure all went okay
-	struct Node* read_node;
-	if (ipfs_merkledag_get(write_node->hash, write_node->hash_size, &read_node, fs_repo) == 0) {
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(write_node);
+	struct HashtableNode* read_node;
+	if (ipfs_merkledag_get(write_node->hash, write_node->hash_size, &read_node, local_node->repo) == 0) {
+		ipfs_node_free(local_node);
+		ipfs_hashtable_node_free(write_node);
 		return 0;
 	}
 
 	// compare data
 	if (write_node->data_size != bytes_size + 8 || write_node->data_size != read_node->data_size) {
 		printf("Data size of nodes are not equal or are incorrect. Should be %lu but are %lu\n", write_node->data_size, read_node->data_size);
-		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_node_free(write_node);
-		ipfs_node_free(read_node);
+		ipfs_node_free(local_node);
+		ipfs_hashtable_node_free(write_node);
+		ipfs_hashtable_node_free(read_node);
 		return 0;
 	}
 
 	for(int i = 0; i < bytes_size; i++) {
 		if (write_node->data[i] != read_node->data[i]) {
 			printf("Data within node is different at position %d\n", i);
-			ipfs_repo_fsrepo_free(fs_repo);
-			ipfs_node_free(write_node);
-			ipfs_node_free(read_node);
+			ipfs_node_free(local_node);
+			ipfs_hashtable_node_free(write_node);
+			ipfs_hashtable_node_free(read_node);
 			return 0;
 		}
 	}
 
-	ipfs_repo_fsrepo_free(fs_repo);
-	ipfs_node_free(write_node);
-	ipfs_node_free(read_node);
+	ipfs_node_free(local_node);
+	ipfs_hashtable_node_free(write_node);
+	ipfs_hashtable_node_free(read_node);
 
 	return 1;
 }
