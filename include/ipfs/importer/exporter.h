@@ -33,3 +33,13 @@ int ipfs_exporter_object_get(int argc, char** argv);
  * @returns true(1) on success
  */
 int ipfs_exporter_object_cat(int argc, char** argv);
+
+/**
+ * Retrieves the object pointed to by hash and displays the raw data
+ * @param local_node the local node
+ * @param hash the hash to use
+ * @param hash_size the length of the hash
+ * @param file the file descrptor to write to
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_exporter_object_cat_to_file(struct IpfsNode *local_node, unsigned char* hash, int hash_size, FILE* file);

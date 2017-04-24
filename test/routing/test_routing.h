@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <fcntl.h>
 
 #include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"
@@ -418,6 +419,138 @@ int test_routing_retrieve_file_third_party() {
 
     if (node->data_size != result_node->data_size) {
     	fprintf(stderr, "Result sizes do not match. Should be %lu but is %lu\n", node->data_size, result_node->data_size);
+    	goto exit;
+    }
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (thread1_started)
+		pthread_join(thread1, NULL);
+	if (thread2_started)
+		pthread_join(thread2, NULL);
+	if (ipfs_node3 != NULL)
+		ipfs_node_free(ipfs_node3);
+	if (peer_id_1 != NULL)
+		free(peer_id_1);
+	if (peer_id_2 != NULL)
+		free(peer_id_2);
+	if (peer_id_3 != NULL)
+		free(peer_id_3);
+	if (ma_vector2 != NULL) {
+		libp2p_utils_vector_free(ma_vector2);
+	}
+	if (ma_vector3 != NULL) {
+		libp2p_utils_vector_free(ma_vector3);
+	}
+	if (node != NULL)
+		ipfs_hashtable_node_free(node);
+	if (result_node != NULL)
+		ipfs_hashtable_node_free(result_node);
+	libp2p_logger_free();
+	return retVal;
+
+}
+
+/***
+ * Attempt to retrieve a large file from a previously unknown node
+ */
+int test_routing_retrieve_large_file() {
+	int retVal = 0;
+
+	/*
+	libp2p_logger_add_class("multistream");
+	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("providerstore");
+	libp2p_logger_add_class("peerstore");
+	libp2p_logger_add_class("peer");
+	libp2p_logger_add_class("test_routing");
+	*/
+
+	libp2p_logger_add_class("exporter");
+	libp2p_logger_add_class("online");
+
+	// clean out repository
+	char* ipfs_path = "/tmp/test1";
+	char* peer_id_1 = NULL, *peer_id_2 = NULL, *peer_id_3 = NULL;
+	struct IpfsNode* ipfs_node2 = NULL, *ipfs_node3 = NULL;
+	pthread_t thread1, thread2;
+	int thread1_started = 0, thread2_started = 0;
+	struct MultiAddress* ma_peer1 = NULL;
+	struct Libp2pVector* ma_vector2 = NULL, *ma_vector3 = NULL;
+	struct HashtableNode* node = NULL, *result_node = NULL;
+	FILE *fd;
+	char* temp_file_name = "/tmp/largefile.tmp";
+
+	unlink(temp_file_name);
+
+	// create peer 1
+	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
+	char multiaddress_string[255];
+	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
+	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
+	// start the daemon in a separate thread
+	libp2p_logger_debug("test_routing", "Firing up daemon 1.\n");
+	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+		fprintf(stderr, "Unable to start thread 1\n");
+		goto exit;
+	}
+	thread1_started = 1;
+
+    // wait for everything to start up
+    // JMJ debugging =
+    sleep(3);
+
+    // create peer 2
+	ipfs_path = "/tmp/test2";
+	// create a vector to hold peer1's multiaddress so we can connect as a peer
+	ma_vector2 = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector2, ma_peer1);
+	// note: this distroys some things, as it frees the fs_repo_3:
+	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
+	// add a file, to prime the connection to peer 1
+	//TODO: Find a better way to do this...
+	size_t bytes_written = 0;
+	if (!ipfs_node_online_new(ipfs_path, &ipfs_node2))
+		goto exit;
+	ipfs_node2->routing->Bootstrap(ipfs_node2->routing);
+	ipfs_import_file(NULL, "/home/parallels/ipfstest/test_import_large.tmp", &node, ipfs_node2, &bytes_written, 0);
+	ipfs_node_free(ipfs_node2);
+	// start the daemon in a separate thread
+	libp2p_logger_debug("test_routing", "Firing up daemon 2.\n");
+	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+		fprintf(stderr, "Unable to start thread 2\n");
+		goto exit;
+	}
+	thread2_started = 1;
+
+    // wait for everything to start up
+    // JMJ debugging =
+    sleep(3);
+
+    // see if we get the entire file
+    libp2p_logger_debug("test_routing", "Firing up the 3rd client\n");
+    // create my peer, peer 3
+	ipfs_path = "/tmp/test3";
+	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
+	ma_vector3 = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector3, ma_peer1);
+	drop_and_build_repository(ipfs_path, 4003, ma_vector3, &peer_id_3);
+	ipfs_node_online_new(ipfs_path, &ipfs_node3);
+
+    ipfs_node3->routing->Bootstrap(ipfs_node3->routing);
+
+
+    fd = fopen(temp_file_name, "w+");
+    ipfs_exporter_object_cat_to_file(ipfs_node3, node->hash, node->hash_size, fd);
+    fclose(fd);
+
+    struct stat buf;
+    stat(temp_file_name, &buf);
+
+    if (buf.st_size != 1000000) {
+    	fprintf(stderr, "File size should be 1000000, but is %lu\n", buf.st_size);
     	goto exit;
     }
 

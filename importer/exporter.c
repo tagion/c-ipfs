@@ -210,15 +210,16 @@ int ipfs_exporter_object_get(int argc, char** argv) {
 	return retVal;
 }
 
-int ipfs_exporter_cat_node(struct HashtableNode* node, struct IpfsNode* local_node) {
+int ipfs_exporter_cat_node(struct HashtableNode* node, struct IpfsNode* local_node, FILE *file) {
 	// process this node, then move on to the links
 
 	// build the unixfs
 	struct UnixFS* unix_fs;
 	ipfs_unixfs_protobuf_decode(node->data, node->data_size, &unix_fs);
 	for(size_t i = 0LU; i < unix_fs->bytes_size; i++) {
-		printf("%c", unix_fs->bytes[i]);
+		fprintf(file, "%c", unix_fs->bytes[i]);
 	}
+	ipfs_unixfs_free(unix_fs);
 	// process links
 	struct NodeLink* current = node->head_link;
 	while (current != NULL) {
@@ -227,7 +228,7 @@ int ipfs_exporter_cat_node(struct HashtableNode* node, struct IpfsNode* local_no
 		if (!ipfs_exporter_get_node(local_node, current->hash, current->hash_size, &child_node)) {
 			return 0;
 		}
-		ipfs_exporter_cat_node(child_node, local_node);
+		ipfs_exporter_cat_node(child_node, local_node, file);
 		ipfs_hashtable_node_free(child_node);
 		current = current->next;
 	}
@@ -235,8 +236,22 @@ int ipfs_exporter_cat_node(struct HashtableNode* node, struct IpfsNode* local_no
 	return 1;
 }
 
+int ipfs_exporter_object_cat_to_file(struct IpfsNode *local_node, unsigned char* hash, int hash_size, FILE* file) {
+	struct HashtableNode* read_node = NULL;
+
+	// find block
+	if (!ipfs_exporter_get_node(local_node, hash, hash_size, &read_node)) {
+		return 0;
+	}
+
+	int retVal = ipfs_exporter_cat_node(read_node, local_node, file);
+	ipfs_hashtable_node_free(read_node);
+	return retVal;
+}
+
 /***
- * Called from the command line with ipfs cat [hash]. Retrieves the object pointed to by hash, and displays its block data (links and data elements)
+ * Called from the command line with ipfs cat [hash]. Retrieves the object
+ * pointed to by hash, and displays its raw block data to the console
  * @param argc number of arguments
  * @param argv arguments
  * @returns true(1) on success
@@ -260,17 +275,8 @@ int ipfs_exporter_object_cat(int argc, char** argv) {
 		return 0;
 	}
 
-	// find block
-	struct HashtableNode* read_node = NULL;
-	if (ipfs_exporter_get_node(local_node, cid->hash, cid->hash_length, &read_node)) {
-		ipfs_cid_free(cid);
-		return 0;
-	}
-	// no longer need the cid
+	int retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, stdout);
 	ipfs_cid_free(cid);
-
-	int retVal = ipfs_exporter_cat_node(read_node, local_node);
-	ipfs_hashtable_node_free(read_node);
 
 	return retVal;
 

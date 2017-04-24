@@ -293,7 +293,14 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Hashtabl
 	}
 
 	// notify the network
-	local_node->routing->Provide(local_node->routing, (*parent_node)->hash, (*parent_node)->hash_size);
+	struct HashtableNode *htn = *parent_node;
+	local_node->routing->Provide(local_node->routing, htn->hash, htn->hash_size);
+	// notif the network of the subnodes too
+	struct NodeLink *nl = htn->head_link;
+	while (nl != NULL) {
+		local_node->routing->Provide(local_node->routing, nl->hash, nl->hash_size);
+		nl = nl->next;
+	}
 
 	return 1;
 }
