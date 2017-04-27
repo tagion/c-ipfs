@@ -19,6 +19,7 @@
 #include "core/test_null.h"
 #include "core/test_daemon.h"
 #include "core/test_node.h"
+#include "libp2p/utils/logger.h"
  		 
 int testit(const char* name, int (*func)(void)) {
 	printf("Testing %s...\n", name);
@@ -174,5 +175,6 @@ int main(int argc, char** argv) {
 			printf("All %d tests passed\n", tests_ran);
 		}
 	}
+	libp2p_logger_free();
 	return 1;
 }

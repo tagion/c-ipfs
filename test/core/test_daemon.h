@@ -26,7 +26,5 @@ int test_daemon_startup_shutdown() {
 
 	pthread_join(daemon_thread, NULL);
 
-	libp2p_logger_free();
-
 	return 1;
 }

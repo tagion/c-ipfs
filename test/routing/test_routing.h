@@ -244,7 +244,6 @@ int test_routing_find_providers() {
 		}
 		libp2p_utils_vector_free(result);
 	}
-	libp2p_logger_free();
 	return retVal;
 
 }
@@ -319,7 +318,6 @@ int test_routing_provide() {
 	}
 	if (node != NULL)
 		ipfs_hashtable_node_free(node);
-	libp2p_logger_free();
 	return retVal;
 
 }
@@ -447,7 +445,6 @@ int test_routing_retrieve_file_third_party() {
 		ipfs_hashtable_node_free(node);
 	if (result_node != NULL)
 		ipfs_hashtable_node_free(result_node);
-	libp2p_logger_free();
 	return retVal;
 
 }
@@ -579,7 +576,6 @@ int test_routing_retrieve_large_file() {
 		ipfs_hashtable_node_free(node);
 	if (result_node != NULL)
 		ipfs_hashtable_node_free(result_node);
-	libp2p_logger_free();
 	return retVal;
 
 }
