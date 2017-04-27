@@ -148,7 +148,7 @@ struct IpfsRouting* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struc
 	}
 	// connect to nodes and listen for connections
 	struct MultiAddress* address = multiaddress_new_from_string(local_node->repo->config->addresses->api);
-	if (multiaddress_is_ip(address)) {
+	if (address != NULL && multiaddress_is_ip(address)) {
 		start_kademlia_multiaddress(address, kademlia_id, 10, local_node->repo->config->bootstrap_peers);
 	}
 	local_node->routing = routing;

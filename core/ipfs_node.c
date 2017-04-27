@@ -16,15 +16,22 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 		return 0;
 
 	struct IpfsNode* local_node = *node;
+	local_node->identity = NULL;
+	local_node->peerstore = NULL;
+	local_node->providerstore = NULL;
+	local_node->repo = NULL;
+	local_node->routing = NULL;
 
 	// build the struct
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
-		free(local_node);
+		ipfs_node_free(local_node);
+		*node = NULL;
 		return 0;
 	}
 	// open the repo
 	if (!ipfs_repo_fsrepo_open(fs_repo)) {
-		free(local_node);
+		ipfs_node_free(local_node);
+		*node = NULL;
 		return 0;
 	}
 

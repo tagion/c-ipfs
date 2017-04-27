@@ -35,8 +35,10 @@ int test_routing_supernode_start() {
 
 	retVal = 1;
 	exit:
-	if (ipfs_node->routing != NULL)
-		stop_kademlia();
+	if (ipfs_node != NULL) {
+		if (ipfs_node->routing != NULL)
+			stop_kademlia();
+		}
 	return retVal;
 }
 

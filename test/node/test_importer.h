@@ -21,8 +21,13 @@ int test_import_large_file() {
 	create_file(fileName, file_bytes, bytes_size);
 
 	// get the repo
-	drop_and_build_repository(repo_dir, 4001, NULL, NULL);
+	if (!drop_and_build_repository(repo_dir, 4001, NULL, NULL)) {
+		fprintf(stderr, "Unable to drop and build test repository at %s\n", repo_dir);
+		return 0;
+	}
+
 	if (!ipfs_node_online_new(repo_dir, &local_node)) {
+		fprintf(stderr, "Unable to create new IpfsNode\n");
 		return 0;
 	}
 
@@ -103,7 +108,7 @@ int test_import_large_file() {
 	}
 
 	// attempt to write file
-	if (ipfs_exporter_to_file(base58, "/tmp/test_import_large_file.rsl", local_node->repo) == 0) {
+	if (ipfs_exporter_to_file(base58, "/tmp/test_import_large_file.rsl", local_node) == 0) {
 		printf("Unable to write file.\n");
 		ipfs_node_free(local_node);
 		ipfs_hashtable_node_free(write_node);

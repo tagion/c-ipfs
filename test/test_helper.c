@@ -30,7 +30,11 @@ int create_bytes(unsigned char* buffer, size_t num_bytes) {
 	return 1;
 }
 
-
+/***
+ * Remove a directory and everything in it
+ * @param path the directory to remove
+ * @returns true(1) on success, otherwise false(0)
+ */
 int remove_directory(const char *path)
 {
    DIR *d = opendir(path);
@@ -41,9 +45,9 @@ int remove_directory(const char *path)
    {
       struct dirent *p;
 
-      r = 0;
+      r = 1;
 
-      while (!r && (p=readdir(d)))
+      while (r && (p=readdir(d)))
       {
           int r2 = -1;
           char *buf;
@@ -72,7 +76,7 @@ int remove_directory(const char *path)
                 }
                 else
                 {
-                   r2 = unlink(buf);
+                   r2 = !unlink(buf);
                 }
              }
 
@@ -85,12 +89,44 @@ int remove_directory(const char *path)
       closedir(d);
    }
 
-   if (!r)
+   if (r)
    {
-      r = rmdir(path);
+      r = !rmdir(path);
    }
 
    return r;
+}
+
+/***
+ * Drop a repository by removing the directory
+ */
+int drop_repository(const char* path) {
+
+	if (os_utils_file_exists(path)) {
+		return remove_directory(path);
+		/*
+		// the config file
+		if (!os_utils_filepath_join(path, "config", currDirectory, 1024))
+			return 0;
+		unlink(currDirectory);
+
+		// the datastore directory
+		if (!os_utils_filepath_join(path, "datastore", currDirectory, 1024))
+			return 0;
+		if (!remove_directory(currDirectory))
+			return 0;
+
+		// the blockstore directory
+		if (!os_utils_filepath_join(path, "blockstore", currDirectory, 1024))
+			return 0;
+		if (!remove_directory(currDirectory))
+			return 0;
+
+		return remove_directory(path);
+		*/
+	}
+
+	return 1;
 }
 
 /**
@@ -101,26 +137,13 @@ int remove_directory(const char *path)
  * @returns true(1) on success, otherwise false(0)
  */
 int drop_and_build_repository(const char* path, int swarm_port, struct Libp2pVector* bootstrap_peers, char **peer_id) {
-	int retVal = 0;
-	char currDirectory[strlen(path) + 20];
 
 	if (os_utils_file_exists(path)) {
-		retVal = os_utils_filepath_join(path, "config", currDirectory, 1024);
-		if (retVal == 0)
+		if (!drop_repository(path)) {
 			return 0;
-		unlink(currDirectory);
-		retVal = os_utils_filepath_join(path, "datastore", currDirectory, 1024);
-		if (retVal == 0)
-			return 0;
-		remove_directory(currDirectory);
-		retVal = os_utils_filepath_join(path, "blockstore", currDirectory, 1024);
-		if (retVal == 0)
-			return 0;
-		remove_directory(currDirectory);
-	} else {
-		mkdir(path, S_IRWXU);
+		}
 	}
-
+	mkdir(path, S_IRWXU);
 
 	return make_ipfs_repository(path, swarm_port, bootstrap_peers, peer_id);
 }

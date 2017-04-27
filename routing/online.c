@@ -141,22 +141,34 @@ int ipfs_routing_online_find_providers(struct IpfsRouting* routing, const unsign
  * about another peer
  */
 int ipfs_routing_online_ask_peer_for_peer(struct Libp2pPeer* whoToAsk, const unsigned char* peer_id, size_t peer_id_size, struct Libp2pPeer **result) {
+	int retVal = 0;
+	struct Libp2pMessage *message = NULL, *return_message = NULL;
+
 	if (whoToAsk->connection_type == CONNECTION_TYPE_CONNECTED) {
-		struct Libp2pMessage *message = libp2p_message_new();
+		message = libp2p_message_new();
 		if (message == NULL)
-			return 0;
+			goto exit;
 		message->message_type = MESSAGE_TYPE_FIND_NODE;
 		message->key_size = peer_id_size;
 		message->key = malloc(peer_id_size);
 		if (message->key == NULL)
-			return 0;
+			goto exit;
 		memcpy(message->key, peer_id, peer_id_size);
-		struct Libp2pMessage *return_message = ipfs_routing_online_send_receive_message(whoToAsk->connection, message);
-		if (return_message != NULL)
-			*result = return_message->provider_peer_head->item;
-			return 1;
+
+		return_message = ipfs_routing_online_send_receive_message(whoToAsk->connection, message);
+		if (return_message == NULL || return_message->provider_peer_head == NULL || return_message->provider_peer_head->item == NULL)
+			goto exit;
+		*result = libp2p_peer_copy(return_message->provider_peer_head->item);
 	}
-	return 0;
+
+	retVal = 1;
+	exit:
+	if (return_message != NULL)
+		libp2p_message_free(return_message);
+	if (message != NULL)
+		libp2p_message_free(message);
+
+	return retVal;
 }
 
 /**

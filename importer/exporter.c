@@ -135,7 +135,9 @@ int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, stru
 	if (file == NULL) {
 		return 0;
 	}
-	return ipfs_exporter_to_filestream(hash, file, local_node);
+	int retVal = ipfs_exporter_to_filestream(hash, file, local_node);
+	fclose(file);
+	return retVal;
 }
 
 /**

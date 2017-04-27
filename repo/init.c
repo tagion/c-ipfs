@@ -61,36 +61,27 @@ int ipfs_repo_get_directory(int argc, char** argv, char** repo_dir) {
  * @returns true(1) on success, false(0) on failure
  */
 int make_ipfs_repository(const char* path, int swarm_port, struct Libp2pVector* bootstrap_peers, char **peer_id) {
-	int retVal;
+	int retVal = 0;
 	char currDirectory[1024];
-	struct RepoConfig* repo_config;
+	struct RepoConfig* repo_config = NULL;
+	struct FSRepo* fs_repo = NULL;
 
 	printf("initializing ipfs node at %s\n", path);
 	// build a default repo config
-	retVal = ipfs_repo_config_new(&repo_config);
-	if (retVal == 0)
-		return 0;
+	if (!ipfs_repo_config_new(&repo_config))
+		goto exit;
 	printf("generating 2048-bit RSA keypair...");
-	while (!ipfs_repo_config_init(repo_config, 2048, path, swarm_port, bootstrap_peers)) {
-		// we got a bad identity... try again
-		ipfs_repo_config_free(repo_config);
-		if (!ipfs_repo_config_new(&repo_config))
-			break;
+	if (!ipfs_repo_config_init(repo_config, 2048, path, swarm_port, bootstrap_peers)) {
+		fprintf(stderr, "Unable to initialize repository at %s\n", path);
+		goto exit;
 	}
-	if (repo_config == NULL)
-		return 0;
 	printf("done\n");
 	// now the fs_repo
-	struct FSRepo* fs_repo;
-	retVal = ipfs_repo_fsrepo_new(path, repo_config, &fs_repo);
-	if (retVal == 0)
-		return 0;
+	if (!ipfs_repo_fsrepo_new(path, repo_config, &fs_repo))
+		goto exit;
 	// this builds a new repo
-	retVal = ipfs_repo_fsrepo_init(fs_repo);
-	if (retVal == 0) {
-		ipfs_repo_fsrepo_free(fs_repo);
-		return 0;
-	}
+	if (!ipfs_repo_fsrepo_init(fs_repo))
+		goto exit;
 
 	// give some results to the user
 	printf("peer identity: %s\n", fs_repo->config->identity->peer_id);
@@ -99,14 +90,19 @@ int make_ipfs_repository(const char* path, int swarm_port, struct Libp2pVector* 
 		strcpy(*peer_id, fs_repo->config->identity->peer_id);
 	}
 
-	// clean up
-	ipfs_repo_fsrepo_free(fs_repo);
-
 	// make sure the repository exists
-	retVal = os_utils_filepath_join(path, "config", currDirectory, 1024);
-	if (retVal == 0)
-		return 0;
-	retVal = os_utils_file_exists(currDirectory);
+	if (!os_utils_filepath_join(path, "config", currDirectory, 1024))
+		goto exit;
+
+	if (!os_utils_file_exists(currDirectory))
+		goto exit;
+
+	// cleanup
+	retVal = 1;
+	exit:
+	if (fs_repo != NULL)
+		ipfs_repo_fsrepo_free(fs_repo);
+
 	return retVal;
 }
 

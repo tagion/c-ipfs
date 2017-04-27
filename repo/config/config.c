@@ -8,6 +8,7 @@
 #include "ipfs/repo/config/bootstrap_peers.h"
 #include "ipfs/repo/config/swarm.h"
 #include "libp2p/db/filestore.h"
+#include "multiaddr/multiaddr.h"
 
 /***
  * public
@@ -92,16 +93,25 @@ int ipfs_repo_config_is_valid_identity(struct Identity* identity) {
  */
 int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_keypair, const char* repo_path, int swarm_port, struct Libp2pVector *bootstrap_peers) {
 	// identity
-	int retVal = repo_config_identity_init(config->identity, num_bits_for_keypair);
-	if (retVal == 0 || !ipfs_repo_config_is_valid_identity(config->identity)) {
-		return 0;
+	int counter = 0;
+	while (counter < 5) {
+		if (!repo_config_identity_init(config->identity, num_bits_for_keypair))
+			return 0;
+		if (ipfs_repo_config_is_valid_identity(config->identity))
+			break;
+		counter++;
 	}
+
+	if (counter == 5)
+		return 0;
 	
 	// bootstrap peers
 	if (bootstrap_peers != NULL) {
 		config->bootstrap_peers = libp2p_utils_vector_new(bootstrap_peers->total);
-		for(int i = 0; i < bootstrap_peers->total; i++)
-			libp2p_utils_vector_add(config->bootstrap_peers, libp2p_utils_vector_get(bootstrap_peers, i));
+		for(int i = 0; i < bootstrap_peers->total; i++) {
+			struct MultiAddress* orig = libp2p_utils_vector_get(bootstrap_peers, i);
+			libp2p_utils_vector_add(config->bootstrap_peers, multiaddress_copy(orig));
+		}
 	}
 	else {
 		if (!repo_config_bootstrap_peers_retrieve(&(config->bootstrap_peers)))
@@ -109,12 +119,11 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 	}
 	
 	// datastore
-	retVal = libp2p_datastore_init(config->datastore, repo_path);
-	if (retVal == 0)
+	if (!libp2p_datastore_init(config->datastore, repo_path))
 		return 0;
 
 	// swarm addresses
-	char* addr1 = malloc(50);
+	char* addr1 = malloc(27);
 	sprintf(addr1, "/ip4/0.0.0.0/tcp/%d", swarm_port);
 	config->addresses->swarm_head = libp2p_utils_linked_list_new();
 	config->addresses->swarm_head->item = malloc(strlen(addr1) + 1);
@@ -144,8 +153,7 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 	// gateway http headers
 	char** header_array = (char * []) { "Access-Control-Allow-Origin", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers" };
 	char** header_values = (char*[])  { "*", "GET", "X-Requested-With" };
-	retVal = repo_config_gateway_http_header_init(config->gateway->http_headers, header_array, header_values, 3);
-	if (retVal == 0)
+	if (!repo_config_gateway_http_header_init(config->gateway->http_headers, header_array, header_values, 3))
 		return 0;
 	
 	return 1;

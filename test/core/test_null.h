@@ -5,8 +5,8 @@ int test_null_add_provider() {
 	char* peer_id_1;
 	char* peer_id_2;
 	struct IpfsNode *local_node2 = NULL;
-	pthread_t thread1;
-	pthread_t thread2;
+	pthread_t thread1, thread2;
+	int thread1_started = 0, thread2_started = 0;
 	struct MultiAddress* ma_peer1;
 	char* ipfs_path = "/tmp/test1";
 
@@ -19,6 +19,7 @@ int test_null_add_provider() {
 	// start the daemon in a separate thread
 	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
+	thread1_started = 1;
 
 	// create peer 2 that will be the "client" for this test
 	ipfs_path = "/tmp/test2";
@@ -36,7 +37,7 @@ int test_null_add_provider() {
 	// start the daemon in a separate thread
 	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
-
+	thread2_started = 1;
     // wait for everything to start up
     // JMJ debugging
     sleep(60);
@@ -49,7 +50,10 @@ int test_null_add_provider() {
 		ipfs_node_free(local_node2);
 	if (ma_peer1 != NULL)
 		multiaddress_free(ma_peer1);
-	pthread_cancel(thread1);
-	pthread_cancel(thread2);
+	ipfs_daemon_stop();
+	if (thread1_started)
+		pthread_join(thread1, NULL);
+	if (thread2_started)
+		pthread_join(thread2, NULL);
 	return retVal;
 }

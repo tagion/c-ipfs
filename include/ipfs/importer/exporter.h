@@ -12,7 +12,7 @@
  * @param file_name the file name to write to
  * @returns true(1) on success
  */
-int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, const struct FSRepo* fs_repo);
+int ipfs_exporter_to_file(const unsigned char* hash, const char* file_name, struct IpfsNode* local_node);
 
 /***
  * Retrieve a protobuf'd Node from the router

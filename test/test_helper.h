@@ -2,6 +2,13 @@
  * Helpers for testing
  */
 
+/***
+ * Drop a repository by deleting the directory
+ * @param path the path of the repository
+ * @returns true(1) on success, false(0) otherwise
+ */
+int drop_repository(const char* path);
+
 /**
  * Create a new repository in the directory, erasing old one
  * NOTE: base directory must already exist

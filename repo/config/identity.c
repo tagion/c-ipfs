@@ -46,8 +46,10 @@ int repo_config_identity_init(struct Identity* identity, unsigned long num_bits_
 	if (!libp2p_crypto_rsa_generate_keypair( &(identity->private_key), num_bits_for_keypair))
 		return 0;
 
-	if (!repo_config_identity_build_peer_id(identity))
+	if (!repo_config_identity_build_peer_id(identity)) {
+		libp2p_crypto_rsa_rsa_private_key_free(&(identity->private_key));
 		return 0;
+	}
 
 	return 1;
 }
