@@ -373,41 +373,52 @@ int ipfs_import_files(int argc, char** argv) {
 	struct IpfsNode* local_node = NULL;
 	char* repo_path = NULL;
 	int retVal = 0;
+	struct FileList* first = NULL;
+	struct FileList* current = NULL;
+	char* path = NULL;
+	char* filename = NULL;
+	struct HashtableNode* directory_entry = NULL;
 
 	int recursive = ipfs_import_is_recursive(argc, argv);
 
 	// parse the command line
-	struct FileList* first = ipfs_import_get_filelist(argc, argv);
+	first = ipfs_import_get_filelist(argc, argv);
 
 	// open the repo
 	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
-		// dir doesn't exist
 		fprintf(stderr, "Repo does not exist: %s\n", repo_path);
-		return 0;
+		goto exit;
 	}
 	ipfs_node_online_new(repo_path, &local_node);
 
 
 	// import the file(s)
-	struct FileList* current = first;
+	current = first;
 	while (current != NULL) {
-		struct HashtableNode* directory_entry = NULL;
-		char* path = NULL;
-		char* filename = NULL;
 		os_utils_split_filename(current->file_name, &path, &filename);
 		size_t bytes_written = 0;
-		retVal = ipfs_import_file(NULL, current->file_name, &directory_entry, local_node, &bytes_written, recursive);
-
+		if (!ipfs_import_file(NULL, current->file_name, &directory_entry, local_node, &bytes_written, recursive))
+			goto exit;
 		ipfs_import_print_node_results(directory_entry, filename);
 		// cleanup
-		ipfs_hashtable_node_free(directory_entry);
-		if (path != NULL)
+		if (path != NULL) {
 			free(path);
-		free(filename);
+			path = NULL;
+		}
+		if (filename != NULL) {
+			free(filename);
+			filename = NULL;
+		}
+		if (directory_entry != NULL) {
+			ipfs_hashtable_node_free(directory_entry);
+			directory_entry = NULL;
+		}
 		current = current->next;
 	}
 
-	if (local_node!= NULL)
+	retVal = 1;
+	exit:
+	if (local_node != NULL)
 		ipfs_node_free(local_node);
 	// free file list
 	current = first;
@@ -416,7 +427,14 @@ int ipfs_import_files(int argc, char** argv) {
 		free(current);
 		current = first;
 	}
-
+	if (path != NULL)
+		free(path);
+	if (filename != NULL)
+		free(filename);
+	if (directory_entry != NULL)
+		ipfs_hashtable_node_free(directory_entry);
+	if (repo_path != NULL)
+		free(repo_path);
 	return retVal;
 }
 

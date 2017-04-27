@@ -134,6 +134,7 @@ int drop_repository(const char* path) {
  * @param path the path
  * @param swarm_port the port that the swarm should run on
  * @param bootstrap_peers a vector of fellow peers as MultiAddresses, can be NULL
+ * @param peer_id a place to store the generated peer id
  * @returns true(1) on success, otherwise false(0)
  */
 int drop_and_build_repository(const char* path, int swarm_port, struct Libp2pVector* bootstrap_peers, char **peer_id) {

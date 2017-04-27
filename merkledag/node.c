@@ -538,11 +538,14 @@ int ipfs_hashtable_node_free(struct HashtableNode * N)
 		}
 		if (N->data) {
 			free(N->data);
+			N->data = NULL;
+			N->data_size = 0;
 		}
 		if (N->encoded != NULL) {
 			free(N->encoded);
 		}
 		free(N);
+		N = NULL;
 	}
 	return 1;
 }

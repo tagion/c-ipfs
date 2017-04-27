@@ -238,6 +238,7 @@ struct HashtableNode* ipfs_resolver_get(const char* path, struct HashtableNode* 
 					if (strlen(path_section) == strlen(path)) {
 						// we are at the end of our search
 						ipfs_hashtable_node_free(from);
+						from = NULL;
 						free(path_section);
 						return current_node;
 					} else {
@@ -247,6 +248,7 @@ struct HashtableNode* ipfs_resolver_get(const char* path, struct HashtableNode* 
 						// if we're at the end of the path, return the node
 						// continue looking for the next part of the path
 						ipfs_hashtable_node_free(from);
+						from = NULL;
 						struct HashtableNode* newNode = ipfs_resolver_get(next_path_section, current_node, ipfs_node);
 						return newNode;
 					}

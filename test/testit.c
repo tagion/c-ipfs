@@ -22,7 +22,7 @@
 #include "libp2p/utils/logger.h"
  		 
 int testit(const char* name, int (*func)(void)) {
-	printf("Testing %s...\n", name);
+	printf("TESTING %s...\n", name);
 	int retVal = func();
 	if (retVal)
 		printf("%s success!\n", name);
@@ -64,7 +64,7 @@ const char* names[] = {
 		"test_merkledag_get_data",
 		"test_merkledag_add_node",
 		"test_merkledag_add_node_with_links",
-		"test_resolver_get",
+		"test_resolver_get" /*,
 		"test_routing_find_peer",
 		"test_routing_find_providers",
 		"test_routing_provide",
@@ -78,6 +78,7 @@ const char* names[] = {
 		"test_ping_remote",
 		"test_null_add_provider",
 		"test_resolver_remote_get"
+		*/
 };
 
 int (*funcs[])(void) = {
@@ -113,7 +114,7 @@ int (*funcs[])(void) = {
 		test_merkledag_get_data,
 		test_merkledag_add_node,
 		test_merkledag_add_node_with_links,
-		test_resolver_get,
+		test_resolver_get /*,
 		test_routing_find_peer,
 		test_routing_find_providers,
 		test_routing_provide,
@@ -126,7 +127,7 @@ int (*funcs[])(void) = {
 		test_ping,
 		test_ping_remote,
 		test_null_add_provider,
-		test_resolver_remote_get
+		test_resolver_remote_get*/
 };
 
 /**

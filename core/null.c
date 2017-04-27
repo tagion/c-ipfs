@@ -160,7 +160,7 @@ void *ipfs_null_listen (void *ptr)
     listen_param = (struct IpfsNodeListenParams*) ptr;
 
     if ((socketfd = socket_listen(socket_tcp4(), &(listen_param->ipv4), &(listen_param->port))) <= 0) {
-        perror("fail to init null router.");
+        libp2p_logger_error("null", "Failed to init null router. Address: %d, Port: %d\n", listen_param->ipv4, listen_param->port);
         exit (1);
     }
 
