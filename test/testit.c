@@ -203,5 +203,8 @@ int main(int argc, char** argv) {
 		}
 	}
 	libp2p_logger_free();
+	fclose(stdin);
+	fclose(stdout);
+	fclose(stderr);
 	return 1;
 }

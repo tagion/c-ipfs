@@ -200,9 +200,9 @@ void *ipfs_null_listen (void *ptr)
     	}
     }
 
-    close(socketfd);
-
     thpool_destroy(thpool);
+
+    close(socketfd);
 
     return (void*) 2;
 }
