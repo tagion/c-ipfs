@@ -120,6 +120,9 @@ int test_import_large_file() {
 		}
 	}
 
+	fclose(f1);
+	fclose(f2);
+
 	retVal = 1;
 	exit:
 

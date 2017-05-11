@@ -128,8 +128,10 @@ int ipfs_routing_online_find_providers(struct IpfsRouting* routing, const unsign
 	libp2p_logger_debug("online", "FindProviders: Found provider locally. Searching for peer.\n");
 	// now translate the peer id into a peer to get the multiaddresses
 	peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, peer_id, peer_id_size);
-	if (peer == NULL)
+	free(peer_id);
+	if (peer == NULL) {
 		return 0;
+	}
 
 	*peers = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(*peers, libp2p_peer_copy(peer));
