@@ -35,6 +35,12 @@ int test_routing_find_peer() {
     struct Libp2pPeer* result = NULL;
     struct HashtableNode *node = NULL;
 
+    //libp2p_logger_add_class("online");
+    //libp2p_logger_add_class("null");
+    //libp2p_logger_add_class("daemon");
+    //libp2p_logger_add_class("dht_protocol");
+    //libp2p_logger_add_class("peerstore");
+
 	// create peer 1
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
 	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
@@ -46,6 +52,8 @@ int test_routing_find_peer() {
 		goto exit;
 	thread1_started = 1;
 
+	sleep(3);
+
 	// create peer 2
 	ipfs_path = "/tmp/test2";
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
@@ -56,6 +64,7 @@ int test_routing_find_peer() {
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
 	ipfs_node_online_new(ipfs_path, &local_node2);
+	local_node2->routing->Bootstrap(local_node2->routing);
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
@@ -63,7 +72,10 @@ int test_routing_find_peer() {
 		goto exit;
 	thread2_started = 1;
 
-	// create my peer, peer 3
+    // JMJ wait for everything to start up
+    sleep(3);
+
+    // create my peer, peer 3
 	ipfs_path = "/tmp/test3";
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
 	libp2p_utils_vector_add(ma_vector, ma_peer1);
@@ -82,10 +94,13 @@ int test_routing_find_peer() {
 
     local_node.routing->Bootstrap(local_node.routing);
 
-    if (!local_node.routing->FindPeer(local_node.routing, (unsigned char*)peer_id_2, strlen(peer_id_2), &result))
+    if (!local_node.routing->FindPeer(local_node.routing, (unsigned char*)peer_id_2, strlen(peer_id_2), &result)) {
+    	fprintf(stderr, "Unable to find peer %s by asking %s\n", peer_id_2, peer_id_1);
     	goto exit;
+    }
 
 	if (result == NULL) {
+		fprintf(stderr, "Result was NULL\n");
 		goto exit;
 	}
 
@@ -117,6 +132,8 @@ int test_routing_find_peer() {
 		libp2p_peerstore_free(local_node.peerstore);
 	if (local_node.routing != NULL)
 		ipfs_routing_online_free(local_node.routing);
+	if (result != NULL)
+		libp2p_peer_free(result);
 
 	return retVal;
 
@@ -264,10 +281,12 @@ int test_routing_find_providers() {
 		ipfs_hashtable_node_free(node);
 	if (result != NULL) {
 		// we have a vector of peers. Clean 'em up:
+		/* free the vector, not the peers.
 		for(int i = 0; i < result->total; i++) {
 			struct Libp2pPeer* p = (struct Libp2pPeer*)libp2p_utils_vector_get(result, i);
 			libp2p_peer_free(p);
 		}
+		*/
 		libp2p_utils_vector_free(result);
 	}
 	return retVal;
@@ -398,8 +417,9 @@ int test_routing_retrieve_file_third_party() {
 	// create a vector to hold peer1's multiaddress so we can connect as a peer
 	ma_vector2 = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(ma_vector2, ma_peer1);
-	// note: this distroys some things, as it frees the fs_repo_3:
+	// note: this destroys some things, as it frees the fs_repo_3:
 	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
+	multiaddress_free(ma_peer1);
 	// add a file, to prime the connection to peer 1
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
@@ -427,6 +447,7 @@ int test_routing_retrieve_file_third_party() {
 	ma_vector3 = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(ma_vector3, ma_peer1);
 	drop_and_build_repository(ipfs_path, 4003, ma_vector3, &peer_id_3);
+	multiaddress_free(ma_peer1);
 	ipfs_node_online_new(ipfs_path, &ipfs_node3);
 
     ipfs_node3->routing->Bootstrap(ipfs_node3->routing);
@@ -532,6 +553,7 @@ int test_routing_retrieve_large_file() {
 	libp2p_utils_vector_add(ma_vector2, ma_peer1);
 	// note: this distroys some things, as it frees the fs_repo_3:
 	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
+	multiaddress_free(ma_peer1);
 	// add a file, to prime the connection to peer 1
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
@@ -560,6 +582,7 @@ int test_routing_retrieve_large_file() {
 	ma_vector3 = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(ma_vector3, ma_peer1);
 	drop_and_build_repository(ipfs_path, 4003, ma_vector3, &peer_id_3);
+	multiaddress_free(ma_peer1);
 	ipfs_node_online_new(ipfs_path, &ipfs_node3);
 
     ipfs_node3->routing->Bootstrap(ipfs_node3->routing);

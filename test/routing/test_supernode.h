@@ -150,6 +150,8 @@ int test_routing_supernode_get_remote_value() {
 		ipfs_repo_fsrepo_free(fs_repo);
 	if (ipfs_node != NULL)
 		free(ipfs_node);
+	if (multiaddresses != NULL)
+		libp2p_utils_vector_free(multiaddresses);
 	return retVal;
 }
 
@@ -262,6 +264,8 @@ int test_routing_supernode_get_value() {
 		stop_kademlia();
 	if (fs_repo != NULL)
 		ipfs_repo_fsrepo_free(fs_repo);
+	if (multiaddresses != NULL)
+		libp2p_utils_vector_free(multiaddresses);
 	return retVal;
 
 }

@@ -64,8 +64,8 @@ const char* names[] = {
 		"test_merkledag_get_data",
 		"test_merkledag_add_node",
 		"test_merkledag_add_node_with_links",
-		"test_resolver_get" /*,
-		"test_routing_find_peer",
+		"test_resolver_get",
+		"test_routing_find_peer"/*,
 		"test_routing_find_providers",
 		"test_routing_provide",
 		"test_routing_supernode_get_value",
@@ -114,8 +114,8 @@ int (*funcs[])(void) = {
 		test_merkledag_get_data,
 		test_merkledag_add_node,
 		test_merkledag_add_node_with_links,
-		test_resolver_get /*,
-		test_routing_find_peer,
+		test_resolver_get,
+		test_routing_find_peer/*,
 		test_routing_find_providers,
 		test_routing_provide,
 		test_routing_supernode_get_value,
@@ -127,46 +127,72 @@ int (*funcs[])(void) = {
 		test_ping,
 		test_ping_remote,
 		test_null_add_provider,
-		test_resolver_remote_get*/
+		test_resolver_remote_get
+		*/
 };
 
 /**
- * run 1 test or run all
+ * Pull the next test name from the command line
+ * @param the count of arguments on the command line
+ * @param argv the command line arguments
+ * @param arg_number the current argument we want
+ * @returns a null terminated string of the next test or NULL
+ */
+char* get_test(int argc, char** argv, int arg_number) {
+	char* retVal = NULL;
+	char* ptr = NULL;
+	if (argc > arg_number) {
+		ptr = argv[arg_number];
+		if (ptr[0] == '\'')
+			ptr++;
+		retVal = malloc(strlen(ptr) + 1);
+		strcpy(retVal, ptr);
+		ptr = strchr(ptr, '\'');
+		if (ptr != NULL)
+			ptr[0] = 0;
+	}
+	return retVal;
+}
+
+/**
+ * run certain tests or run all
  */
 int main(int argc, char** argv) {
 	int counter = 0;
 	int tests_ran = 0;
-	char* test_wanted;
-	int only_one = 0;
+	char* test_wanted = NULL;
+	int certain_tests = 0;
+	int current_test_arg = 1;
 	if(argc > 1) {
-		only_one = 1;
-		if (argv[1][0] == '\'') { // some shells put quotes around arguments
-			argv[1][strlen(argv[1])-1] = 0;
-			test_wanted = &(argv[1][1]);
-		}
-		else
-			test_wanted = argv[1];
+		certain_tests = 1;
 	}
 	int array_length = sizeof(funcs) / sizeof(funcs[0]);
 	int array2_length = sizeof(names) / sizeof(names[0]);
 	if (array_length != array2_length) {
 		printf("Test arrays are not of the same length. Funcs: %d, Names: %d\n", array_length, array2_length);
 	}
-	for (int i = 0; i < array_length; i++) {
-		if (only_one) {
-			const char* currName = names[i];
-			if (strcmp(currName, test_wanted) == 0) {
-				tests_ran++;
-				counter += testit(names[i], funcs[i]);
+	test_wanted = get_test(argc, argv, current_test_arg);
+	while (!certain_tests || test_wanted != NULL) {
+		for (int i = 0; i < array_length; i++) {
+			if (certain_tests) {
+				// get the test we currently want from the command line
+				const char* currName = names[i];
+				if (strcmp(currName, test_wanted) == 0) {
+					tests_ran++;
+					counter += testit(names[i], funcs[i]);
+				}
 			}
+			else
+				if (!certain_tests) {
+					tests_ran++;
+					counter += testit(names[i], funcs[i]);
+				}
 		}
-		else
-			if (!only_one) {
-				tests_ran++;
-				counter += testit(names[i], funcs[i]);
-			}
+		if (!certain_tests) // we did them all, not certain ones
+			break;
+		free(test_wanted);
+		test_wanted = get_test(argc, argv, ++current_test_arg);
 	}
-
 	if (tests_ran == 0)
 		printf("***** No tests found *****\n");
 	else {

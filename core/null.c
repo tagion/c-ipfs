@@ -23,6 +23,9 @@
 
 #define BUF_SIZE 4096
 
+// this should be set to 5 for normal operation, perhaps higher for debugging purposes
+#define DEFAULT_NETWORK_TIMEOUT 5
+
 static int null_shutting_down = 0;
 
 /***
@@ -64,7 +67,7 @@ void ipfs_null_connection (void *ptr)
 			// check if they're looking for an upgrade (i.e. secio)
 			unsigned char* results = NULL;
 			size_t bytes_read = 0;
-			if (!session.default_stream->read(&session, &results, &bytes_read, 5) ) {
+			if (!session.default_stream->read(&session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT) ) {
 				libp2p_logger_debug("null", "stream transaction read returned false\n");
 				break;
 			}
@@ -94,7 +97,7 @@ void ipfs_null_connection (void *ptr)
 				while(_continue) {
 					unsigned char* hash;
 					size_t hash_length = 0;
-					_continue = session.default_stream->read(&session, &hash, &hash_length, 5);
+					_continue = session.default_stream->read(&session, &hash, &hash_length, DEFAULT_NETWORK_TIMEOUT);
 					if (hash_length < 20) {
 						_continue = 0;
 						continue;
@@ -161,13 +164,13 @@ void *ipfs_null_listen (void *ptr)
 
     if ((socketfd = socket_listen(socket_tcp4(), &(listen_param->ipv4), &(listen_param->port))) <= 0) {
         libp2p_logger_error("null", "Failed to init null router. Address: %d, Port: %d\n", listen_param->ipv4, listen_param->port);
-        exit (1);
+        return (void*) 2;
     }
 
-    libp2p_logger_log("null", LOGLEVEL_ERROR, "Ipfs listening on %d\n", listen_param->port);
+    libp2p_logger_error("null", "Ipfs listening on %d\n", listen_param->port);
 
     for (;;) {
-    	int numDescriptors = socket_read_select4(socketfd, 5);
+    	int numDescriptors = socket_read_select4(socketfd, 2);
     	if (null_shutting_down) {
     		break;
     	}
@@ -196,6 +199,8 @@ void *ipfs_null_listen (void *ptr)
 			}
     	}
     }
+
+    close(socketfd);
 
     thpool_destroy(thpool);
 

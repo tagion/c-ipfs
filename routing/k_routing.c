@@ -42,7 +42,7 @@ int ipfs_routing_kademlia_get_value(struct IpfsRouting* routing, const unsigned 
  * @param routing the context
  * @param key the key to what we're looking for
  * @param key_size the size of the key
- * @param results the results
+ * @param results the results, which is a vector of MultiAddress*
  * @param results_size the size of the results buffer
  * @returns true(1) on success, otherwise false(0)
  */

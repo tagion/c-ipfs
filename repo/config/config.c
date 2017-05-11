@@ -95,10 +95,20 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 	// identity
 	int counter = 0;
 	while (counter < 5) {
+		if (counter > 0) {
+			//TODO: This shouldn't be here, but it was the only way to cleanup. Need to find a better way...
+			if (config->identity->private_key.public_key_der != NULL)
+				free(config->identity->private_key.public_key_der);
+			if (config->identity->private_key.der != NULL)
+				free(config->identity->private_key.der);
+			if (config->identity->peer_id != NULL)
+				free(config->identity->peer_id);
+		}
 		if (!repo_config_identity_init(config->identity, num_bits_for_keypair))
 			return 0;
 		if (ipfs_repo_config_is_valid_identity(config->identity))
 			break;
+		// we didn't get it right, try again
 		counter++;
 	}
 

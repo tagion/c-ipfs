@@ -134,7 +134,7 @@ int ipfs_routing_online_find_providers(struct IpfsRouting* routing, const unsign
 	}
 
 	*peers = libp2p_utils_vector_new(1);
-	libp2p_utils_vector_add(*peers, libp2p_peer_copy(peer));
+	libp2p_utils_vector_add(*peers, peer);
 	return 1;
 }
 
@@ -158,9 +158,22 @@ int ipfs_routing_online_ask_peer_for_peer(struct Libp2pPeer* whoToAsk, const uns
 		memcpy(message->key, peer_id, peer_id_size);
 
 		return_message = ipfs_routing_online_send_receive_message(whoToAsk->connection, message);
-		if (return_message == NULL || return_message->provider_peer_head == NULL || return_message->provider_peer_head->item == NULL)
+		if (return_message == NULL) {
+			// some kind of network error
+			whoToAsk->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
+			char* id[whoToAsk->id_size + 1];
+			memcpy(id, whoToAsk->id, whoToAsk->id_size);
+			id[whoToAsk->id_size] = 0;
+			libp2p_logger_error("online", "Connection to %s is broken\n", id);
 			goto exit;
+		}
+		if ( return_message->provider_peer_head == NULL || return_message->provider_peer_head->item == NULL)
+			goto exit;
+
 		*result = libp2p_peer_copy(return_message->provider_peer_head->item);
+
+	} else {
+		goto exit;
 	}
 
 	retVal = 1;
@@ -406,10 +419,12 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 	retVal = 1;
 	exit:
 	if (peers != NULL) {
+		/* Free the vector, not the items
 		for (int i = 0; i < peers->total; i++) {
 			struct Libp2pPeer* current = libp2p_utils_vector_get(peers, i);
 			libp2p_peer_free(current);
 		}
+		*/
 		libp2p_utils_vector_free(peers);
 	}
     return retVal;

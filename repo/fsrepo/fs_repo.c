@@ -318,7 +318,7 @@ int _get_json_string_value(char* data, const jsmntok_t* tokens, int tok_length, 
 		return 0;
 	// allocate memory
 	int str_len = curr_token->end - curr_token->start;
-	*result = malloc(sizeof(char) * str_len + 1);
+	*result = malloc(str_len + 1);
 	if (*result == NULL)
 		return 0;
 	// copy in the string
