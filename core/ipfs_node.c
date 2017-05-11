@@ -38,7 +38,7 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 	// fill in the node
 	local_node->repo = fs_repo;
 	local_node->identity = fs_repo->config->identity;
-	local_node->peerstore = libp2p_peerstore_new();
+	local_node->peerstore = libp2p_peerstore_new(local_node->identity->peer_id);
 	local_node->providerstore = libp2p_providerstore_new();
 	local_node->mode = MODE_OFFLINE;
 	local_node->routing = ipfs_routing_new_online(local_node, &fs_repo->config->identity->private_key, NULL);

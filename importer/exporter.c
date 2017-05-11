@@ -84,7 +84,6 @@ int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor
 		ipfs_unixfs_protobuf_decode(read_node->data, read_node->data_size, &unix_fs);
 		size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file_descriptor);
 		if (bytes_written != unix_fs->bytes_size) {
-			fclose(file_descriptor);
 			ipfs_hashtable_node_free(read_node);
 			ipfs_unixfs_free(unix_fs);
 			return 0;
@@ -95,7 +94,6 @@ int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor
 		struct HashtableNode* link_node = NULL;
 		while (link != NULL) {
 			if ( !ipfs_exporter_get_node(local_node, link->hash, link->hash_size, &link_node)) {
-				fclose(file_descriptor);
 				ipfs_hashtable_node_free(read_node);
 				return 0;
 			}
@@ -104,7 +102,6 @@ int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor
 			size_t bytes_written = fwrite(unix_fs->bytes, 1, unix_fs->bytes_size, file_descriptor);
 			if (bytes_written != unix_fs->bytes_size) {
 				ipfs_hashtable_node_free(link_node);
-				fclose(file_descriptor);
 				ipfs_hashtable_node_free(read_node);
 				ipfs_unixfs_free(unix_fs);
 				return 0;
@@ -114,7 +111,6 @@ int ipfs_exporter_to_filestream(const unsigned char* hash, FILE* file_descriptor
 			link = link->next;
 		}
 	}
-	fclose(file_descriptor);
 
 	if (read_node != NULL)
 		ipfs_hashtable_node_free(read_node);

@@ -74,7 +74,7 @@ int test_routing_find_peer() {
 
 	// We know peer 1, try to find peer 2
     local_node.mode = MODE_ONLINE;
-    local_node.peerstore = libp2p_peerstore_new();
+    local_node.peerstore = libp2p_peerstore_new(fs_repo->config->identity->peer_id);
     local_node.providerstore = NULL;
     local_node.repo = fs_repo;
     local_node.identity = fs_repo->config->identity;
@@ -190,7 +190,7 @@ int test_routing_find_providers() {
 
 	// We know peer 1, try to find peer 2
     local_node.mode = MODE_ONLINE;
-    local_node.peerstore = libp2p_peerstore_new();
+    local_node.peerstore = libp2p_peerstore_new(fs_repo->config->identity->peer_id);
     local_node.providerstore = libp2p_providerstore_new();
     local_node.repo = fs_repo;
     local_node.identity = fs_repo->config->identity;

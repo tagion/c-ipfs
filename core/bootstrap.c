@@ -9,9 +9,9 @@
 /***
  * Begin to connect to the swarm
  */
+/*
 void *ipfs_bootstrap_swarm(void* param) {
 	//TODO:
-	/*
 	struct IpfsNode* local_node = (struct IpfsNode*)param;
 	// read the config file and get the bootstrap peers
 	for(int i = 0; i < local_node->repo->config->peer_addresses.num_peers; i++) { // loop through the peers
@@ -30,14 +30,15 @@ void *ipfs_bootstrap_swarm(void* param) {
 		} // we have a good peer ID
 
 	}
-	*/
 	return (void*)1;
 }
+*/
 
 /***
  * Announce to the network all of the files that I have in storage
  * @param local_node the context
  */
+/*
 void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
 	struct Datastore* db = local_node->repo->config->datastore;
 	if (!db->datastore_cursor_open(db))
@@ -57,6 +58,7 @@ void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
 
 	return;
 }
+*/
 
 /***
  * connect to the swarm
@@ -65,6 +67,7 @@ void ipfs_bootstrap_announce_files(struct IpfsNode* local_node) {
  * @param param the IpfsNode information
  * @returns nothing useful
  */
+/*
 void *ipfs_bootstrap_routing(void* param) {
 	struct IpfsNode* local_node = (struct IpfsNode*)param;
 	local_node->routing = ipfs_routing_new_online(local_node, &local_node->identity->private_key, NULL);
@@ -72,3 +75,4 @@ void *ipfs_bootstrap_routing(void* param) {
 	ipfs_bootstrap_announce_files(local_node);
 	return (void*)2;
 }
+*/

@@ -122,7 +122,7 @@ int test_resolver_remote_get() {
 	char multiaddress_string[100];
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", remote_peer_id);
 	struct MultiAddress* remote_addr = multiaddress_new_from_string(multiaddress_string);
-	struct Peerstore* peerstore = libp2p_peerstore_new();
+	struct Peerstore* peerstore = libp2p_peerstore_new(fs_repo->config->identity->peer_id);
 	struct Libp2pPeer* peer = libp2p_peer_new_from_multiaddress(remote_addr);
 	libp2p_peerstore_add_peer(peerstore, peer);
 	strcpy(fs_repo->config->identity->peer_id, "QmABCD");

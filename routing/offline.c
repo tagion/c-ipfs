@@ -39,19 +39,31 @@ int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, const unsigned
 
 int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *key, size_t key_size, void **val, size_t *vlen)
 {
-	char key_str[key_size + 1];
-	strncpy(key_str, (const char*)key, key_size);
-	key_str[key_size] = 0;
-    struct HashtableNode* node = ipfs_resolver_get(key_str, NULL, routing->local_node);
-    if (node == NULL)
-    	return -1;
+    struct HashtableNode* node = NULL;
+    *val = NULL;
+    int retVal = -1;
+
+    if (!ipfs_merkledag_get(key, key_size, &node, routing->local_node->repo)) {
+		goto exit;
+	}
+
     // protobuf the node
     int protobuf_size = ipfs_hashtable_node_protobuf_encode_size(node);
     *val = malloc(protobuf_size);
-    if (ipfs_hashtable_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0)
-    	return -1;
 
-    return 0;
+    if (ipfs_hashtable_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0) {
+    	goto exit;
+    }
+
+    retVal = 0;
+    exit:
+	if (node != NULL)
+		ipfs_hashtable_node_free(node);
+	if (retVal != 0 && *val != NULL) {
+		free(*val);
+		*val = NULL;
+	}
+    return retVal;
 }
 
 int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, const unsigned char *key, size_t key_size, struct Libp2pVector** peers)
