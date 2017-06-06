@@ -31,6 +31,8 @@ int ipfs_ping (int argc, char **argv)
     char* repo_path = NULL;
 
 	// sanity check
+	local_node.peerstore = NULL;
+	local_node.providerstore = NULL;
 	if (argc < 3)
 		goto exit;
 
