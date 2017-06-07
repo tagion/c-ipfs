@@ -155,7 +155,7 @@ int ipfs_repo_fsrepo_new(const char* repo_path, struct RepoConfig* config, struc
 		if (strstr(ipfs_path, default_subdir) != NULL) {
 			strcpy((*repo)->path, ipfs_path);
 		} else {
-			os_utils_filepath_join(os_utils_get_homedir(), default_subdir, (*repo)->path, newPathLen);
+			os_utils_filepath_join(ipfs_path, default_subdir, (*repo)->path, newPathLen);
 		}
 	} else {
 		int len = strlen(repo_path) + 1;
