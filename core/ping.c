@@ -21,8 +21,6 @@
 int ipfs_ping (int argc, char **argv)
 {
 	int retVal = 0;
-	struct MultiAddress* address;
-	int addressAllocated = 0;
 	struct IpfsNode local_node;
 	struct Stream* stream = NULL;
 	struct Libp2pPeer* peer_to_ping = NULL;
@@ -66,15 +64,13 @@ int ipfs_ping (int argc, char **argv)
 		if (argc >= 3) {
 			char* str = malloc(strlen(argv[2]) + strlen(argv[3]) + 100);
 			sprintf(str, "/ip4/%s/tcp/%s", argv[2], argv[3]);
-			address  = multiaddress_new_from_string(str);
-			if (address != NULL)
-				addressAllocated = 1;
 			peer_to_ping = libp2p_peer_new();
-			peer_to_ping->addr_head = libp2p_utils_linked_list_new();
-			peer_to_ping->addr_head->item = address;
-			peer_to_ping->id = str;
-			peer_to_ping->id_size = strlen(str);
-			free(str);
+			if (peer_to_ping) {
+				peer_to_ping->addr_head = libp2p_utils_linked_list_new();
+				peer_to_ping->addr_head->item = multiaddress_new_from_string(str);
+				peer_to_ping->id = str;
+				peer_to_ping->id_size = strlen(str);
+			}
 		}
 		//TODO: Error checking
 	}
@@ -93,8 +89,6 @@ int ipfs_ping (int argc, char **argv)
 
 	retVal = 1;
 	exit:
-	if (addressAllocated)
-		multiaddress_free(address);
 	if (fs_repo != NULL)
 		ipfs_repo_fsrepo_free(fs_repo);
 	if (local_node.peerstore != NULL)
