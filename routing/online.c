@@ -6,6 +6,7 @@
 #include "libp2p/conn/session.h"
 #include "libp2p/routing/dht_protocol.h"
 #include "libp2p/utils/logger.h"
+#include "libp2p/conn/dialer.h"
 
 /**
  * Implements the routing interface for communicating with network clients
@@ -286,8 +287,9 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, const unsigned char
  * @returns true(1) on success, otherwise false(0)
  */
 int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* peer) {
-	int retVal = 0;
-	struct Libp2pMessage* msg = NULL, *msg_returned = NULL;
+	struct Libp2pMessage* msg = NULL;
+	unsigned char *protobuf;
+	size_t protobuf_size;
 
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
 		if (!libp2p_peer_connect(peer))
@@ -298,18 +300,26 @@ int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* pee
 		// build the message
 		msg = libp2p_message_new();
 		msg->message_type = MESSAGE_TYPE_PING;
+		protobuf_size = libp2p_message_protobuf_encode_size(msg);
+		protobuf = (unsigned char*)malloc(protobuf_size);
+		libp2p_message_protobuf_encode(msg, protobuf, protobuf_size, &protobuf_size);
+		libp2p_message_free(msg);
+		msg = NULL;
 
-		msg_returned = ipfs_routing_online_send_receive_message(peer->connection, msg);
+		// connect using a dialer
+		struct Dialer *dialer = libp2p_conn_dialer_new(routing->local_node->identity->peer_id, libp2p_crypto_rsa_to_private_key(routing->sk));
+		struct Connection *conn = libp2p_conn_dialer_get_connection(dialer, peer->addr_head->item);
+		// send the record
+		conn->write(conn, (char*)protobuf, protobuf_size);
+		free(protobuf);
+		conn->read(conn, (char**)&protobuf, &protobuf_size);
+		libp2p_message_protobuf_decode(protobuf, protobuf_size, &msg);
 
-		if (msg_returned == NULL)
-			goto exit;
-		if (msg_returned->message_type != msg->message_type)
-			goto exit;
+		if (msg == NULL || msg->message_type != MESSAGE_TYPE_PING)
+			return 0;
 	}
 
-	retVal = 1;
-	exit:
-	return retVal;
+	return 1;
 }
 
 /***
