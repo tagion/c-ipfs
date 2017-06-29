@@ -122,7 +122,29 @@ int ipfs_routing_kademlia_ping(struct IpfsRouting* routing, struct Libp2pPeer* p
 }
 
 int ipfs_routing_kademlia_bootstrap(struct IpfsRouting* routing) {
-	return 0;
+	struct IpfsNode *local_node = routing->local_node;
+	// read the config file and get the bootstrap peers
+	for(int i = 0; i < local_node->repo->config->bootstrap_peers->total; i++) { // loop through the peers
+		struct IPFSAddr* ipfs_addr = local_node->repo->config->bootstrap_peers->items[i];
+		struct MultiAddress* ma = multiaddress_new_from_string(ipfs_addr->entire_string);
+		// get the id
+		char* ptr;
+		if ( (ptr = strstr(ipfs_addr->entire_string, "/ipfs/")) != NULL) { // look for the peer id
+			ptr += 6;
+			if (ptr[0] == 'Q' && ptr[1] == 'm') { // things look good
+				struct Libp2pPeer* peer = libp2p_peer_new_from_multiaddress(ma);
+				if (peer) {
+					peer->id = ptr;
+					peer->id_size = strlen(ptr);
+					libp2p_peerstore_add_peer(local_node->peerstore, peer);
+				}
+			}
+			// TODO: attempt to connect to the peer
+
+		} // we have a good peer ID
+
+	}
+	return 1;
 }
 
 struct IpfsRouting* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key, struct Stream* stream) {
