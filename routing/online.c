@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "ipfs/routing/routing.h"
+#include "ipfs/core/null.h"
 #include "libp2p/record/message.h"
 #include "libp2p/net/stream.h"
 #include "libp2p/conn/session.h"
@@ -515,6 +516,8 @@ ipfs_routing* ipfs_routing_new_online (struct IpfsNode* local_node, struct RsaPr
         onlineRouting->Provide       = ipfs_routing_online_provide;
         onlineRouting->Ping          = ipfs_routing_online_ping;
         onlineRouting->Bootstrap     = ipfs_routing_online_bootstrap;
+        onlineRouting->Listen        = ipfs_null_listen;
+        onlineRouting->Shutdown      = ipfs_null_shutdown;
     }
 
     onlineRouting->local_node->mode = MODE_ONLINE;
