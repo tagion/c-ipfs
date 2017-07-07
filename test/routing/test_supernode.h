@@ -64,7 +64,7 @@ int test_routing_supernode_get_remote_value() {
 	size_t hash_size = 100;
 	unsigned char hash[hash_size];
 	unsigned char* hash_ptr = &hash[0];
-	struct Libp2pVector* multiaddresses;
+	struct Libp2pVector* multiaddresses = NULL;
 	struct MultiAddress* addr = NULL;
 	char* ip = NULL;
 	struct SessionContext context;
