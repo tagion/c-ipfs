@@ -8,6 +8,7 @@
 #include "libp2p/routing/dht_protocol.h"
 #include "libp2p/utils/logger.h"
 #include "libp2p/conn/dialer.h"
+#include "ipfs/core/null.h"
 
 /**
  * Implements the routing interface for communicating with network clients
