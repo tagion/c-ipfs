@@ -292,7 +292,7 @@ int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* pee
 	size_t protobuf_size;
 
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
-		if (!libp2p_peer_connect(peer))
+		if (!libp2p_peer_connect(peer, 5))
 			return 0;
 	}
 	if (peer->connection_type == CONNECTION_TYPE_CONNECTED) {
@@ -412,7 +412,7 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 			if (!libp2p_peer_is_connected(current_peer)) {
 				// attempt to connect. If unsuccessful, continue in the loop.
 				libp2p_logger_debug("online", "Attempting to connect to peer to retrieve file\n");
-				if (libp2p_peer_connect(current_peer)) {
+				if (libp2p_peer_connect(current_peer, 5)) {
 					libp2p_logger_debug("online", "Peer connected\n");
 					if (ipfs_routing_online_get_peer_value(routing, current_peer, key, key_size, buffer, buffer_size)) {
 						libp2p_logger_debug("online", "Retrieved a value\n");
@@ -485,7 +485,7 @@ int ipfs_routing_online_bootstrap(struct IpfsRouting* routing) {
 				return -1; // this should never happen
 			}
 			if (peer->connection == NULL) { // should always be true unless we added it twice (TODO: we should prevent that earlier)
-				libp2p_peer_connect(peer);
+				libp2p_peer_connect(peer, 5);
 			}
 		}
 	}
