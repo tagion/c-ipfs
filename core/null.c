@@ -61,7 +61,7 @@ void ipfs_null_connection (void *ptr)
 
     libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
-	if (libp2p_net_multistream_negotiate(session.insecure_stream)) {
+	if (libp2p_net_multistream_negotiate(session)) {
 
 		for(;;) {
 			// check if they're looking for an upgrade (i.e. secio)
