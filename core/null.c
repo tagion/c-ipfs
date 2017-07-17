@@ -35,11 +35,77 @@ static int null_shutting_down = 0;
  * @param test the protocol string to compare it with (i.e. "/secio" or "/nodeio"
  * @returns true(1) if there was a match, false(0) otherwise
  */
-int protocol_compare(unsigned char* incoming, size_t incoming_size, const char* test) {
+int protocol_compare(const unsigned char* incoming, size_t incoming_size, const char* test) {
 	int test_size = strlen(test);
 	if (incoming_size >= test_size && strncmp((char*)incoming, test, test_size) == 0)
 		return 1;
 	return 0;
+}
+
+/***
+ * Handle the incoming request from a Multistream
+ * @param incoming the incoming request
+ * @param incoming_size the size of the request in bytes
+ * @param session the session context
+ * @param connection_param the connection parameters
+ * @returns True(1) on success, False(0) on error
+ */
+int ipfs_null_marshal(const unsigned char* incoming, size_t incoming_size, struct SessionContext* session, struct null_connection_params *connection_param) {
+	if (protocol_compare(incoming, incoming_size, "/secio")) {
+		libp2p_logger_debug("null", "Attempting secure io connection...\n");
+		if (!libp2p_secio_handshake(session, &connection_param->local_node->identity->private_key, 1)) {
+			// rejecting connection
+			libp2p_logger_debug("null", "Secure IO connection failed\n");
+			return 0;
+		}
+		libp2p_logger_debug("null", "Secure IO connection successful.\n");
+	} else if (protocol_compare(incoming, incoming_size, "/nodeio")) {
+		libp2p_logger_debug("null", "Attempting a nodeio connection.\n");
+		if (!libp2p_nodeio_handshake(session)) {
+			return 0;
+		}
+		// loop through file requests
+		int _continue = 1;
+		while(_continue) {
+			unsigned char* hash;
+			size_t hash_length = 0;
+			_continue = session->default_stream->read(session, &hash, &hash_length, DEFAULT_NETWORK_TIMEOUT);
+			if (hash_length < 20) {
+				_continue = 0;
+				continue;
+			}
+			else {
+				// try to get the Node
+				struct HashtableNode* node = NULL;
+				if (!ipfs_merkledag_get(hash, hash_length, &node, connection_param->local_node->repo)) {
+					_continue = 0;
+					continue;
+				}
+				size_t results_size = ipfs_hashtable_node_protobuf_encode_size(node);
+				unsigned char results[results_size];
+				if (!ipfs_hashtable_node_protobuf_encode(node, results, results_size, &results_size)) {
+					_continue = 0;
+					continue;
+				}
+				// send it to the requestor
+				session->default_stream->write(session, results, results_size);
+			}
+		}
+	} else if (protocol_compare(incoming, incoming_size, "/ipfs/kad/")) {
+		libp2p_logger_log("null", LOGLEVEL_DEBUG, "Attempting kademlia connection...\n");
+		if (!libp2p_routing_dht_handshake(session)) {
+			libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia connection handshake failed\n");
+			return 0;
+		}
+		// this handles 1 transaction
+		libp2p_routing_dht_handle_message(session, connection_param->local_node->peerstore, connection_param->local_node->providerstore);
+		libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia message handled\n");
+	}
+	else {
+		libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Disconnecting.\n");
+		return 0;
+	}
+	return 1;
 }
 
 /**
@@ -62,80 +128,35 @@ void ipfs_null_connection (void *ptr)
     libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
 	if (libp2p_net_multistream_negotiate(&session)) {
+		// Someone has connected and successfully negotiated multistream. Now talk to them...
 
 		for(;;) {
-			// check if they're looking for an upgrade (i.e. secio)
+			// Wait for them to ask something...
 			unsigned char* results = NULL;
 			size_t bytes_read = 0;
 			if (!session.default_stream->read(&session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT) ) {
+				// the read was unsuccessful. We should close the connection.
 				libp2p_logger_debug("null", "stream transaction read returned false\n");
 				break;
 			}
 			if (null_shutting_down) {
+				// this service is shutting down. Ignore the request and exit the loop
 				break;
 			}
-			if (bytes_read == 0) { // timeout
+			if (bytes_read == 0) {
+				// They did not ask for anything. There was a timeout. Wait again.
 				continue;
 			}
+
+			// We actually got something. Process the request...
+
 			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
-			if (protocol_compare(results, bytes_read, "/secio")) {
-				libp2p_logger_debug("null", "Attempting secure io connection...\n");
-				if (!libp2p_secio_handshake(&session, &connection_param->local_node->identity->private_key, 1)) {
-					// rejecting connection
-					libp2p_logger_debug("null", "Secure IO connection failed\n");
-					free(results);
-					break;
-				}
-				libp2p_logger_debug("null", "Secure IO connection successful.\n");
-			} else if (protocol_compare(results, bytes_read, "/nodeio")) {
-				libp2p_logger_debug("null", "Attempting a nodeio connection.\n");
-				if (!libp2p_nodeio_handshake(&session)) {
-					free(results);
-					break;
-				}
-				// loop through file requests
-				int _continue = 1;
-				while(_continue) {
-					unsigned char* hash;
-					size_t hash_length = 0;
-					_continue = session.default_stream->read(&session, &hash, &hash_length, DEFAULT_NETWORK_TIMEOUT);
-					if (hash_length < 20) {
-						_continue = 0;
-						continue;
-					}
-					else {
-						// try to get the Node
-						struct HashtableNode* node = NULL;
-						if (!ipfs_merkledag_get(hash, hash_length, &node, connection_param->local_node->repo)) {
-							_continue = 0;
-							continue;
-						}
-						size_t results_size = ipfs_hashtable_node_protobuf_encode_size(node);
-						unsigned char results[results_size];
-						if (!ipfs_hashtable_node_protobuf_encode(node, results, results_size, &results_size)) {
-							_continue = 0;
-							continue;
-						}
-						// send it to the requestor
-						session.default_stream->write(&session, results, results_size);
-					}
-				}
-			} else if (protocol_compare(results, bytes_read, "/ipfs/kad/")) {
-				libp2p_logger_log("null", LOGLEVEL_DEBUG, "Attempting kademlia connection...\n");
-				if (!libp2p_routing_dht_handshake(&session)) {
-					libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia connection handshake failed\n");
-					free(results);
-					break;
-				}
-				// this handles 1 transaction
-				libp2p_routing_dht_handle_message(&session, connection_param->local_node->peerstore, connection_param->local_node->providerstore);
-				libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia message handled\n");
-			}
-			else {
-				libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Disconnecting.\n");
+			int retVal = ipfs_null_marshal(results, bytes_read, &session, connection_param);
+			free(results);
+			if (!retVal) {
+				libp2p_logger_debug("null", "ipfs_null_marshal returned false\n");
 				break;
 			}
-			free(results);
 		}
    	} else {
    		libp2p_logger_log("null", LOGLEVEL_DEBUG, "Multistream negotiation failed\n");
