@@ -155,6 +155,8 @@ int test_routing_find_providers() {
 	struct Libp2pVector* ma_vector2 = NULL, *ma_vector3 = NULL;
     struct IpfsNode local_node;
     struct FSRepo* fs_repo = NULL;
+    struct HashtableNode* node = NULL;
+    struct Libp2pVector* result = NULL;
 
 	// create peer 1
 	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
@@ -180,7 +182,6 @@ int test_routing_find_providers() {
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
 	ipfs_node_online_new(ipfs_path, &local_node2);
-	struct HashtableNode* node = NULL;
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
@@ -215,7 +216,6 @@ int test_routing_find_providers() {
 
     local_node.routing->Bootstrap(local_node.routing);
 
-    struct Libp2pVector* result;
     if (!local_node.routing->FindProviders(local_node.routing, node->hash, node->hash_size, &result)) {
     	fprintf(stderr, "Unable to find a provider\n");
     	goto exit;
@@ -308,6 +308,7 @@ int test_routing_provide() {
 	int thread1_started = 0, thread2_started = 0;
 	struct MultiAddress* ma_peer1 = NULL;
 	struct Libp2pVector* ma_vector2 = NULL;
+	struct HashtableNode* node = NULL;
 
 	// create peer 1
 	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
@@ -333,7 +334,6 @@ int test_routing_provide() {
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
 	ipfs_node_online_new(ipfs_path, &local_node2);
-	struct HashtableNode* node = NULL;
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread

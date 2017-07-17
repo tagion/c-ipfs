@@ -48,7 +48,7 @@ int ipfs_namesys_resolve_n(char **path, char *name, int depth)
 {
     char ipfs_prefix[] = "/ipfs/";
     char p[500];
-    int err;
+    int err = 0;;
 
     if (memcmp(name, ipfs_prefix, strlen(ipfs_prefix)) == 0) {
         ipfs_path_parse(p, name);

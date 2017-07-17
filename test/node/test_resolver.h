@@ -91,6 +91,7 @@ int test_resolver_remote_get() {
 	int thread_started = 0;
 	int retVal = 0;
 	struct FSRepo* fs_repo = NULL;
+	struct HashtableNode* result = NULL;
 
 	// this should point to a test directory with files and directories
 	char* home_dir = os_utils_get_homedir();
@@ -137,7 +138,7 @@ int test_resolver_remote_get() {
 	strcpy(path, "/ipfs/");
 	strcat(path, remote_peer_id);
 	strcat(path, "/QmZBvycPAYScBoPEzm35zXHt6gYYV5t9PyWmr4sksLPNFS/hello_world.txt");
-	struct HashtableNode* result = ipfs_resolver_get(path, NULL, &local_node);
+	result = ipfs_resolver_get(path, NULL, &local_node);
 	if (result == NULL) {
 		goto exit;
 	}

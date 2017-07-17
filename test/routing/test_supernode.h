@@ -165,13 +165,15 @@ int test_routing_supernode_get_value() {
 	char* fullFileName = "/tmp/temp_file.bin";
 	struct HashtableNode* write_node = NULL;
 	size_t bytes_written = 0;
-	struct Libp2pVector* multiaddresses;
+	struct Libp2pVector* multiaddresses = NULL;
 	unsigned char* results;
 	size_t results_size = 0;
 	struct HashtableNode* node = NULL;
 	char* ip = NULL;
 	pthread_t thread;
 	int thread_started = 0;
+	struct MultiAddress* addr = NULL;
+
 
 	if (!drop_build_and_open_repo("/tmp/.ipfs", &fs_repo))
 		goto exit;
@@ -218,7 +220,6 @@ int test_routing_supernode_get_value() {
 	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, write_node->hash, write_node->hash_size, &multiaddresses))
 		goto exit;
 
-	struct MultiAddress* addr = NULL;
 	for(int i = 0; i < multiaddresses->total; i++) {
 		addr = (struct MultiAddress*) libp2p_utils_vector_get(multiaddresses, i);
 		if (multiaddress_is_ip4(addr)) {
