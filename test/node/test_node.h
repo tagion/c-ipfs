@@ -1,5 +1,9 @@
 #include "ipfs/merkledag/node.h"
 
+/***
+ * Testing of storage nodes. Nodes can be directories, files, or sections of a file.
+ */
+
 int test_node() {
 	//Variables of link:
 	char * name = "Alex";

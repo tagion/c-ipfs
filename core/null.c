@@ -61,7 +61,7 @@ void ipfs_null_connection (void *ptr)
 
     libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
-	if (libp2p_net_multistream_negotiate(session)) {
+	if (libp2p_net_multistream_negotiate(&session)) {
 
 		for(;;) {
 			// check if they're looking for an upgrade (i.e. secio)
@@ -86,6 +86,7 @@ void ipfs_null_connection (void *ptr)
 					free(results);
 					break;
 				}
+				libp2p_logger_debug("null", "Secure IO connection successful.\n");
 			} else if (protocol_compare(results, bytes_read, "/nodeio")) {
 				libp2p_logger_debug("null", "Attempting a nodeio connection.\n");
 				if (!libp2p_nodeio_handshake(&session)) {
@@ -153,7 +154,7 @@ void ipfs_null_connection (void *ptr)
     return;
 }
 
-void *ipfs_null_listen (void *ptr)
+void* ipfs_null_listen (void *ptr)
 {
     int socketfd, s, count = 0;
     threadpool thpool = thpool_init(25);
@@ -170,6 +171,7 @@ void *ipfs_null_listen (void *ptr)
     libp2p_logger_error("null", "Ipfs listening on %d\n", listen_param->port);
 
     for (;;) {
+    	libp2p_logger_debug("null", "Attempting socket read\n");
     	int numDescriptors = socket_read_select4(socketfd, 2);
     	if (null_shutting_down) {
     		break;

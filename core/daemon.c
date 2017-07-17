@@ -6,6 +6,7 @@
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/peer/peerstore.h"
 #include "ipfs/core/daemon.h"
+#include "ipfs/core/null.h" // for ipfs_null_shutdown
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/core/bootstrap.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
@@ -17,6 +18,9 @@ int ipfs_daemon_start(char* repo_path) {
     pthread_t work_pths[MAX];
     struct IpfsNodeListenParams listen_param;
     struct MultiAddress* ma = NULL;
+
+    // Debugging JMJ
+    libp2p_logger_add_class("null");
 
     libp2p_logger_info("daemon", "Initializing daemon...\n");
 

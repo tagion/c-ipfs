@@ -96,10 +96,13 @@ int ipfs_ping (int argc, char **argv)
 		}
 		gettimeofday(&time2, NULL);
 
+		// calculate microseconds
 		time_us  = (time2.tv_sec  - time1.tv_sec) * 1000000;
 		time_us += (time2.tv_usec - time1.tv_usec);
 		fprintf (stderr, "Pong received: time=%d.%03d ms\n", time_us / 1000, time_us % 1000);
-		usleep(1000000 - time_us);
+		if (time_us < 1000000) { // if the ping took less than a second...
+			sleep(1);
+		}
 	}
 
 	retVal = 1;

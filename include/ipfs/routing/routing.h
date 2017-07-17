@@ -73,7 +73,7 @@ struct IpfsRouting {
 	 * @returns true(1) on success, otherwise false(0)
 	 */
 	int (*Bootstrap)     (struct IpfsRouting*);
-	void (*Listen)       (void*);
+	void* (*Listen)       (void*);
 	int (*Shutdown)      ();
 };
 typedef struct IpfsRouting ipfs_routing;
