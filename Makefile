@@ -9,6 +9,7 @@ all:
 	cd cmd; make all;
 	cd commands; make all;
 	cd core; make all;
+	cd exchange; make all;
 	cd importer; make all;
 	cd merkledag; make all;
 	cd multibase; make all;
@@ -32,6 +33,7 @@ clean:
 	cd cmd; make clean;
 	cd commands; make clean;
 	cd core; make clean;
+	cd exchange; make clean;
 	cd importer; make clean;
 	cd merkledag; make clean;
 	cd multibase; make clean;

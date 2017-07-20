@@ -19,6 +19,13 @@
 #define CID_ZCASH_BLOCK 0xc0
 #define CID_ZCASH_TX 0xc1
 
+/***
+ * A note about CID versions:
+ * Version 0 only contained the multihash address. The extra parameters of multibase,
+ * multicodec, cid-version were implied (base58btc, protobuf-mdag, and cidv0
+ * respectively) are implied.
+ */
+
 struct Cid {
 	int version;
 	char codec;

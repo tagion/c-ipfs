@@ -3,6 +3,9 @@
  * smartly handle queues of local and remote requests.
  */
 
+#include "libp2p/conn/session.h"
+#include "ipfs/exchange/bitswap/message.h"
+
 struct BitswapRouting {
 	/**
 	 * Find the provider of a key asyncronously
@@ -39,7 +42,8 @@ struct BitswapNetwork {
 	 * @param receiver the struct that contains function pointers for receiving messages
 	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*SetDelegate)(struct BitswapReceiver* receiver);
+	//TODO: Implement this
+	//int (*SetDelegate)(struct BitswapReceiver* receiver);
 
 	/**
 	 * Attempt a connection to a particular peer

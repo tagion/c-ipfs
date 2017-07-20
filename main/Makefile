@@ -11,6 +11,7 @@ OBJS = main.o \
 	../datastore/ds_helper.o \
 	../datastore/key.o \
 	../dnslink/*.o \
+	../exchange/bitswap/*.o \
 	../flatfs/flatfs.o \
 	../importer/importer.o ../importer/exporter.o ../importer/resolver.o \
 	../path/path.o \
