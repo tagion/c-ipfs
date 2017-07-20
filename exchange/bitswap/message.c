@@ -391,7 +391,6 @@ int ipfs_bitswap_wantlist_protobuf_decode(unsigned char* buffer, size_t buffer_l
 					list->entries = libp2p_utils_vector_new(1);
 				}
 				libp2p_utils_vector_add(list->entries, (void*)entry);
-				free(entry);
 				pos += bytes_read;
 				break;
 			}
@@ -593,7 +592,6 @@ int ipfs_bitswap_message_protobuf_decode(unsigned char* buffer, size_t buffer_le
 					message->blocks = libp2p_utils_vector_new(1);
 				}
 				libp2p_utils_vector_add(message->blocks, (void*)temp);
-				ipfs_blocks_block_free(temp);
 				pos += bytes_read;
 				break;
 			}
@@ -615,7 +613,6 @@ int ipfs_bitswap_message_protobuf_decode(unsigned char* buffer, size_t buffer_le
 					message->payload = libp2p_utils_vector_new(1);
 				}
 				libp2p_utils_vector_add(message->payload, (void*)block);
-				ipfs_blocks_block_free(block);
 				pos += bytes_read;
 				break;
 			}
