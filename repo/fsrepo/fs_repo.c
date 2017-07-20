@@ -471,6 +471,35 @@ int fs_repo_open_config(struct FSRepo* repo) {
 			free(val);
 		}
 	}
+
+	// replication
+	curr_pos = _find_token(data, tokens, num_tokens, curr_pos, "Replication");
+	if (curr_pos >= 0) {
+		// announce minutes
+		curr_pos++;
+		_get_json_int_value(data, tokens, num_tokens, curr_pos, "AnnounceMinutes", &repo->config->replication->announce_minutes);
+		// nodes list
+		int nodes_pos = _find_token(data, tokens, num_tokens, curr_pos, "Nodes");
+		if (nodes_pos >= 0) {
+			if (tokens[nodes_pos].type != JSMN_ARRAY) {
+				free(data);
+				return 0;
+			}
+			int nodes_size = tokens[nodes_pos].size;
+			repo->config->replication->nodes = libp2p_utils_vector_new(nodes_size);
+			nodes_pos++;
+			for(int i = 0; i < nodes_size; i++) {
+				char* val = NULL;
+				if (!_get_json_string_value(data, tokens, num_tokens, nodes_pos + i, NULL, &val))
+					break;
+				struct MultiAddress* cur = multiaddress_new_from_string(val);
+				if (cur == NULL)
+					continue;
+				libp2p_utils_vector_add(repo->config->replication->nodes, cur);
+				free(val);
+			}
+		}
+	}
 	// free the memory used reading the json file
 	free(data);
 	free(priv_key_base64);

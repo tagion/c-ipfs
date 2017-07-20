@@ -7,6 +7,7 @@
 #include "bootstrap_peers.h"
 #include "addresses.h"
 #include "gateway.h"
+#include "replication.h"
 
 struct MDNS {
 	int enabled;
@@ -44,6 +45,7 @@ struct RepoConfig {
 	//struct supernode_routing supernode_client_config;
 	//struct api api;
 	struct Reprovider reprovider;
+	struct Replication* replication;
 };
 
 /**

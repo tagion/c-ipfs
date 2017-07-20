@@ -201,6 +201,9 @@ int ipfs_repo_config_new(struct RepoConfig** config) {
 	if (retVal == 0)
 		return 0;
 
+	if (!repo_config_replication_new(&((*config)->replication)))
+		return 0;
+
 	return 1;
 }
 
@@ -223,6 +226,8 @@ int ipfs_repo_config_free(struct RepoConfig* config) {
 			repo_config_addresses_free(config->addresses);
 		if (config->gateway != NULL)
 			repo_config_gateway_free(config->gateway);
+		if (config->replication != NULL)
+			repo_config_replication_free(config->replication);
 		free(config);
 	}
 	return 1;

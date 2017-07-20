@@ -20,9 +20,7 @@ OBJS = main.o \
 	../pin/pin.o \
 	../repo/init.o \
 	../repo/fsrepo/fs_repo.o ../repo/fsrepo/jsmn.o ../repo/fsrepo/lmdb_datastore.o \
-	../repo/config/config.o ../repo/config/identity.o \
-	../repo/config/bootstrap_peers.o ../repo/config/gateway.o \
-	../repo/config/addresses.o ../repo/config/swarm.o ../repo/config/peer.o \
+	../repo/config/*.o \
 	../routing/*.o \
 	../thirdparty/ipfsaddr/ipfs_addr.o \
 	../unixfs/unixfs.o \

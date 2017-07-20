@@ -7,6 +7,10 @@
 #include "ipfs/repo/fsrepo/fs_repo.h"
 
 /**
+ * The basic functions for initializing an IPFS repo
+ */
+
+/**
  * Get the correct repo home directory. This first looks at the
  * command line, then the IPFS_PATH environment variable,
  * then the user's home directory. This is where the .ipfs directory
