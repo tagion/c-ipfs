@@ -12,14 +12,15 @@
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/api.h"
 
-volatile int conns_count;
+pthread_mutex_t conns_lock;
+int conns_count;
 
 pthread_t listen_thread = 0;
 
 struct s_list api_list;
 
 /**
- * Create a new bitswap exchange
+ * Pthread to take care of each client connection.
  * @param ptr is the connection index in api_list, integer not pointer, cast required.
  * @returns nothing
  */
@@ -65,10 +66,12 @@ quit:
 	if (inet_ntop(AF_INET, &(api_list.conns[i]->ipv4), client, INET_ADDRSTRLEN) == NULL)
 		strcpy(client, "UNKNOW");
 	libp2p_logger_error("api", "Closing client connection %s:%d (%d).\n", client, api_list.conns[i]->port, i+1);
+	pthread_mutex_lock(&conns_lock);
 	close(s);
 	free (api_list.conns[i]);
 	api_list.conns[i] = NULL;
 	conns_count--;
+	pthread_mutex_unlock(&conns_lock);
 
 	return NULL;
 }
@@ -80,6 +83,7 @@ void api_connections_cleanup (void)
 {
 	int i;
 
+	pthread_mutex_lock(&conns_lock);
 	if (conns_count > 0 && api_list.conns) {
 		for (i = 0 ; i < api_list.max_conns ; i++) {
 			if (api_list.conns[i]->pthread) {
@@ -95,6 +99,7 @@ void api_connections_cleanup (void)
 		free (api_list.conns);
 		api_list.conns = NULL;
 	}
+	pthread_mutex_unlock(&conns_lock);
 }
 
 /**
@@ -123,7 +128,7 @@ void *api_listen_thread (void *ptr)
 			continue;
 		}
 
-		conns_count++;
+		pthread_mutex_lock(&conns_lock);
 		for (i = 0 ; i < api_list.max_conns && api_list.conns[i] ; i++);
 		api_list.conns[i] = malloc (sizeof (struct s_conns));
 		if (!api_list.conns[i]) {
@@ -143,7 +148,10 @@ void *api_listen_thread (void *ptr)
 			api_list.conns[i] = NULL;
 			conns_count--;
 			close(s);
+		} else {
+			conns_count++;
 		}
+		pthread_mutex_unlock(&conns_lock);
 	}
 	api_connections_cleanup ();
 	return NULL;
