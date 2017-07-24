@@ -72,7 +72,7 @@ size_t ipfs_cid_protobuf_encode_size(struct Cid* incoming);
  * @param cid where to put the results
  * @returns true(1) on success
  */
-int ipfs_cid_new(int version, unsigned char* hash, size_t hash_length, const char codec, struct Cid** cid);
+int ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, const char codec, struct Cid** cid);
 
 /***
  * Free the resources from a Cid

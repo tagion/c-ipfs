@@ -2,6 +2,7 @@
  * Methods for the Bitswap exchange
  */
 #include <stdlib.h>
+#include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/exchange/bitswap/message.h"
@@ -11,7 +12,7 @@
  * @param sessionContext the context
  * @returns an allocated Exchange structure
  */
-struct Exchange* ipfs_bitswap_new(struct SessionContext* sessionContext) {
+struct Exchange* ipfs_bitswap_exchange_start(struct SessionContext* sessionContext, struct IpfsNode* ipfs_node) {
 	struct Exchange* exchange = (struct Exchange*) malloc(sizeof(struct Exchange));
 	if (exchange != NULL) {
 		struct BitswapContext* bitswapContext = (struct BitswapContext*) malloc(sizeof(struct BitswapContext));
@@ -21,13 +22,14 @@ struct Exchange* ipfs_bitswap_new(struct SessionContext* sessionContext) {
 		}
 		exchange->exchangeContext = (void*) bitswapContext;
 		bitswapContext->sessionContext = sessionContext;
-		//TODO: fill in the exchangeContext
+		bitswapContext->ipfsNode = ipfs_node;
 		exchange->IsOnline = ipfs_bitswap_is_online;
 		exchange->Close = ipfs_bitswap_close;
 		exchange->HasBlock = ipfs_bitswap_has_block;
 		exchange->GetBlock = ipfs_bitswap_get_block;
 		exchange->GetBlocks = ipfs_bitswap_get_blocks;
 	}
+	//TODO: Start the threads for the network
 	return exchange;
 }
 
@@ -39,6 +41,7 @@ struct Exchange* ipfs_bitswap_new(struct SessionContext* sessionContext) {
 int ipfs_bitswap_free(struct Exchange* exchange) {
 	if (exchange != NULL) {
 		if (exchange->exchangeContext != NULL) {
+			ipfs_bitswap_close(exchange->exchangeContext);
 			free(exchange->exchangeContext);
 		}
 		free(exchange);
@@ -88,7 +91,13 @@ int ipfs_bitswap_has_block(void* exchangeContext, struct Block* block) {
  * taking in a pointer to a callback, as this could take a while (or fail).
  */
 int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block** block) {
-	// TODO: Implement this method
+	struct BitswapContext* bitswapContext = (struct BitswapContext*)exchangeContext;
+	if (bitswapContext != NULL) {
+		// check locally first
+		if (bitswapContext->ipfsNode->blockstore->Get(bitswapContext->ipfsNode->blockstore->blockstoreContext, cid, block))
+			return 1;
+		// now ask the network
+	}
 	return 0;
 }
 
@@ -97,18 +106,5 @@ int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block*
  */
 int ipfs_bitswap_get_blocks(void* exchangeContext, struct Libp2pVector* Cids, struct Libp2pVector** blocks) {
 	// TODO: Implement this method
-	return 0;
-}
-
-/***
- * Receive a BitswapMessage from a peer.
- * @param exchangeContext the context
- * @param peer_id the origin
- * @param peer_id_size the size of the peer_id
- * @param message the message
- * @returns true(1) on success, otherwise false(0)
- */
-int ipfs_bitswap_receive_message(void* exchangeContext, unsigned char* peer_id, int peer_id_size, struct BitswapMessage* message) {
-
 	return 0;
 }

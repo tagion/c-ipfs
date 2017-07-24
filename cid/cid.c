@@ -98,7 +98,7 @@ int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct
  * @param cid where to put the results
  * @returns true(1) on success
  */
-int ipfs_cid_new(int version, unsigned char* hash, size_t hash_length, const char codec, struct Cid** ptrToCid) {
+int ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, const char codec, struct Cid** ptrToCid) {
 	// allocate memory
 	*ptrToCid = (struct Cid*)malloc(sizeof(struct Cid));
 	struct Cid* cid = *ptrToCid;

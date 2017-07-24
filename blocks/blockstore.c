@@ -4,16 +4,54 @@
 #include "libp2p/crypto/encoding/base32.h"
 #include "ipfs/cid/cid.h"
 #include "ipfs/blocks/block.h"
+#include "ipfs/blocks/blockstore.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "libp2p/os/utils.h"
+
+
+/***
+ * Create a new Blockstore struct
+ * @param fs_repo the FSRepo to use
+ * @returns the new Blockstore struct, or NULL if there was a problem.
+ */
+struct Blockstore* ipfs_blockstore_new(const struct FSRepo* fs_repo) {
+	struct Blockstore* blockstore = (struct Blockstore*) malloc(sizeof(struct Blockstore));
+	if(blockstore != NULL) {
+		blockstore->blockstoreContext = (struct BlockstoreContext*) malloc(sizeof(struct BlockstoreContext));
+		if (blockstore->blockstoreContext == NULL) {
+			free(blockstore);
+			return NULL;
+		}
+		blockstore->blockstoreContext->fs_repo = fs_repo;
+		blockstore->Delete = ipfs_blockstore_delete;
+		blockstore->Get = ipfs_blockstore_get;
+		blockstore->Has = ipfs_blockstore_has;
+		blockstore->Put = ipfs_blockstore_put;
+	}
+	return blockstore;
+}
+
+/**
+ * Release resources of a Blockstore struct
+ * @param blockstore the struct to free
+ * @returns true(1)
+ */
+int ipfs_blockstore_free(struct Blockstore* blockstore) {
+	if (blockstore != NULL) {
+		if (blockstore->blockstoreContext != NULL)
+			free(blockstore->blockstoreContext);
+		free(blockstore);
+	}
+	return 1;
+}
 
 /**
  * Delete a block based on its Cid
  * @param cid the Cid to look for
  * @param returns true(1) on success
  */
-int ipfs_blockstore_delete(struct Cid* cid, struct FSRepo* fs_repo) {
+int ipfs_blockstore_delete(const struct BlockstoreContext* context, struct Cid* cid) {
 	return 0;
 }
 
@@ -22,7 +60,7 @@ int ipfs_blockstore_delete(struct Cid* cid, struct FSRepo* fs_repo) {
  * @param cid the Cid to look for
  * @returns true(1) if found
  */
-int ipfs_blockstore_has(struct Cid* cid, struct FSRepo* fs_repo) {
+int ipfs_blockstore_has(const struct BlockstoreContext* context, struct Cid* cid) {
 	return 0;
 }
 
@@ -74,11 +112,11 @@ char* ipfs_blockstore_path_get(const struct FSRepo* fs_repo, const char* filenam
  * @param block where to put the data to be returned
  * @returns true(1) on success
  */
-int ipfs_blockstore_get(const unsigned char* hash, size_t hash_size, struct Block** block, const struct FSRepo* fs_repo) {
+int ipfs_blockstore_get(const struct BlockstoreContext* context, struct Cid* cid, struct Block** block) {
 	// get datastore key, which is a base32 key of the multihash
-	unsigned char* key = ipfs_blockstore_hash_to_base32(hash, hash_size);
+	unsigned char* key = ipfs_blockstore_hash_to_base32(cid->hash, cid->hash_length);
 
-	char* filename = ipfs_blockstore_path_get(fs_repo, (char*)key);
+	char* filename = ipfs_blockstore_path_get(context->fs_repo, (char*)key);
 
 	size_t file_size = os_utils_file_size(filename);
 	unsigned char buffer[file_size];
@@ -88,6 +126,8 @@ int ipfs_blockstore_get(const unsigned char* hash, size_t hash_size, struct Bloc
 	fclose(file);
 
 	int retVal = ipfs_blocks_block_protobuf_decode(buffer, bytes_read, block);
+
+	(*block)->cid = cid;
 
 	free(key);
 	free(filename);
@@ -100,7 +140,7 @@ int ipfs_blockstore_get(const unsigned char* hash, size_t hash_size, struct Bloc
  * @param block the block to store
  * @returns true(1) on success
  */
-int ipfs_blockstore_put(struct Block* block, struct FSRepo* fs_repo) {
+int ipfs_blockstore_put(const struct BlockstoreContext* context, struct Block* block) {
 	// from blockstore.go line 118
 	int retVal = 0;
 
@@ -123,7 +163,7 @@ int ipfs_blockstore_put(struct Block* block, struct FSRepo* fs_repo) {
 	}
 
 	// now write byte array to file
-	char* filename = ipfs_blockstore_path_get(fs_repo, (char*)key);
+	char* filename = ipfs_blockstore_path_get(context->fs_repo, (char*)key);
 	if (filename == NULL) {
 		free(key);
 		return 0;

@@ -8,34 +8,63 @@
 #include "ipfs/cid/cid.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 
+struct BlockstoreContext {
+	const struct FSRepo* fs_repo;
+};
+
+struct Blockstore {
+	struct BlockstoreContext* blockstoreContext;
+	int (*Delete)(const struct BlockstoreContext* context, struct Cid* cid);
+	int (*Has)(const struct BlockstoreContext* context, struct Cid* cid);
+	int (*Get)(const struct BlockstoreContext* context, struct Cid* cid, struct Block** block);
+	int (*Put)(const struct BlockstoreContext* context, struct Block* block);
+};
+
+/***
+ * Create a new Blockstore struct
+ * @param fs_repo the FSRepo to use
+ * @returns the new Blockstore struct, or NULL if there was a problem.
+ */
+struct Blockstore* ipfs_blockstore_new(const struct FSRepo* fs_repo);
+
+/**
+ * Release resources of a Blockstore struct
+ * @param blockstore the struct to free
+ * @returns true(1)
+ */
+int ipfs_blockstore_free(struct Blockstore* blockstore);
+
 /**
  * Delete a block based on its Cid
+ * @param context the context
  * @param cid the Cid to look for
  * @param returns true(1) on success
  */
-int ipfs_blockstore_delete(struct Cid* cid, struct FSRepo* fs_repo);
+int ipfs_blockstore_delete(const struct BlockstoreContext* context, struct Cid* cid);
 
 /***
  * Determine if the Cid can be found
+ * @param context the context
  * @param cid the Cid to look for
  * @returns true(1) if found
  */
-int ipfs_blockstore_has(struct Cid* cid, struct FSRepo* fs_repo);
+int ipfs_blockstore_has(const struct BlockstoreContext* context, struct Cid* cid);
 
 /***
  * Find a block based on its Cid
+ * @param context the context
  * @param cid the Cid to look for
  * @param block where to put the data to be returned
  * @returns true(1) on success
  */
-int ipfs_blockstore_get(const unsigned char* hash, size_t hash_length, struct Block** block, const struct FSRepo* fs_repo);
+int ipfs_blockstore_get(const struct BlockstoreContext* context, struct Cid* cid, struct Block** block);
 
 /***
  * Put a block in the blockstore
  * @param block the block to store
  * @returns true(1) on success
  */
-int ipfs_blockstore_put(struct Block* block, const struct FSRepo* fs_repo);
+int ipfs_blockstore_put(const struct BlockstoreContext* context, struct Block* block);
 
 /***
  * Put a struct UnixFS in the blockstore

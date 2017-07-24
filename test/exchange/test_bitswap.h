@@ -103,6 +103,5 @@ int test_bitswap_protobuf() {
 	message->wantlist->full = 1;
 
 	retVal = 1;
-	exit:
 	return retVal;
 }

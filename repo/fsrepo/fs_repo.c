@@ -698,7 +698,11 @@ int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_re
 	 * and the base32 encoded multihash as the value.
 	 */
 	int retVal = 1;
-	retVal = ipfs_blockstore_put(block, fs_repo);
+	struct Blockstore* blockstore = ipfs_blockstore_new(fs_repo);
+	if (blockstore == NULL)
+		return 0;
+	retVal = ipfs_blockstore_put(blockstore->blockstoreContext, block);
+	ipfs_blockstore_free(blockstore);
 	if (retVal == 0)
 		return 0;
 	// take the cid, base32 it, and send both to the datastore
@@ -799,7 +803,17 @@ int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, s
 	if (retVal == 0) // maybe it doesn't exist?
 		return 0;
 	// now get the block from the blockstore
-	retVal = ipfs_blockstore_get(hash, hash_length, block, fs_repo);
+	struct Cid* cid = NULL;
+	if (!ipfs_cid_new(0, hash, hash_length, CID_PROTOBUF, &cid))
+		return 0;
+	struct Blockstore* blockstore = ipfs_blockstore_new(fs_repo);
+	if (blockstore == NULL) {
+		ipfs_cid_free(cid);
+		return 0;
+	}
+	retVal = ipfs_blockstore_get(blockstore->blockstoreContext, cid, block);
+	ipfs_blockstore_free(blockstore);
+	ipfs_cid_free(cid);
 	return retVal;
 }
 

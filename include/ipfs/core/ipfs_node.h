@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ipfs/blocks/blockstore.h"
 #include "ipfs/repo/config/identity.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/routing/routing.h"
@@ -15,6 +16,7 @@ struct IpfsNode {
 	struct Peerstore* peerstore;
 	struct ProviderStore* providerstore;
 	struct IpfsRouting* routing;
+	struct Blockstore* blockstore;
 	//struct Pinner pinning; // an interface
 	//struct Mount** mounts;
 	// TODO: Add more here

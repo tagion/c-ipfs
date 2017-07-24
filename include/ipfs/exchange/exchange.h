@@ -1,3 +1,4 @@
+#pragma once
 /**
  * This is the definition of an "Exchange"
  *
@@ -8,10 +9,19 @@
 #include "ipfs/cid/cid.h"
 #include "libp2p/utils/vector.h"
 
+/**
+ * These are methods that the local IPFS daemon (or client)
+ * call to communicate with the local repository or network
+ */
+
 struct Exchange {
 	/**
 	 * Retrieve a block from peers within the deadline enforced
 	 * by the context
+	 *
+	 * NOTE: Shouldn't the block parameter be a callback (function pointer)?
+	 * Otherwise, this function is going to block. Is that what we want?
+	 *
 	 * @param context the context
 	 * @param cid the hash of the block to retrieve
 	 * @param block a pointer to the block (allocated by this method if return is true)
