@@ -22,6 +22,35 @@ struct s_list {
 	} **conns;
 };
 
+struct s_request {
+	char *buf;
+	size_t size;
+
+	char *method;
+	char *path;
+	char *http_ver;
+	char *header;
+	char *body;
+	size_t body_size;
+};
+
+#define HTTP_400	"HTTP/1.1 400 Bad Request\r\n" \
+			"Content-Type: text/plain\r\n" \
+			"Connection: close\r\n\r\n" \
+			"400 Bad Request"
+
+
+#define HTTP_404	"HTTP/1.1 404 Not Found\r\n" \
+			"Content-Type: text/plain; charset=utf-8\r\n" \
+			"X-Content-Type-Options: nosniff\r\n" \
+			"Content-Length: 19\r\n\r\n" \
+			"404 page not found\n"
+
+#define HTTP_500	"HTTP/1.1 500 Internal server error\r\n" \
+			"Content-Type: text/plain\r\n" \
+			"Connection: close\r\n\r\n" \
+			"500 Internal server error"
+
 #define write_cstr(f,s)	write(f,s,sizeof(s)-1)
 #define write_str(f,s)	write(f,s,strlen(s))
 

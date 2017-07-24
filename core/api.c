@@ -28,8 +28,11 @@ void *api_connection_thread (void *ptr)
 {
 	int timeout, s, r;
 	const INT_TYPE i = (INT_TYPE) ptr;
-	char buf[MAX_READ+1];
+	char buf[MAX_READ+1], *p;
 	char client[INET_ADDRSTRLEN];
+	struct s_request req;
+
+	req.buf = NULL; // sanity.
 
 	buf[MAX_READ] = '\0';
 
@@ -46,23 +49,67 @@ void *api_connection_thread (void *ptr)
 		goto quit;
 	}
 	buf[r] = '\0';
-	if (cstrstart(buf, "GET ")) {
-		// just an error message, because it's not used.
-		write_cstr (s, "HTTP/1.1 404 Not Found\r\n"
-			       "Content-Type: text/plain; charset=utf-8\r\n"
-			       "X-Content-Type-Options: nosniff\r\n"
-			       "Content-Length: 19\r\n\r\n"
-			       "404 page not found\n");
-	//} else if (cstrstart(buf, "POST ")) {
-		// TODO: Handle chunked/gzip/form-data/json POST requests.
+
+	p = strstr(buf, "\r\n\r\n");
+
+	if (p) {
+		req.size = p - buf + 1;
+		req.buf = malloc(req.size);
+		if (!req.buf) {
+			// memory allocation fail.
+			libp2p_logger_error("api", "malloc fail.\n");
+			write_cstr (s, HTTP_500);
+			goto quit;
+		}
+		memcpy(req.buf, buf, req.size - 1);
+		req.buf[req.size-1] = '\0';
+
+		req.method = req.buf;
+		p = strchr(req.method, ' ');
+		if (!p) {
+			write_cstr (s, HTTP_400);
+			goto quit;
+		}
+		*p++ = '\0'; // End of method.
+		req.path = p;
+		p = strchr(req.path, ' ');
+		if (!p) {
+			write_cstr (s, HTTP_400);
+			goto quit;
+		}
+		*p++ = '\0'; // End of path.
+		req.http_ver = p;
+		p = strchr(req.http_ver, '\r');
+		if (!p) {
+			write_cstr (s, HTTP_400);
+			goto quit;
+		}
+		*p++ = '\0'; // End of http version.
+		while (*p == '\r' || *p == '\n') p++;
+		req.header = p;
+		req.body = req.buf + req.size;
+		req.body_size = 0;
+
+		libp2p_logger_error("api", "method = '%s'\n"
+					   "path = '%s'\n"
+					   "http_ver = '%s'\n"
+					   "header {\n%s\n}\n"
+					   "body_size = %d\n",
+		req.method, req.path, req.http_ver, req.header, req.body_size);
+
+		if (strcmp(req.method, "GET")==0) {
+			// just an error message, because it's not used.
+			write_cstr (s, HTTP_404);
+		//} else if (cstrstart(buf, "POST ")) {
+			// TODO: Handle chunked/gzip/form-data/json POST requests.
+		}
 	} else {
-		write_cstr (s, "HTTP/1.1 400 Bad Request\r\n"
-			       "Content-Type: text/plain\r\n"
-			       "Connection: close\r\n\r\n"
-			       "400 Bad Request");
+		write_cstr (s, HTTP_400);
 	}
 
 quit:
+	if (req.buf)
+		free(req.buf);
 	if (inet_ntop(AF_INET, &(api_list.conns[i]->ipv4), client, INET_ADDRSTRLEN) == NULL)
 		strcpy(client, "UNKNOW");
 	libp2p_logger_error("api", "Closing client connection %s:%d (%d).\n", client, api_list.conns[i]->port, i+1);
@@ -138,7 +185,6 @@ void *api_listen_thread (void *ptr)
 		}
 		if (inet_ntop(AF_INET, &ipv4, client, INET_ADDRSTRLEN) == NULL)
 			strcpy(client, "UNKNOW");
-		libp2p_logger_error("api", "Accept connection %s:%d (%d/%d), pthread %d.\n", client, port, conns_count, api_list.max_conns, i+1);
 		api_list.conns[i]->socket = s;
 		api_list.conns[i]->ipv4   = ipv4;
 		api_list.conns[i]->port   = port;
@@ -151,6 +197,7 @@ void *api_listen_thread (void *ptr)
 		} else {
 			conns_count++;
 		}
+		libp2p_logger_error("api", "Accept connection %s:%d (%d/%d), pthread %d.\n", client, port, conns_count, api_list.max_conns, i+1);
 		pthread_mutex_unlock(&conns_lock);
 	}
 	api_connections_cleanup ();
