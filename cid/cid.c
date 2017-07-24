@@ -256,6 +256,13 @@ int ipfs_cid_cast(const unsigned char* incoming, size_t incoming_size, struct Ci
  * @returns < 0 if side A is greater, > 0 if side B is greater, or 0 if equal
  */
 int ipfs_cid_compare(struct Cid* a, struct Cid* b) {
+	if (a == NULL && b == NULL)
+		return 0;
+	if (a != NULL && b == NULL)
+		return -1;
+	if (a == NULL && b != NULL)
+		return 1;
+
 	if (a->version != b->version) {
 		return b->version - a->version;
 	}

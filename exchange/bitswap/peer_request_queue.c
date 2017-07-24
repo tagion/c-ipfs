@@ -35,8 +35,11 @@ int ipfs_bitswap_peer_request_free(struct PeerRequest* request) {
  */
 struct PeerRequestQueue* ipfs_bitswap_peer_request_queue_new() {
 	struct PeerRequestQueue* queue = malloc(sizeof(struct PeerRequestQueue));
-	queue->first = NULL;
-	queue->last = NULL;
+	if (queue != NULL) {
+		pthread_mutex_init(&queue->queue_mutex, NULL);
+		queue->first = NULL;
+		queue->last = NULL;
+	}
 	return queue;
 }
 
@@ -49,10 +52,12 @@ int ipfs_bitswap_peer_request_queue_free(struct PeerRequestQueue* queue) {
 	pthread_mutex_lock(&queue->queue_mutex);
 	struct PeerRequestEntry* current = queue->last;
 	while (current != NULL) {
+		struct PeerRequestEntry* prior = current->prior;
 		ipfs_bitswap_peer_request_entry_free(current);
-		current = current->prior;
+		current = prior;
 	}
 	pthread_mutex_unlock(&queue->queue_mutex);
+	free(queue);
 	return 1;
 }
 
@@ -69,6 +74,9 @@ int ipfs_bitswap_peer_request_queue_add(struct PeerRequestQueue* queue, struct P
 		pthread_mutex_lock(&queue->queue_mutex);
 		entry->prior = queue->last;
 		queue->last = entry;
+		if (queue->first == NULL) {
+			queue->first = entry;
+		}
 		pthread_mutex_unlock(&queue->queue_mutex);
 		return 1;
 	}
@@ -151,13 +159,13 @@ struct PeerRequestEntry* ipfs_bitswap_peer_request_entry_new() {
 
 /**
  * Frees resources allocated
- * NOTE: This does not free the embedded PeerRequest (should it?)
  * @param entry the PeerRequestEntry to free
  * @returns true(1)
  */
 int ipfs_bitswap_peer_request_entry_free(struct PeerRequestEntry* entry) {
 	entry->next = NULL;
 	entry->prior = NULL;
+	ipfs_bitswap_peer_request_free(entry->current);
 	entry->current = NULL;
 	free(entry);
 	return 1;
