@@ -1,6 +1,7 @@
 #include "cid/test_cid.h"
 #include "cmd/ipfs/test_init.h"
 #include "exchange/test_bitswap.h"
+#include "exchange/test_bitswap_request_queue.h"
 #include "flatfs/test_flatfs.h"
 #include "merkledag/test_merkledag.h"
 #include "node/test_node.h"
@@ -34,6 +35,7 @@ int testit(const char* name, int (*func)(void)) {
 
 const char* names[] = {
 		"test_bitswap_new_free",
+		"test_bitswap_peer_request_queue_new",
 		"test_cid_new_free",
 		"test_cid_cast_multihash",
 		"test_cid_cast_non_multihash",
@@ -85,6 +87,7 @@ const char* names[] = {
 
 int (*funcs[])(void) = {
 		test_bitswap_new_free,
+		test_bitswap_peer_request_queue_new,
 		test_cid_new_free,
 		test_cid_cast_multihash,
 		test_cid_cast_non_multihash,

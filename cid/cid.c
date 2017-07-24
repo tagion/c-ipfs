@@ -248,3 +248,27 @@ int ipfs_cid_cast(const unsigned char* incoming, size_t incoming_size, struct Ci
 
 	return 1;
 }
+
+/**
+ * Compare two cids
+ * @param a side A
+ * @param b side B
+ * @returns < 0 if side A is greater, > 0 if side B is greater, or 0 if equal
+ */
+int ipfs_cid_compare(struct Cid* a, struct Cid* b) {
+	if (a->version != b->version) {
+		return b->version - a->version;
+	}
+	if (a->codec != b->codec) {
+		return ((int)b->codec - (int)a->codec);
+	}
+	if (a->hash_length != b->hash_length) {
+		return b->hash_length - a->hash_length;
+	}
+	for(size_t i = 0; i < a->hash_length; i++) {
+		if (a->hash[i] != b->hash[i]) {
+			return ((int)b->hash[i] - (int)a->hash[i]);
+		}
+	}
+	return 0;
+}

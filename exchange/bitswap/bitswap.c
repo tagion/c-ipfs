@@ -70,6 +70,10 @@ int ipfs_bitswap_close(void* exchangeContext) {
 
 /**
  * Implements the Exchange->HasBlock method
+ * Some notes from the GO version say that this is normally called by user
+ * interaction (i.e. user added a file).
+ * But this does not make sense right now, as the GO code looks like it
+ * adds the block to the blockstore. This still has to be sorted.
  */
 int ipfs_bitswap_has_block(void* exchangeContext, struct Block* block) {
 	//TODO: Implement this method
@@ -80,6 +84,8 @@ int ipfs_bitswap_has_block(void* exchangeContext, struct Block* block) {
 
 /**
  * Implements the Exchange->GetBlock method
+ * We're asking for this method to get the block from peers. Perhaps this should be
+ * taking in a pointer to a callback, as this could take a while (or fail).
  */
 int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block** block) {
 	// TODO: Implement this method

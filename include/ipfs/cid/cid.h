@@ -116,4 +116,12 @@ int ipfs_cid_set_len (struct CidSet *set);
 unsigned char **ipfs_cid_set_keys (struct CidSet *set);
 int ipfs_cid_set_foreach (struct CidSet *set, int (*func)(struct Cid *));
 
+/**
+ * Compare two cids
+ * @param a side A
+ * @param b side B
+ * @returns < 0 if side A is greater, > 0 if side B is greater, or 0 if equal
+ */
+int ipfs_cid_compare(struct Cid* a, struct Cid* b);
+
 #endif
