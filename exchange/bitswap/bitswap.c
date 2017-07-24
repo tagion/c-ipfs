@@ -2,10 +2,12 @@
  * Methods for the Bitswap exchange
  */
 #include <stdlib.h>
+#include <unistd.h> // for sleep()
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/exchange/bitswap/message.h"
+#include "ipfs/exchange/bitswap/want_manager.h"
 
 /**
  * Create a new bitswap exchange
@@ -89,6 +91,10 @@ int ipfs_bitswap_has_block(void* exchangeContext, struct Block* block) {
  * Implements the Exchange->GetBlock method
  * We're asking for this method to get the block from peers. Perhaps this should be
  * taking in a pointer to a callback, as this could take a while (or fail).
+ * @param exchangeContext a BitswapContext
+ * @param cid the Cid to look for
+ * @param block a pointer to where to put the result
+ * @returns true(1) if found, false(0) if not
  */
 int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block** block) {
 	struct BitswapContext* bitswapContext = (struct BitswapContext*)exchangeContext;
@@ -97,6 +103,30 @@ int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block*
 		if (bitswapContext->ipfsNode->blockstore->Get(bitswapContext->ipfsNode->blockstore->blockstoreContext, cid, block))
 			return 1;
 		// now ask the network
+		//NOTE: this timeout should be configurable
+		int timeout = 10;
+		int waitSecs = 1;
+		int timeTaken = 0;
+		if (ipfs_bitswap_want_manager_add(bitswapContext, cid)) {
+			// loop waiting for it to fill
+			while(1) {
+				if (ipfs_bitswap_want_manager_received(bitswapContext, cid)) {
+					if (ipfs_bitswap_want_manager_get_block(bitswapContext, cid, block)) {
+						// NOTE: this should use reference counting
+						ipfs_bitswap_want_manager_remove(bitswapContext, cid);
+						return 1;
+					}
+				}
+				//TODO: This is a busy-loop. Find another way.
+				timeTaken += waitSecs;
+				if (timeTaken >= timeout) {
+					// It took too long. Stop looking.
+					ipfs_bitswap_want_manager_remove(bitswapContext, cid);
+					break;
+				}
+				sleep(waitSecs);
+			}
+		}
 	}
 	return 0;
 }

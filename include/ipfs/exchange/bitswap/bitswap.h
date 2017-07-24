@@ -1,3 +1,5 @@
+#pragma once
+
 /***
  * Bitswap implements the exchange "interface"
  * @see ../exchange.h
@@ -9,6 +11,7 @@
 struct BitswapContext {
 	struct SessionContext* sessionContext;
 	struct IpfsNode* ipfsNode;
+	struct Wantlist* localWantlist;
 };
 
 /**

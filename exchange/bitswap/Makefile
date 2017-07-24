@@ -7,7 +7,7 @@ endif
 
 LFLAGS = 
 DEPS = 
-OBJS = bitswap.o message.o network.o peer_request_queue.o
+OBJS = bitswap.o message.o network.o peer_request_queue.o want_manager.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
