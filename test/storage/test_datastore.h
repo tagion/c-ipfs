@@ -29,7 +29,7 @@ int test_ipfs_datastore_put() {
 
 	retVal = ipfs_blocks_block_add_data(input, strlen((char*)input), block);
 	if (retVal == 0) {
-		ipfs_blocks_block_free(block);
+		ipfs_block_free(block);
 		return 0;
 	}
 
@@ -38,7 +38,7 @@ int test_ipfs_datastore_put() {
 	unsigned char key[key_length];
 	retVal = ipfs_datastore_helper_ds_key_from_binary(block->data, block->data_length, &key[0], key_length, &key_length);
 	if (retVal == 0) {
-		ipfs_blocks_block_free(block);
+		ipfs_block_free(block);
 		return 0;
 	}
 
@@ -46,18 +46,18 @@ int test_ipfs_datastore_put() {
 	struct FSRepo* fs_repo;
 	retVal = ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, &fs_repo);
 	if (retVal == 0) {
-		ipfs_blocks_block_free(block);
+		ipfs_block_free(block);
 		return 0;
 	}
 	retVal = ipfs_repo_fsrepo_open(fs_repo);
 	if (retVal == 0) {
-		ipfs_blocks_block_free(block);
+		ipfs_block_free(block);
 		return 0;
 	}
 	// send to Put with key
 	retVal = fs_repo->config->datastore->datastore_put((const unsigned char*)key, key_length, block->data, block->data_length, fs_repo->config->datastore);
 	if (retVal == 0) {
-		ipfs_blocks_block_free(block);
+		ipfs_block_free(block);
 		return 0;
 	}
 
@@ -67,7 +67,7 @@ int test_ipfs_datastore_put() {
 
 	// clean up
 	ipfs_repo_fsrepo_free(fs_repo);
-	ipfs_blocks_block_free(block);
+	ipfs_block_free(block);
 
 	return 1;
 }

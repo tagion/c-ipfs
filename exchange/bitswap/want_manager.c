@@ -1,16 +1,15 @@
 #include "ipfs/exchange/bitswap/want_manager.h"
-#include "ipfs/exchange/bitswap/wantlist.h"
+#include "ipfs/exchange/bitswap/wantlist_queue.h"
 
 /***
  * Add a Cid to the local wantlist
  * @param context the context
  * @param cid the Cid
- * @returns true(1) on success, false(0) otherwise
+ * @returns the added entry
  */
-int ipfs_bitswap_want_manager_add(const struct BitswapContext* context, const struct Cid* cid) {
-	// first see if it is already here
-	// increment the reference count
-	return 0;
+struct WantListQueueEntry* ipfs_bitswap_want_manager_add(const struct BitswapContext* context, const struct Cid* cid) {
+	// add if not there, and increment reference count
+	return ipfs_bitswap_wantlist_queue_add(context->localWantlist, cid);
 }
 
 /***
@@ -21,7 +20,11 @@ int ipfs_bitswap_want_manager_add(const struct BitswapContext* context, const st
  */
 int ipfs_bitswap_want_manager_received(const struct BitswapContext* context, const struct Cid* cid) {
 	// find the entry
+	struct WantListQueueEntry* entry = ipfs_bitswap_wantlist_queue_find(context->localWantlist, cid);
 	// check the status
+	if (entry != NULL && entry->block != NULL) {
+		return 1;
+	}
 	return 0;
 }
 
@@ -33,8 +36,14 @@ int ipfs_bitswap_want_manager_received(const struct BitswapContext* context, con
  * @returns true(1) on success, false(0) otherwise
  */
 int ipfs_bitswap_want_manager_get_block(const struct BitswapContext* context, const struct Cid* cid, struct Block** block) {
-	// find the entry
-	// return a copy of the block
+	struct WantListQueueEntry* entry = ipfs_bitswap_wantlist_queue_find(context->localWantlist, cid);
+	if (entry != NULL && entry->block != NULL) {
+		// return a copy of the block
+		*block = ipfs_block_copy(entry->block);
+		if ( (*block) != NULL) {
+			return 1;
+		}
+	}
 	return 0;
 }
 
@@ -48,5 +57,5 @@ int ipfs_bitswap_want_manager_get_block(const struct BitswapContext* context, co
 int ipfs_bitswap_want_manager_remove(const struct BitswapContext* context, const struct Cid* cid) {
 	// decrement the reference count
 	// if it is zero, remove the entry (lock first)
-	return 0;
+	return ipfs_bitswap_wantlist_queue_remove(context->localWantlist, cid);
 }

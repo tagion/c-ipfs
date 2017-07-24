@@ -27,7 +27,7 @@ int ipfs_blocks_block_add_data(const unsigned char* data, size_t data_size, stru
  * @param block the block to free
  * @returns true(1) on success
  */
-int ipfs_blocks_block_free(struct Block* block);
+int ipfs_block_free(struct Block* block);
 
 /**
  * Determine the approximate size of an encoded block
@@ -54,5 +54,12 @@ int ipfs_blocks_block_protobuf_encode(const struct Block* block, unsigned char* 
  * @returns true(1) on success
  */
 int ipfs_blocks_block_protobuf_decode(const unsigned char* buffer, const size_t buffer_length, struct Block** block);
+
+/***
+ * Make a copy of a block
+ * @param original the original
+ * @returns a new Block that is a copy
+ */
+struct Block* ipfs_block_copy(struct Block* original);
 
 #endif

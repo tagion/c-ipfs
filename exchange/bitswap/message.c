@@ -439,7 +439,7 @@ int ipfs_bitswap_message_free(struct BitswapMessage* message) {
 			for(int i = 0; i < message->blocks->total; i++) {
 				// free each item in the vector
 				struct Block* entry = (struct Block*) libp2p_utils_vector_get(message->blocks, i);
-				ipfs_blocks_block_free(entry);
+				ipfs_block_free(entry);
 			}
 			libp2p_utils_vector_free(message->blocks);
 		}
@@ -447,7 +447,7 @@ int ipfs_bitswap_message_free(struct BitswapMessage* message) {
 			for(int i = 0; i < message->payload->total; i++) {
 				// free each item in the vector
 				struct Block* entry = (struct Block*) libp2p_utils_vector_get(message->payload, i);
-				ipfs_blocks_block_free(entry);
+				ipfs_block_free(entry);
 			}
 			libp2p_utils_vector_free(message->payload);
 		}

@@ -61,7 +61,7 @@ int test_repo_fsrepo_write_read_block() {
 	retVal = ipfs_repo_fsrepo_block_write(block, fs_repo);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_blocks_block_free(block);
+		ipfs_block_free(block);
 		return 0;
 	}
 
@@ -70,7 +70,7 @@ int test_repo_fsrepo_write_read_block() {
 	retVal = ipfs_repo_fsrepo_block_read(block->cid->hash, block->cid->hash_length, &results, fs_repo);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
-		ipfs_blocks_block_free(block);
+		ipfs_block_free(block);
 		return 0;
 	}
 
@@ -90,7 +90,7 @@ int test_repo_fsrepo_write_read_block() {
 	}
 
 	ipfs_repo_fsrepo_free(fs_repo);
-	ipfs_blocks_block_free(block);
-	ipfs_blocks_block_free(results);
+	ipfs_block_free(block);
+	ipfs_block_free(results);
 	return retVal;
 }

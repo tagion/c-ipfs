@@ -3,14 +3,15 @@
 #include "ipfs/blocks/block.h"
 #include "ipfs/cid/cid.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
+#include "wantlist_queue.h"
 
 /***
  * Add a Cid to the local wantlist
  * @param context the context
  * @param cid the Cid
- * @returns true(1) on success, false(0) otherwise
+ * @returns the added WantListQueueEntry
  */
-int ipfs_bitswap_want_manager_add(const struct BitswapContext* context, const struct Cid* cid);
+struct WantListQueueEntry* ipfs_bitswap_want_manager_add(const struct BitswapContext* context, const struct Cid* cid);
 
 /***
  * Checks to see if the requested block has been received

@@ -82,6 +82,13 @@ int ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, con
 int ipfs_cid_free(struct Cid* cid);
 
 /***
+ * Make a copy of a Cid
+ * @param original the original
+ * @returns a copy of the original
+ */
+struct Cid* ipfs_cid_copy(const struct Cid* original);
+
+/***
  * Fill a Cid struct based on a base 58 encoded string
  * @param incoming the string
  * @param incoming_size the size of the string
@@ -122,6 +129,6 @@ int ipfs_cid_set_foreach (struct CidSet *set, int (*func)(struct Cid *));
  * @param b side B
  * @returns < 0 if side A is greater, > 0 if side B is greater, or 0 if equal
  */
-int ipfs_cid_compare(struct Cid* a, struct Cid* b);
+int ipfs_cid_compare(const struct Cid* a, const struct Cid* b);
 
 #endif

@@ -138,6 +138,23 @@ int ipfs_cid_free(struct Cid* cid) {
 }
 
 /***
+ * Make a copy of a Cid
+ * @param original the original
+ * @returns a copy of the original
+ */
+struct Cid* ipfs_cid_copy(const struct Cid* original) {
+	struct Cid* copy = (struct Cid*) malloc(sizeof(struct Cid));
+	if (copy != NULL) {
+		copy->codec = original->codec;
+		copy->version = original->version;
+		copy->hash_length = original->hash_length;
+		copy->hash = (unsigned char*) malloc(original->hash_length);
+		memcpy(copy->hash, original->hash, original->hash_length);
+	}
+	return copy;
+}
+
+/***
  * Fill a Cid struct based on a base 58 encoded multihash
  * @param incoming the string
  * @param incoming_size the size of the string
@@ -259,7 +276,7 @@ int ipfs_cid_cast(const unsigned char* incoming, size_t incoming_size, struct Ci
  * @param b side B
  * @returns < 0 if side A is greater, > 0 if side B is greater, or 0 if equal
  */
-int ipfs_cid_compare(struct Cid* a, struct Cid* b) {
+int ipfs_cid_compare(const struct Cid* a, const struct Cid* b) {
 	if (a == NULL && b == NULL)
 		return 0;
 	if (a != NULL && b == NULL)

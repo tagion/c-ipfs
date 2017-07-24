@@ -107,15 +107,18 @@ int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block*
 		int timeout = 10;
 		int waitSecs = 1;
 		int timeTaken = 0;
-		if (ipfs_bitswap_want_manager_add(bitswapContext, cid)) {
+		struct WantListQueueEntry* want_entry = ipfs_bitswap_want_manager_add(bitswapContext, cid);
+		if (want_entry != NULL) {
 			// loop waiting for it to fill
 			while(1) {
-				if (ipfs_bitswap_want_manager_received(bitswapContext, cid)) {
-					if (ipfs_bitswap_want_manager_get_block(bitswapContext, cid, block)) {
-						// NOTE: this should use reference counting
-						ipfs_bitswap_want_manager_remove(bitswapContext, cid);
-						return 1;
+				if (want_entry->block != NULL) {
+					*block = ipfs_block_copy(want_entry->block);
+					// error or not, we no longer need the block (decrement reference count)
+					ipfs_bitswap_want_manager_remove(bitswapContext, cid);
+					if (*block == NULL) {
+						return 0;
 					}
+					return 1;
 				}
 				//TODO: This is a busy-loop. Find another way.
 				timeTaken += waitSecs;

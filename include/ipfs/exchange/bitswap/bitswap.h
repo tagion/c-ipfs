@@ -11,7 +11,7 @@
 struct BitswapContext {
 	struct SessionContext* sessionContext;
 	struct IpfsNode* ipfsNode;
-	struct Wantlist* localWantlist;
+	struct WantListQueue* localWantlist;
 };
 
 /**

@@ -99,7 +99,7 @@ int ipfs_blocks_block_protobuf_decode(const unsigned char* buffer, const size_t 
 
 exit:
 	if (retVal == 0) {
-		ipfs_blocks_block_free(*block);
+		ipfs_block_free(*block);
 	}
 	if (temp_buffer != NULL)
 		free(temp_buffer);
@@ -155,7 +155,7 @@ int ipfs_blocks_block_add_data(const unsigned char* data, size_t data_size, stru
  * @param block the block to free
  * @returns true(1) on success
  */
-int ipfs_blocks_block_free(struct Block* block) {
+int ipfs_block_free(struct Block* block) {
 	if (block != NULL) {
 		ipfs_cid_free(block->cid);
 		if (block->data != NULL)
@@ -163,4 +163,18 @@ int ipfs_blocks_block_free(struct Block* block) {
 		free(block);
 	}
 	return 1;
+}
+
+/***
+ * Make a copy of a block
+ * @param original the original
+ * @returns a new Block that is a copy
+ */
+struct Block* ipfs_block_copy(struct Block* original) {
+	struct Block* copy = ipfs_blocks_block_new();
+	copy->data_length = original->data_length;
+	copy->data = (unsigned char*) malloc(original->data_length);
+	memcpy(copy->data, original->data, original->data_length);
+	copy->cid = ipfs_cid_copy(original->cid);
+	return copy;
 }
