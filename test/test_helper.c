@@ -146,7 +146,7 @@ int drop_and_build_repository(const char* path, int swarm_port, struct Libp2pVec
 	}
 	mkdir(path, S_IRWXU);
 
-	return -make_ipfs_repository(path, swarm_port, bootstrap_peers, peer_id);
+	return make_ipfs_repository(path, swarm_port, bootstrap_peers, peer_id);
 }
 
 

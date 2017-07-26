@@ -9,17 +9,16 @@
 #include "ipfs/exchange/exchange.h"
 
 struct BitswapContext {
-	struct SessionContext* sessionContext;
 	struct IpfsNode* ipfsNode;
 	struct WantListQueue* localWantlist;
 };
 
 /**
  * Start up the bitswap exchange
- * @param sessionContext the context
+ * @param ipfsNode the context
  * @returns an Exchange struct that refers to the exchange
  */
-struct Exchange* ipfs_bitswap_exchange_start(struct SessionContext* sessionContext, struct IpfsNode* ipfsNode);
+struct Exchange* ipfs_bitswap_exchange_start(struct IpfsNode* ipfsNode);
 
 /***
  * These are the implementation methods for the exchange "Interface"
@@ -30,14 +29,14 @@ struct Exchange* ipfs_bitswap_exchange_start(struct SessionContext* sessionConte
  * @param exhcnageContext a pointer to a BitswapContext
  * @reutrns true(1) if online, false(0) otherwise.
  */
-int ipfs_bitswap_is_online(void* exchangeContext);
+int ipfs_bitswap_is_online(struct Exchange* exchange);
 
 /***
  * Closes down the Bitswap network
  * @param exchangeContext a pointer to a BitswapContext
  * @returns true(1)
  */
-int ipfs_bitswap_close(void* exchangeContext);
+int ipfs_bitswap_close(struct Exchange* exchange);
 
 /****
  * Notify the BitswapNetwork that we have this block
@@ -45,7 +44,7 @@ int ipfs_bitswap_close(void* exchangeContext);
  * @block the block that we have
  * @reutrns true(1) if successful, false(0) if not.
  */
-int ipfs_bitswap_has_block(void* exchangeContext, struct Block* block);
+int ipfs_bitswap_has_block(struct Exchange* exchange, struct Block* block);
 
 /**
  * Retrieve a block from the BitswapNetwork
@@ -57,7 +56,7 @@ int ipfs_bitswap_has_block(void* exchangeContext, struct Block* block);
  * @param block a pointer to the block when we find it.
  * @returns true(1) on success, false(0) otherwise.
  */
-int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block** block);
+int ipfs_bitswap_get_block(struct Exchange* exchange, struct Cid* cid, struct Block** block);
 
 /***
  * Retrieve a collection of blocks from the BitswapNetwork
@@ -68,4 +67,4 @@ int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block*
  * @param blocks a collection that contains the results.
  * @param true(1) on success, false(0) otherwise
  */
-int ipfs_bitswap_get_blocks(void* exchangeContext, struct Libp2pVector* cids, struct Libp2pVector** blocks);
+int ipfs_bitswap_get_blocks(struct Exchange* exchange, struct Libp2pVector* cids, struct Libp2pVector** blocks);

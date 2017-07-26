@@ -10,10 +10,11 @@
 
 int test_cid_new_free() {
 
-	struct Cid* cid;
 	unsigned char* hash = (unsigned char*)"ABC123";
-	int retVal = ipfs_cid_new(0, hash, strlen((char*)hash), CID_PROTOBUF, &cid);
-	if (retVal == 0)
+
+	struct Cid* cid = ipfs_cid_new(0, hash, strlen((char*)hash), CID_PROTOBUF);
+
+	if (cid == NULL)
 		return 0;
 
 	if (cid->version != 0)

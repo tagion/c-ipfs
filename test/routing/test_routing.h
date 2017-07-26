@@ -1,5 +1,7 @@
+#pragma once
 #include <pthread.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"
@@ -9,6 +11,7 @@
 #include "ipfs/core/daemon.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/routing/routing.h"
+#include "ipfs/importer/importer.h"
 #include "ipfs/importer/exporter.h"
 
 #include "../test_helper.h"

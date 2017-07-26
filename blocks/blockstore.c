@@ -127,7 +127,7 @@ int ipfs_blockstore_get(const struct BlockstoreContext* context, struct Cid* cid
 
 	int retVal = ipfs_blocks_block_protobuf_decode(buffer, bytes_read, block);
 
-	(*block)->cid = cid;
+	(*block)->cid = ipfs_cid_copy(cid);
 
 	free(key);
 	free(filename);

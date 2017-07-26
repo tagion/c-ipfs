@@ -14,16 +14,15 @@
  * @param sessionContext the context
  * @returns an allocated Exchange structure
  */
-struct Exchange* ipfs_bitswap_exchange_start(struct SessionContext* sessionContext, struct IpfsNode* ipfs_node) {
+struct Exchange* ipfs_bitswap_exchange_start(struct IpfsNode* ipfs_node) {
 	struct Exchange* exchange = (struct Exchange*) malloc(sizeof(struct Exchange));
 	if (exchange != NULL) {
 		struct BitswapContext* bitswapContext = (struct BitswapContext*) malloc(sizeof(struct BitswapContext));
-		if (exchange->exchangeContext == NULL) {
+		if (bitswapContext == NULL) {
 			free(exchange);
 			return NULL;
 		}
 		exchange->exchangeContext = (void*) bitswapContext;
-		bitswapContext->sessionContext = sessionContext;
 		bitswapContext->ipfsNode = ipfs_node;
 		exchange->IsOnline = ipfs_bitswap_is_online;
 		exchange->Close = ipfs_bitswap_close;
@@ -43,7 +42,6 @@ struct Exchange* ipfs_bitswap_exchange_start(struct SessionContext* sessionConte
 int ipfs_bitswap_free(struct Exchange* exchange) {
 	if (exchange != NULL) {
 		if (exchange->exchangeContext != NULL) {
-			ipfs_bitswap_close(exchange->exchangeContext);
 			free(exchange->exchangeContext);
 		}
 		free(exchange);
@@ -54,22 +52,15 @@ int ipfs_bitswap_free(struct Exchange* exchange) {
 /**
  * Implements the Exchange->IsOnline method
  */
-int ipfs_bitswap_is_online(void* exchangeContext) {
-	if (exchangeContext != NULL) {
-		struct BitswapContext* bitswapContext = (struct BitswapContext*)exchangeContext;
-		//TODO: Is this an accurate way to determine if we're running?
-		if (bitswapContext->sessionContext != NULL)
-			return 1;
-	}
-	return 0;
+int ipfs_bitswap_is_online(struct Exchange* exchange) {
+	return 1;
 }
 
 /***
  * Implements the Exchange->Close method
  */
-int ipfs_bitswap_close(void* exchangeContext) {
-	//TODO: Implement this method
-	// Should it close the exchange?
+int ipfs_bitswap_close(struct Exchange* exchange) {
+	ipfs_bitswap_free(exchange);
 	return 0;
 }
 
@@ -80,7 +71,7 @@ int ipfs_bitswap_close(void* exchangeContext) {
  * But this does not make sense right now, as the GO code looks like it
  * adds the block to the blockstore. This still has to be sorted.
  */
-int ipfs_bitswap_has_block(void* exchangeContext, struct Block* block) {
+int ipfs_bitswap_has_block(struct Exchange* exchange, struct Block* block) {
 	//TODO: Implement this method
 	// NOTE: The GO version adds the block to the blockstore. I have yet to
 	// understand the flow and if this is correct for us.
@@ -96,8 +87,8 @@ int ipfs_bitswap_has_block(void* exchangeContext, struct Block* block) {
  * @param block a pointer to where to put the result
  * @returns true(1) if found, false(0) if not
  */
-int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block** block) {
-	struct BitswapContext* bitswapContext = (struct BitswapContext*)exchangeContext;
+int ipfs_bitswap_get_block(struct Exchange* exchange, struct Cid* cid, struct Block** block) {
+	struct BitswapContext* bitswapContext = (struct BitswapContext*)exchange->exchangeContext;
 	if (bitswapContext != NULL) {
 		// check locally first
 		if (bitswapContext->ipfsNode->blockstore->Get(bitswapContext->ipfsNode->blockstore->blockstoreContext, cid, block))
@@ -140,7 +131,7 @@ int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block*
 /**
  * Implements the Exchange->GetBlocks method
  */
-int ipfs_bitswap_get_blocks(void* exchangeContext, struct Libp2pVector* Cids, struct Libp2pVector** blocks) {
+int ipfs_bitswap_get_blocks(struct Exchange* exchange, struct Libp2pVector* Cids, struct Libp2pVector** blocks) {
 	// TODO: Implement this method
 	return 0;
 }

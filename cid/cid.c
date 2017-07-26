@@ -84,7 +84,8 @@ int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct
 
 	}
 
-	retVal = ipfs_cid_new(version, hash, hash_length, codec, output);
+	*output = ipfs_cid_new(version, hash, hash_length, codec);
+	retVal = *output != NULL;
 	free(hash);
 	return retVal;
 }
@@ -95,32 +96,27 @@ int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct
  * @param hash the multihash
  * @param hash_length the length of the multihash in bytes
  * @param codec the codec to be used (NOTE: For version 0, this should be CID_PROTOBUF)
- * @param cid where to put the results
- * @returns true(1) on success
+ * @returns the new Cid or NULL if there was a problem
  */
-int ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, const char codec, struct Cid** ptrToCid) {
-	// allocate memory
-	*ptrToCid = (struct Cid*)malloc(sizeof(struct Cid));
-	struct Cid* cid = *ptrToCid;
-	if (cid == NULL)
-		return 0;
-	if (hash == NULL) {
-		cid->hash = NULL;
-	} else {
-		cid->hash = malloc(sizeof(unsigned char) * hash_length);
-		if (cid->hash == NULL) {
-			free(cid);
-			return 0;
+struct Cid* ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, const char codec) {
+	struct Cid* cid = (struct Cid*) malloc(sizeof(struct Cid));
+	if (cid != NULL) {
+		cid->hash_length = hash_length;
+		if (hash_length == 0 || hash == NULL) {
+			cid->hash = NULL;
+		} else {
+			cid->hash = (unsigned char*) malloc(sizeof(unsigned char) * hash_length);
+			if (cid->hash == NULL) {
+				free(cid);
+				return NULL;
+			}
+			memcpy(cid->hash, hash, hash_length);
 		}
-		memcpy(cid->hash, hash, hash_length);
+		// assign other values
+		cid->version = version;
+		cid->codec = codec;
 	}
-	// assign values
-	cid->version = version;
-	cid->codec = codec;
-	cid->hash_length = hash_length;
-
-	return 1;
-
+	return cid;
 }
 
 /***
@@ -176,7 +172,8 @@ int ipfs_cid_decode_hash_from_base58(const unsigned char* incoming, size_t incom
 		if (retVal == 0)
 			return 0;
 		// now we have the hash, build the object
-		return ipfs_cid_new(0, &hash[2], hash_length - 2, CID_PROTOBUF, cid);
+		*cid = ipfs_cid_new(0, &hash[2], hash_length - 2, CID_PROTOBUF);
+		return *cid != NULL;
 	}
 
 	// TODO: finish this

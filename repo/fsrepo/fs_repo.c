@@ -803,8 +803,8 @@ int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, s
 	if (retVal == 0) // maybe it doesn't exist?
 		return 0;
 	// now get the block from the blockstore
-	struct Cid* cid = NULL;
-	if (!ipfs_cid_new(0, hash, hash_length, CID_PROTOBUF, &cid))
+	struct Cid* cid = ipfs_cid_new(0, hash, hash_length, CID_PROTOBUF);
+	if (cid == NULL)
 		return 0;
 	struct Blockstore* blockstore = ipfs_blockstore_new(fs_repo);
 	if (blockstore == NULL) {

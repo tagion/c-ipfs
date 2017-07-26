@@ -27,7 +27,7 @@ struct Exchange {
 	 * @param block a pointer to the block (allocated by this method if return is true)
 	 * @returns true(1) on success, false(0) otherwise
 	 */
-	int (*GetBlock)(void* exchangeContext, struct Cid* cid, struct Block** block);
+	int (*GetBlock)(struct Exchange* exchange, struct Cid* cid, struct Block** block);
 
 	/**
 	 * Retrieve several blocks
@@ -36,7 +36,7 @@ struct Exchange {
 	 * @param blocks a pointer to a vector of retrieved blocks (will be NULL on error)
 	 * @returns true(1) on success, otherwise false(0)
 	 */
-	int (*GetBlocks)(void* exchangeContext, struct Libp2pVector* Cids, struct Libp2pVector** blocks);
+	int (*GetBlocks)(struct Exchange* exchange, struct Libp2pVector* Cids, struct Libp2pVector** blocks);
 
 	/**
 	 * Announces the existance of a block to this bitswap service. The service will
@@ -45,19 +45,19 @@ struct Exchange {
 	 * @param block the block being announced
 	 * @returns true(1) on success, false(0) if not
 	 */
-	int (*HasBlock)(void* exchangeContext, struct Block* block);
+	int (*HasBlock)(struct Exchange* exchange, struct Block* block);
 
 	/**
 	 * Determine if we're online
 	 * @returns true(1) if we're online
 	 */
-	int (*IsOnline)(void* exchangeContext);
+	int (*IsOnline)(struct Exchange*);
 
 	/**
 	 * Close up the exchange, and go offline
 	 * @returns true(1);
 	 */
-	int (*Close)(void* exchangeContext);
+	int (*Close)(struct Exchange*);
 
 	/**
 	 * Used by each implementation to maintain state

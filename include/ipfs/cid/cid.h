@@ -69,10 +69,9 @@ size_t ipfs_cid_protobuf_encode_size(struct Cid* incoming);
  * @param hash the multihash
  * @param hash_length the length of the multihash in bytes
  * @param codec the codec to be used (NOTE: For version 0, this should be CID_PROTOBUF)
- * @param cid where to put the results
- * @returns true(1) on success
+ * @returns the Cid, or NULL if there was a problem
  */
-int ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, const char codec, struct Cid** cid);
+struct Cid* ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, const char codec);
 
 /***
  * Free the resources from a Cid
