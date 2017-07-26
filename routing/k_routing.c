@@ -126,7 +126,7 @@ int ipfs_routing_kademlia_bootstrap(struct IpfsRouting* routing) {
 	struct IpfsNode *local_node = routing->local_node;
 	// read the config file and get the bootstrap peers
 	for(int i = 0; i < local_node->repo->config->bootstrap_peers->total; i++) { // loop through the peers
-		struct IPFSAddr* ipfs_addr = local_node->repo->config->bootstrap_peers->items[i];
+		struct IPFSAddr* ipfs_addr = (struct IPFSAddr*) libp2p_utils_vector_get(local_node->repo->config->bootstrap_peers, i);
 		struct MultiAddress* ma = multiaddress_new_from_string(ipfs_addr->entire_string);
 		// get the id
 		char* ptr;

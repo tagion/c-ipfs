@@ -229,7 +229,7 @@ int test_routing_find_providers() {
 	// connect to peer 2
 	struct Libp2pPeer *remote_peer = NULL;
 	for(int i = 0; i < result->total; i++) {
-		remote_peer = libp2p_utils_vector_get(result, i);
+		remote_peer = (struct Libp2pPeer*)libp2p_utils_vector_get(result, i);
 		if (remote_peer->connection_type == CONNECTION_TYPE_CONNECTED || libp2p_peer_connect(remote_peer, 5)) {
 			break;
 		}

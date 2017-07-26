@@ -406,7 +406,7 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 	if (!retVal) {
 		// we didn't get the file. Try to connect to the peers we're not connected to, and ask for the file
 		for(int i = 0; i < peers->total; i++) {
-			struct Libp2pPeer* current_peer = libp2p_utils_vector_get(peers, i);
+			struct Libp2pPeer* current_peer = (struct Libp2pPeer*)libp2p_utils_vector_get(peers, i);
 			if (libp2p_peer_matches_id(current_peer, (unsigned char*)routing->local_node->identity->peer_id)) {
 				// we tried this once, it didn't work. Skip it.
 				continue;

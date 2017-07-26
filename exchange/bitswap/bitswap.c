@@ -107,7 +107,10 @@ int ipfs_bitswap_get_block(void* exchangeContext, struct Cid* cid, struct Block*
 		int timeout = 10;
 		int waitSecs = 1;
 		int timeTaken = 0;
-		struct WantListQueueEntry* want_entry = ipfs_bitswap_want_manager_add(bitswapContext, cid);
+		struct WantListSession wantlist_session;
+		wantlist_session.type = WANTLIST_SESSION_TYPE_LOCAL;
+		wantlist_session.context = (void*)bitswapContext->ipfsNode;
+		struct WantListQueueEntry* want_entry = ipfs_bitswap_want_manager_add(bitswapContext, cid, &wantlist_session);
 		if (want_entry != NULL) {
 			// loop waiting for it to fill
 			while(1) {

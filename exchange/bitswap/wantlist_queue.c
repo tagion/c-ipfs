@@ -1,6 +1,25 @@
 #include <stdlib.h>
+#include "libp2p/conn/session.h"
 #include "libp2p/utils/vector.h"
 #include "ipfs/exchange/bitswap/wantlist_queue.h"
+
+/**
+ * remove this session from the lists of sessions that are looking for this WantListQueueEntry
+ * @param entry the entry
+ * @param session who was looking for it
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_bitswap_wantlist_queue_entry_decrement(struct WantListQueueEntry* entry, const struct WantListSession* session) {
+	for(size_t i = 0; i < entry->sessionsRequesting->total; i++) {
+		const struct WantListSession* current = (const struct WantListSession*)libp2p_utils_vector_get(entry->sessionsRequesting, i);
+		if (ipfs_bitswap_wantlist_session_compare(session, current) == 0) {
+			libp2p_utils_vector_delete(entry->sessionsRequesting, i);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 
 /***
  * Initialize a new Wantlist (there should only be 1 per instance)
@@ -37,7 +56,7 @@ int ipfs_bitswap_wantlist_queue_free(struct WantListQueue* wantlist) {
  * @param cid the Cid to add
  * @returns the correct WantListEntry or NULL if error
  */
-struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_add(struct WantListQueue* wantlist, const struct Cid* cid) {
+struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_add(struct WantListQueue* wantlist, const struct Cid* cid, const struct WantListSession* session) {
 	struct WantListQueueEntry* entry = NULL;
 	if (wantlist != NULL) {
 		pthread_mutex_lock(&wantlist->wantlist_mutex);
@@ -50,13 +69,9 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_add(struct WantListQueue*
 			entry = ipfs_bitswap_wantlist_queue_entry_new();
 			entry->cid = ipfs_cid_copy(cid);
 			entry->priority = 1;
-			//TODO: find a way to pass session information
-			//entry->sessionsRequesting;
-		} else {
-			//TODO: find a way to pass sessioninformation
-			//entry->sessionRequesting;
+			libp2p_utils_vector_add(wantlist->queue, entry);
 		}
-		libp2p_utils_vector_add(wantlist->queue, entry);
+		libp2p_utils_vector_add(entry->sessionsRequesting, session);
 		pthread_mutex_unlock(&wantlist->wantlist_mutex);
 	}
 	return entry;
@@ -68,12 +83,12 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_add(struct WantListQueue*
  * @param cid the Cid
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_bitswap_wantlist_queue_remove(struct WantListQueue* wantlist, const struct Cid* cid) {
+int ipfs_bitswap_wantlist_queue_remove(struct WantListQueue* wantlist, const struct Cid* cid, const struct WantListSession* session) {
 	//TODO: remove if counter is <= 0
 	if (wantlist != NULL) {
 		struct WantListQueueEntry* entry = ipfs_bitswap_wantlist_queue_find(wantlist, cid);
 		if (entry != NULL) {
-			//TODO: find a way to decrement
+			ipfs_bitswap_wantlist_queue_entry_decrement(entry, session);
 			return 1;
 		}
 	}
@@ -138,3 +153,23 @@ int ipfs_bitswap_wantlist_queue_entry_free(struct WantListQueueEntry* entry) {
 	}
 	return 1;
 }
+
+int ipfs_bitswap_wantlist_session_compare(const struct WantListSession* a, const struct WantListSession* b) {
+	if (a == NULL && b == NULL)
+		return 0;
+	if (a == NULL && b != NULL)
+		return -1;
+	if (a != NULL && b == NULL)
+		return 1;
+	if (a->type != b->type)
+		return b->type - a->type;
+	if (a->type == WANTLIST_SESSION_TYPE_LOCAL) {
+		// it's local, there should be only 1
+		return 0;
+	} else {
+		struct SessionContext* contextA = (struct SessionContext*)a->context;
+		struct SessionContext* contextB = (struct SessionContext*)b->context;
+		return libp2p_session_context_compare(contextA, contextB);
+	}
+}
+

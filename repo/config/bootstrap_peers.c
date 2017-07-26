@@ -33,7 +33,7 @@ int repo_config_bootstrap_peers_retrieve(struct Libp2pVector** list) {
 int repo_config_bootstrap_peers_free(struct Libp2pVector* list) {
 	if (list != NULL) {
 		for(int i = 0; i < list->total; i++) {
-			struct MultiAddress* currAddr = libp2p_utils_vector_get(list, i);
+			struct MultiAddress* currAddr = (struct MultiAddress*)libp2p_utils_vector_get(list, i);
 			multiaddress_free(currAddr);
 		}
 		libp2p_utils_vector_free(list);

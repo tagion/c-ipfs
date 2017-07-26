@@ -27,7 +27,7 @@ int repo_config_replication_free(struct Replication* replication) {
 		// free the vector
 		if (replication->nodes != NULL) {
 			for(int i = 0; i < replication->nodes->total; i++) {
-				struct MultiAddress* currAddr = libp2p_utils_vector_get(replication->nodes, i);
+				struct MultiAddress* currAddr = (struct MultiAddress*)libp2p_utils_vector_get(replication->nodes, i);
 				multiaddress_free(currAddr);
 			}
 			libp2p_utils_vector_free(replication->nodes);

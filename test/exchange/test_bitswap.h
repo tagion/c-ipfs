@@ -49,7 +49,7 @@ int test_bitswap_new_free() {
 	message->wantlist->entries = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(message->wantlist->entries, wantlist_entry);
 	wantlist_entry = NULL;
-	wantlist_entry = libp2p_utils_vector_get(message->wantlist->entries, 0);
+	wantlist_entry = (struct WantlistEntry*)libp2p_utils_vector_get(message->wantlist->entries, 0);
 	if (wantlist_entry == NULL) {
 		fprintf(stderr, "Vector didn't have entry\n");
 		goto exit;
@@ -63,7 +63,7 @@ int test_bitswap_new_free() {
 	block = ipfs_blocks_block_new();
 	block->data_length = 25;
 	libp2p_utils_vector_add(message->payload, block);
-	block = libp2p_utils_vector_get(message->payload, 0);
+	block = (struct Block*)libp2p_utils_vector_get(message->payload, 0);
 	if (block == NULL) {
 		fprintf(stderr, "Vector didn't have payload entry\n");
 		goto exit;

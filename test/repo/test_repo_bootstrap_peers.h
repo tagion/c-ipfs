@@ -30,7 +30,7 @@ int test_repo_bootstrap_peers_init() {
 	*/
 	for(int i = 0; i < list->total; i++) {
 		unsigned long strLen = strlen(default_bootstrap_addresses[i]);
-		struct MultiAddress* currAddr = libp2p_utils_vector_get(list, i);
+		struct MultiAddress* currAddr = (struct MultiAddress*)libp2p_utils_vector_get(list, i);
 		if (strncmp(currAddr->string, default_bootstrap_addresses[i], strLen) != 0)
 			printf("The value of element %d is: %s\n", i, currAddr->string);
 	}

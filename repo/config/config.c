@@ -119,7 +119,7 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 	if (bootstrap_peers != NULL) {
 		config->bootstrap_peers = libp2p_utils_vector_new(bootstrap_peers->total);
 		for(int i = 0; i < bootstrap_peers->total; i++) {
-			struct MultiAddress* orig = libp2p_utils_vector_get(bootstrap_peers, i);
+			const struct MultiAddress* orig = (const struct MultiAddress*) libp2p_utils_vector_get(bootstrap_peers, i);
 			libp2p_utils_vector_add(config->bootstrap_peers, multiaddress_copy(orig));
 		}
 	}

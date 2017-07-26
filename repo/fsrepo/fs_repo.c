@@ -95,7 +95,7 @@ int repo_config_write_config_file(char* full_filename, struct RepoConfig* config
 	fprintf(out_file, "  \"ResolveCacheSize\": %d\n", config->ipns.resolve_cache_size);
 	fprintf(out_file, " },\n \"Bootstrap\": [\n");
 	for(int i = 0; i < config->bootstrap_peers->total; i++) {
-		struct MultiAddress* peer = libp2p_utils_vector_get(config->bootstrap_peers, i);
+		const struct MultiAddress* peer = (const struct MultiAddress*)libp2p_utils_vector_get(config->bootstrap_peers, i);
 		fprintf(out_file, "  \"%s\"", peer->string);
 		if (i < config->bootstrap_peers->total - 1)
 			fprintf(out_file, ",\n");

@@ -13,7 +13,7 @@ enum WantListSessionType { WANTLIST_SESSION_TYPE_LOCAL, WANTLIST_SESSION_TYPE_RE
 
 struct WantListSession {
 	enum WantListSessionType type;
-	void* context;
+	void* context; // either an IpfsNode (local) or a SessionContext (remote)
 };
 
 struct WantListQueueEntry {
@@ -62,7 +62,7 @@ int ipfs_bitswap_wantlist_queue_free(struct WantListQueue* wantlist);
  * @param cid the Cid to add
  * @returns the correct WantListEntry or NULL if error
  */
-struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_add(struct WantListQueue* wantlist, const struct Cid* cid);
+struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_add(struct WantListQueue* wantlist, const struct Cid* cid, const struct WantListSession* session);
 
 /***
  * Remove (decrement the counter) a Cid from the WantList
@@ -70,7 +70,7 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_add(struct WantListQueue*
  * @param cid the Cid
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_bitswap_wantlist_queue_remove(struct WantListQueue* wantlist, const struct Cid* cid);
+int ipfs_bitswap_wantlist_queue_remove(struct WantListQueue* wantlist, const struct Cid* cid, const struct WantListSession* session);
 
 /***
  * Find a Cid in the WantList
@@ -80,4 +80,11 @@ int ipfs_bitswap_wantlist_queue_remove(struct WantListQueue* wantlist, const str
  */
 struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_find(struct WantListQueue* wantlist, const struct Cid* cid);
 
+/***
+ * compare 2 sessions for equality
+ * @param a side a
+ * @param b side b
+ * @returns 0 if equal, <0 if A wins, >0 if b wins
+ */
+int ipfs_bitswap_wantlist_session_compare(const struct WantListSession* a, const struct WantListSession* b);
 

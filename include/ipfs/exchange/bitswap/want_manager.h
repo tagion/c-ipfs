@@ -11,7 +11,7 @@
  * @param cid the Cid
  * @returns the added WantListQueueEntry
  */
-struct WantListQueueEntry* ipfs_bitswap_want_manager_add(const struct BitswapContext* context, const struct Cid* cid);
+struct WantListQueueEntry* ipfs_bitswap_want_manager_add(const struct BitswapContext* context, const struct Cid* cid, const struct WantListSession* session);
 
 /***
  * Checks to see if the requested block has been received
