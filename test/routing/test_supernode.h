@@ -59,7 +59,6 @@ int test_routing_supernode_get_remote_value() {
 	struct FSRepo* fs_repo = NULL;
 	struct IpfsNode* ipfs_node = NULL;
 	struct Libp2pPeer this_peer;
-	struct Stream* stream = NULL;
 	const unsigned char* orig_multihash = (unsigned char*)"QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH";
 	size_t hash_size = 100;
 	unsigned char hash[hash_size];
@@ -97,7 +96,7 @@ int test_routing_supernode_get_remote_value() {
 	// add bootstrap peer for kademlia
 	struct MultiAddress* remote = multiaddress_new_from_string("/ip4/127.0.0.1/udp/5001");
 	libp2p_utils_vector_add(ipfs_node->repo->config->bootstrap_peers, remote);
-	ipfs_node->routing = ipfs_routing_new_kademlia(ipfs_node, &fs_repo->config->identity->private_key, stream);
+	ipfs_node->routing = ipfs_routing_new_kademlia(ipfs_node, &fs_repo->config->identity->private_key);
 
 
 	if (ipfs_node->routing == NULL)
@@ -159,7 +158,6 @@ int test_routing_supernode_get_value() {
 	int retVal = 0;
 	struct FSRepo* fs_repo = NULL;
 	struct IpfsNode* ipfs_node = NULL;
-	struct Stream* stream = NULL;
 	int file_size = 1000;
 	unsigned char bytes[file_size];
 	char* fullFileName = "/tmp/temp_file.bin";
@@ -194,7 +192,7 @@ int test_routing_supernode_get_value() {
 	this_peer.addr_head = libp2p_utils_linked_list_new();
 	this_peer.addr_head->item = multiaddress_new_from_string("/ip4/127.0.0.1/tcp/4001");
 	libp2p_peerstore_add_peer(ipfs_node->peerstore, &this_peer);
-	ipfs_node->routing = ipfs_routing_new_kademlia(ipfs_node, &fs_repo->config->identity->private_key, stream);
+	ipfs_node->routing = ipfs_routing_new_kademlia(ipfs_node, &fs_repo->config->identity->private_key);
 
 	if (ipfs_node->routing == NULL)
 		goto exit;

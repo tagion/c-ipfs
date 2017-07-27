@@ -20,27 +20,24 @@
  * @param message what to send
  * @returns what was received
  */
-struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct Stream* stream, struct Libp2pMessage* message) {
+struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct SessionContext* sessionContext, struct Libp2pMessage* message) {
 	size_t protobuf_size = 0, results_size = 0;
 	unsigned char* protobuf = NULL, *results = NULL;
 	struct Libp2pMessage* return_message = NULL;
-	struct SessionContext session_context;
 
 	protobuf_size = libp2p_message_protobuf_encode_size(message);
 	protobuf = (unsigned char*)malloc(protobuf_size);
 	libp2p_message_protobuf_encode(message, &protobuf[0], protobuf_size, &protobuf_size);
 
-	session_context.default_stream = stream;
-	session_context.insecure_stream = stream;
 
 	// upgrade to kademlia protocol
-	if (!libp2p_routing_dht_upgrade_stream(&session_context)) {
+	if (!libp2p_routing_dht_upgrade_stream(sessionContext)) {
 		goto exit;
 	}
 
 	// send the message, and expect the same back
-	session_context.default_stream->write(&session_context, protobuf, protobuf_size);
-	session_context.default_stream->read(&session_context, &results, &results_size, 5);
+	sessionContext->default_stream->write(sessionContext->default_stream, protobuf, protobuf_size);
+	sessionContext->default_stream->read(sessionContext->default_stream, &results, &results_size, 5);
 
 	// see if we can unprotobuf
 	if (!libp2p_message_protobuf_decode(results, results_size, &return_message))
@@ -79,7 +76,7 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const
 		if (peer->connection_type == CONNECTION_TYPE_CONNECTED) {
 			// Ask for hash, if it has it, break out of the loop and stop looking
 			libp2p_logger_debug("online", "FindRemoteProviders: Asking for who can provide\n");
-			struct Libp2pMessage* return_message = ipfs_routing_online_send_receive_message(peer->connection, message);
+			struct Libp2pMessage* return_message = ipfs_routing_online_send_receive_message(peer->sessionContext, message);
 			if (return_message != NULL && return_message->provider_peer_head != NULL) {
 				libp2p_logger_debug("online", "FindRemoteProviders: Return value is not null\n");
 				found = 1;
@@ -160,7 +157,7 @@ int ipfs_routing_online_ask_peer_for_peer(struct Libp2pPeer* whoToAsk, const uns
 			goto exit;
 		memcpy(message->key, peer_id, peer_id_size);
 
-		return_message = ipfs_routing_online_send_receive_message(whoToAsk->connection, message);
+		return_message = ipfs_routing_online_send_receive_message(whoToAsk->sessionContext, message);
 		if (return_message == NULL) {
 			// some kind of network error
 			whoToAsk->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
@@ -263,7 +260,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, const unsigned char
 		struct Libp2pPeer* current_peer = current_peer_entry->peer;
 		if (current_peer->connection_type == CONNECTION_TYPE_CONNECTED) {
 			// ignoring results is okay this time
-			struct Libp2pMessage* rslt = ipfs_routing_online_send_receive_message(current_peer->connection, msg);
+			struct Libp2pMessage* rslt = ipfs_routing_online_send_receive_message(current_peer->sessionContext, msg);
 			if (rslt != NULL)
 				libp2p_message_free(rslt);
 		} else if(current_peer->addr_head == NULL
@@ -343,7 +340,7 @@ int ipfs_routing_online_get_peer_value(ipfs_routing* routing, const struct Libp2
 	msg->message_type = MESSAGE_TYPE_GET_VALUE;
 
 	// send message and receive results
-	struct Libp2pMessage* ret_msg = ipfs_routing_online_send_receive_message(peer->connection, msg);
+	struct Libp2pMessage* ret_msg = ipfs_routing_online_send_receive_message(peer->sessionContext, msg);
 	libp2p_message_free(msg);
 
 	if (ret_msg == NULL)
@@ -486,7 +483,7 @@ int ipfs_routing_online_bootstrap(struct IpfsRouting* routing) {
 			if (peer == NULL) {
 				return -1; // this should never happen
 			}
-			if (peer->connection == NULL) { // should always be true unless we added it twice (TODO: we should prevent that earlier)
+			if (peer->sessionContext == NULL) { // should always be true unless we added it twice (TODO: we should prevent that earlier)
 				libp2p_peer_connect(peer, 5);
 			}
 		}
@@ -499,16 +496,14 @@ int ipfs_routing_online_bootstrap(struct IpfsRouting* routing) {
  * Create a new ipfs_routing struct for online clients
  * @param fs_repo the repo
  * @param private_key the local private key
- * @param stream the stream to put in the struct
  * @reurns the ipfs_routing struct that handles messages
  */
-ipfs_routing* ipfs_routing_new_online (struct IpfsNode* local_node, struct RsaPrivateKey *private_key, struct Stream* stream) {
+ipfs_routing* ipfs_routing_new_online (struct IpfsNode* local_node, struct RsaPrivateKey *private_key) {
     ipfs_routing *onlineRouting = malloc (sizeof(ipfs_routing));
 
     if (onlineRouting) {
         onlineRouting->local_node     = local_node;
         onlineRouting->sk            = private_key;
-        onlineRouting->stream = stream;
 
         onlineRouting->PutValue      = ipfs_routing_generic_put_value;
         onlineRouting->GetValue      = ipfs_routing_online_get_value;

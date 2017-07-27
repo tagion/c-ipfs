@@ -103,7 +103,6 @@ struct IpfsRouting* ipfs_routing_new_offline (struct IpfsNode* local_node, struc
     if (offlineRouting) {
         offlineRouting->local_node     = local_node;
         offlineRouting->sk            = private_key;
-        offlineRouting->stream = NULL;
 
         offlineRouting->PutValue      = ipfs_routing_generic_put_value;
         offlineRouting->GetValue      = ipfs_routing_generic_get_value;

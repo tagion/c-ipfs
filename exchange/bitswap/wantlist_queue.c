@@ -121,6 +121,26 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_find(struct WantListQueue
 }
 
 /***
+ * Pops the top one off the queue
+ *
+ * @param wantlist the list
+ * @returns the WantListQueueEntry
+ */
+struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_pop(struct WantListQueue* wantlist) {
+	struct WantListQueueEntry* entry = NULL;
+
+	if (wantlist->queue->total == 0)
+		return entry;
+
+	//TODO: This should be a linked list, not an array
+	pthread_mutex_lock(&wantlist->wantlist_mutex);
+	entry = (struct WantListQueueEntry*)libp2p_utils_vector_get(wantlist->queue, 0);
+	libp2p_utils_vector_delete(wantlist->queue, 0);
+	pthread_mutex_unlock(&wantlist->wantlist_mutex);
+	return entry;
+}
+
+/***
  * Initialize a WantListQueueEntry
  * @returns a new WantListQueueEntry
  */

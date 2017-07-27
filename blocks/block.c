@@ -65,7 +65,7 @@ int ipfs_blocks_block_protobuf_decode(const unsigned char* buffer, const size_t 
 	unsigned char* temp_buffer = NULL;
 	size_t temp_size;
 
-	*block = ipfs_blocks_block_new();
+	*block = ipfs_block_new();
 	if (*block == NULL)
 		goto exit;
 
@@ -115,7 +115,7 @@ exit:
  * @param block a pointer to the struct Block that will be created
  * @returns true(1) on success
  */
-struct Block* ipfs_blocks_block_new() {
+struct Block* ipfs_block_new() {
 
 	// allocate memory for structure
 	struct Block* block = (struct Block*)malloc(sizeof(struct Block));
@@ -172,7 +172,7 @@ int ipfs_block_free(struct Block* block) {
  * @returns a new Block that is a copy
  */
 struct Block* ipfs_block_copy(struct Block* original) {
-	struct Block* copy = ipfs_blocks_block_new();
+	struct Block* copy = ipfs_block_new();
 	copy->data_length = original->data_length;
 	copy->data = (unsigned char*) malloc(original->data_length);
 	memcpy(copy->data, original->data, original->data_length);

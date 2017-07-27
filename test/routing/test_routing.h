@@ -93,7 +93,7 @@ int test_routing_find_peer() {
     local_node.providerstore = NULL;
     local_node.repo = fs_repo;
     local_node.identity = fs_repo->config->identity;
-    local_node.routing = ipfs_routing_new_online(&local_node, &fs_repo->config->identity->private_key, NULL);
+    local_node.routing = ipfs_routing_new_online(&local_node, &fs_repo->config->identity->private_key);
 
     local_node.routing->Bootstrap(local_node.routing);
 
@@ -215,7 +215,7 @@ int test_routing_find_providers() {
     local_node.providerstore = libp2p_providerstore_new();
     local_node.repo = fs_repo;
     local_node.identity = fs_repo->config->identity;
-    local_node.routing = ipfs_routing_new_online(&local_node, &fs_repo->config->identity->private_key, NULL);
+    local_node.routing = ipfs_routing_new_online(&local_node, &fs_repo->config->identity->private_key);
 
     local_node.routing->Bootstrap(local_node.routing);
 

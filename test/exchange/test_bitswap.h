@@ -66,7 +66,7 @@ int test_bitswap_new_free() {
 	}
 	// payload
 	message->payload = libp2p_utils_vector_new(1);
-	block = ipfs_blocks_block_new();
+	block = ipfs_block_new();
 	block->data_length = 25;
 	libp2p_utils_vector_add(message->payload, block);
 	block = (struct Block*)libp2p_utils_vector_get(message->payload, 0);
@@ -141,7 +141,7 @@ int test_bitswap_retrieve_file()
 		goto exit;
 
 	// fire up the exchange
-	exchange = ipfs_bitswap_exchange_start(localNode);
+	exchange = ipfs_bitswap_new(localNode);
 
 	// attempt to retrieve the file
 	if (!exchange->GetBlock(exchange, cid, &block)) {
@@ -179,8 +179,8 @@ int test_bitswap_retrieve_file_third_party() {
 	libp2p_logger_add_class("peerstore");
 	libp2p_logger_add_class("exporter");
 	libp2p_logger_add_class("peer");
-	libp2p_logger_add_class("test_bitswap");
 	*/
+	libp2p_logger_add_class("test_bitswap");
 
 	// clean out repository
 	char* ipfs_path = "/tmp/test1";
@@ -190,26 +190,27 @@ int test_bitswap_retrieve_file_third_party() {
 	int thread1_started = 0, thread2_started = 0;
 	struct MultiAddress* ma_peer1 = NULL;
 	struct Libp2pVector* ma_vector2 = NULL, *ma_vector3 = NULL;
-	struct HashtableNode* node = NULL, *result_node = NULL;
+	struct HashtableNode* node = NULL;
+	struct Block* result = NULL;
+	struct Cid* cid = NULL;
 
 	// create peer 1
+	libp2p_logger_debug("test_bitswap", "Firing up daemon 1.\n");
 	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
 	char multiaddress_string[255];
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	libp2p_logger_debug("test_bitswap", "Firing up daemon 1.\n");
 	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
-		fprintf(stderr, "Unable to start thread 1\n");
+		libp2p_logger_error("test_bitswap", "Unable to start thread 1\n");
 		goto exit;
 	}
 	thread1_started = 1;
-
     // wait for everything to start up
-    // JMJ debugging =
     sleep(3);
 
     // create peer 2
+	libp2p_logger_debug("test_routing", "Firing up daemon 2.\n");
 	ipfs_path = "/tmp/test2";
 	// create a vector to hold peer1's multiaddress so we can connect as a peer
 	ma_vector2 = libp2p_utils_vector_new(1);
@@ -226,19 +227,16 @@ int test_bitswap_retrieve_file_third_party() {
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, ipfs_node2, &bytes_written, 0);
 	ipfs_node_free(ipfs_node2);
 	// start the daemon in a separate thread
-	libp2p_logger_debug("test_routing", "Firing up daemon 2.\n");
 	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
-		fprintf(stderr, "Unable to start thread 2\n");
+		libp2p_logger_error("test_bitswap", "Unable to start thread 2\n");
 		goto exit;
 	}
 	thread2_started = 1;
-
     // wait for everything to start up
-    // JMJ debugging =
     sleep(3);
 
-    libp2p_logger_debug("test_routing", "Firing up the 3rd client\n");
     // create my peer, peer 3
+    libp2p_logger_debug("test_routing", "Firing up the 3rd client\n");
 	ipfs_path = "/tmp/test3";
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	ma_vector3 = libp2p_utils_vector_new(1);
@@ -249,18 +247,20 @@ int test_bitswap_retrieve_file_third_party() {
 
     ipfs_node3->routing->Bootstrap(ipfs_node3->routing);
 
-    if (!ipfs_exporter_get_node(ipfs_node3, node->hash, node->hash_size, &result_node)) {
-    	fprintf(stderr, "Get_Node returned false\n");
+    // this does the heavy lifting...
+    cid = ipfs_cid_new(0, node->hash, node->hash_size, CID_PROTOBUF);
+    if (!ipfs_node3->exchange->GetBlock(ipfs_node3->exchange, cid, &result)) {
+    	libp2p_logger_error("test_bitswap", "GetBlock returned false\n");
     	goto exit;
     }
 
-    if (node->hash_size != result_node->hash_size) {
-    	fprintf(stderr, "Node hash sizes do not match. Should be %lu but is %lu\n", node->hash_size, result_node->hash_size);
+    if (node->hash_size != result->cid->hash_length) {
+    	libp2p_logger_error("test_bitswap", "Node hash sizes do not match. Should be %lu but is %lu\n", node->hash_size, result->cid->hash_length);
     	goto exit;
     }
 
-    if (node->data_size != result_node->data_size) {
-    	fprintf(stderr, "Result sizes do not match. Should be %lu but is %lu\n", node->data_size, result_node->data_size);
+    if (node->data_size != result->data_length) {
+    	libp2p_logger_error("test_bitswap", "Result sizes do not match. Should be %lu but is %lu\n", node->data_size, result->data_length);
     	goto exit;
     }
 
@@ -287,8 +287,10 @@ int test_bitswap_retrieve_file_third_party() {
 	}
 	if (node != NULL)
 		ipfs_hashtable_node_free(node);
-	if (result_node != NULL)
-		ipfs_hashtable_node_free(result_node);
+	if (result != NULL)
+		ipfs_block_free(result);
+	if (cid != NULL)
+		ipfs_cid_free(cid);
 	return retVal;
 
 }

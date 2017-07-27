@@ -21,7 +21,7 @@ struct BitswapContext {
  * @param ipfsNode the context
  * @returns an Exchange struct that refers to the exchange
  */
-struct Exchange* ipfs_bitswap_exchange_start(struct IpfsNode* ipfsNode);
+struct Exchange* ipfs_bitswap_new(struct IpfsNode* ipfsNode);
 
 /***
  * These are the implementation methods for the exchange "Interface"

@@ -14,7 +14,7 @@
  * @param sessionContext the context
  * @returns an allocated Exchange structure
  */
-struct Exchange* ipfs_bitswap_exchange_start(struct IpfsNode* ipfs_node) {
+struct Exchange* ipfs_bitswap_new(struct IpfsNode* ipfs_node) {
 	struct Exchange* exchange = (struct Exchange*) malloc(sizeof(struct Exchange));
 	if (exchange != NULL) {
 		struct BitswapContext* bitswapContext = (struct BitswapContext*) malloc(sizeof(struct BitswapContext));
@@ -22,15 +22,26 @@ struct Exchange* ipfs_bitswap_exchange_start(struct IpfsNode* ipfs_node) {
 			free(exchange);
 			return NULL;
 		}
-		exchange->exchangeContext = (void*) bitswapContext;
+		bitswapContext->bitswap_engine = ipfs_bitswap_engine_new();
+		if (bitswapContext->bitswap_engine == NULL) {
+			free(bitswapContext);
+			free(exchange);
+			return NULL;
+		}
+		bitswapContext->localWantlist = NULL;
+		bitswapContext->peerRequestQueue = NULL;
 		bitswapContext->ipfsNode = ipfs_node;
+
+		exchange->exchangeContext = (void*) bitswapContext;
 		exchange->IsOnline = ipfs_bitswap_is_online;
 		exchange->Close = ipfs_bitswap_close;
 		exchange->HasBlock = ipfs_bitswap_has_block;
 		exchange->GetBlock = ipfs_bitswap_get_block;
 		exchange->GetBlocks = ipfs_bitswap_get_blocks;
+
+		// Start the threads for the network
+		ipfs_bitswap_engine_start(bitswapContext);
 	}
-	//TODO: Start the threads for the network
 	return exchange;
 }
 

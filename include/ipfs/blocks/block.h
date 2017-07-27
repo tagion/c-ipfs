@@ -18,7 +18,7 @@ struct Block {
  * Create a new block
  * @returns a new allocated Block struct
  */
-struct Block* ipfs_blocks_block_new();
+struct Block* ipfs_block_new();
 
 int ipfs_blocks_block_add_data(const unsigned char* data, size_t data_size, struct Block* block);
 

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "ipfs/core/ipfs_node.h"
+#include "ipfs/exchange/bitswap/bitswap.h"
 
 /***
  * build an online IpfsNode
@@ -21,6 +22,7 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 	local_node->providerstore = NULL;
 	local_node->repo = NULL;
 	local_node->routing = NULL;
+	local_node->exchange =  NULL;
 
 	// build the struct
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
@@ -42,7 +44,8 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 	local_node->providerstore = libp2p_providerstore_new();
 	local_node->blockstore = ipfs_blockstore_new(fs_repo);
 	local_node->mode = MODE_OFFLINE;
-	local_node->routing = ipfs_routing_new_online(local_node, &fs_repo->config->identity->private_key, NULL);
+	local_node->routing = ipfs_routing_new_online(local_node, &fs_repo->config->identity->private_key);
+	local_node->exchange = ipfs_bitswap_new(local_node);
 
 	return 1;
 }
@@ -65,6 +68,9 @@ int ipfs_node_free(struct IpfsNode* node) {
 		}
 		if (node->blockstore != NULL) {
 			ipfs_blockstore_free(node->blockstore);
+		}
+		if (node->exchange != NULL) {
+			node->exchange->Close(node->exchange);
 		}
 		free(node);
 	}

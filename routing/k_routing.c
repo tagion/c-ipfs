@@ -148,7 +148,7 @@ int ipfs_routing_kademlia_bootstrap(struct IpfsRouting* routing) {
 	return 1;
 }
 
-struct IpfsRouting* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key, struct Stream* stream) {
+struct IpfsRouting* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key) {
 	char kademlia_id[21];
 	// generate kademlia compatible id by getting first 20 chars of peer id
 	if (local_node->identity->peer_id == NULL || strlen(local_node->identity->peer_id) < 20) {
@@ -160,7 +160,6 @@ struct IpfsRouting* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struc
 	if (routing != NULL) {
 		routing->local_node = local_node;
 		routing->sk = private_key;
-		routing->stream = stream;
 		routing->PutValue = ipfs_routing_kademlia_put_value;
 		routing->GetValue = ipfs_routing_kademlia_get_value;
 		routing->FindProviders = ipfs_routing_kademlia_find_providers;

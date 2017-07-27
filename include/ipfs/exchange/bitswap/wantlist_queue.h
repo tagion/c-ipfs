@@ -97,3 +97,12 @@ int ipfs_bitswap_wantlist_session_compare(const struct WantListSession* a, const
  * @returns true(1) on success, false(0) if not.
  */
 int ipfs_bitswap_wantlist_process_entry(struct BitswapContext* context, struct WantListQueueEntry* entry);
+
+/***
+ * Pops the top one off the queue
+ *
+ * @param wantlist the list
+ * @returns the WantListQueueEntry
+ */
+struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_pop(struct WantListQueue* wantlist);
+

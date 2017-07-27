@@ -22,7 +22,6 @@ int ipfs_ping (int argc, char **argv)
 {
 	int retVal = 0;
 	struct IpfsNode local_node;
-	struct Stream* stream = NULL;
 	struct Libp2pPeer* peer_to_ping = NULL;
 	char* id = NULL;
     struct FSRepo* fs_repo = NULL;
@@ -51,7 +50,7 @@ int ipfs_ping (int argc, char **argv)
 	local_node.identity = fs_repo->config->identity;
 	local_node.repo = fs_repo;
 	local_node.mode = MODE_ONLINE;
-	local_node.routing = ipfs_routing_new_online(&local_node, &fs_repo->config->identity->private_key, stream);
+	local_node.routing = ipfs_routing_new_online(&local_node, &fs_repo->config->identity->private_key);
 	local_node.peerstore = libp2p_peerstore_new(local_node.identity->peer_id);
 	local_node.providerstore = libp2p_providerstore_new();
 

@@ -113,6 +113,7 @@ char* ipfs_blockstore_path_get(const struct FSRepo* fs_repo, const char* filenam
  * @returns true(1) on success
  */
 int ipfs_blockstore_get(const struct BlockstoreContext* context, struct Cid* cid, struct Block** block) {
+	int retVal = 0;
 	// get datastore key, which is a base32 key of the multihash
 	unsigned char* key = ipfs_blockstore_hash_to_base32(cid->hash, cid->hash_length);
 
@@ -122,13 +123,19 @@ int ipfs_blockstore_get(const struct BlockstoreContext* context, struct Cid* cid
 	unsigned char buffer[file_size];
 
 	FILE* file = fopen(filename, "rb");
+	if (file == NULL)
+		goto exit;
+
 	size_t bytes_read = fread(buffer, 1, file_size, file);
 	fclose(file);
 
-	int retVal = ipfs_blocks_block_protobuf_decode(buffer, bytes_read, block);
+	if (!ipfs_blocks_block_protobuf_decode(buffer, bytes_read, block))
+		goto exit;
 
 	(*block)->cid = ipfs_cid_copy(cid);
 
+	retVal = 1;
+	exit:
 	free(key);
 	free(filename);
 

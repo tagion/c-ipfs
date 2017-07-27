@@ -132,7 +132,7 @@ struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerR
  * @param queue the queue
  * @returns the PeerRequest that should be handled next, or NULL if the queue is empty
  */
-struct PeerRequest* ipfs_bitswap_peer_request_pop(struct PeerRequestQueue* queue) {
+struct PeerRequest* ipfs_bitswap_peer_request_queue_pop(struct PeerRequestQueue* queue) {
 	struct PeerRequest* retVal = NULL;
 	if (queue != NULL) {
 		pthread_mutex_lock(&queue->queue_mutex);
@@ -185,3 +185,15 @@ int ipfs_bitswap_peer_request_queue_fill(struct PeerRequestQueue* queue, struct 
 	// add to the block array
 	return 0;
 }
+
+/****
+ * Handle a PeerRequest
+ * @param context the BitswapContext
+ * @param request the request to process
+ * @returns true(1) on succes, otherwise false(0)
+ */
+int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context, struct PeerRequest* request) {
+	//TODO: Implement this method
+	return 0;
+}
+

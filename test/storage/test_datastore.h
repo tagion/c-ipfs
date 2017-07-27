@@ -23,7 +23,7 @@ int test_ipfs_datastore_put() {
 		return 0;
 
 	// build the block
-	block = ipfs_blocks_block_new();
+	block = ipfs_block_new();
 	if (block == NULL)
 		return 0;
 

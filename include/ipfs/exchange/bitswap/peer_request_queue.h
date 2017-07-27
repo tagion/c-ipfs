@@ -4,6 +4,7 @@
  */
 
 #include <pthread.h>
+#include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/blocks/block.h"
 
 struct PeerRequest {
@@ -103,3 +104,11 @@ struct PeerRequestEntry* ipfs_bitswap_peer_request_entry_new();
  * @returns true(1)
  */
 int ipfs_bitswap_peer_request_entry_free(struct PeerRequestEntry* entry);
+
+/****
+ * Handle a PeerRequest
+ * @param context the BitswapContext
+ * @param request the request to process
+ * @returns true(1) on succes, otherwise false(0)
+ */
+int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context, struct PeerRequest* request);

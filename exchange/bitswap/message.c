@@ -584,7 +584,7 @@ int ipfs_bitswap_message_protobuf_decode(unsigned char* buffer, size_t buffer_le
 		switch(field_no) {
 			case (1): {
 				// a Blocks entry that is just an array of bytes
-				struct Block* temp = ipfs_blocks_block_new();
+				struct Block* temp = ipfs_block_new();
 				if (!protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&temp->data, &temp->data_length, &bytes_read)) {
 					return 0;
 				}

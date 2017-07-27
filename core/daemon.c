@@ -19,9 +19,6 @@ int ipfs_daemon_start(char* repo_path) {
     struct IpfsNodeListenParams listen_param;
     struct MultiAddress* ma = NULL;
 
-    // Debugging JMJ
-    libp2p_logger_add_class("null");
-
     libp2p_logger_info("daemon", "Initializing daemon...\n");
 
     struct IpfsNode* local_node = NULL;

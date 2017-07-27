@@ -47,7 +47,7 @@ int test_repo_fsrepo_write_read_block() {
 	}
 
 	// create and write the block
-	block = ipfs_blocks_block_new();
+	block = ipfs_block_new();
 	if (block == NULL) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;

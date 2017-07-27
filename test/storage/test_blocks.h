@@ -3,7 +3,7 @@
 int test_blocks_new() {
 	const unsigned char* input = (const unsigned char*)"Hello, World!";
 	int retVal = 0;
-	struct Block* block = ipfs_blocks_block_new();
+	struct Block* block = ipfs_block_new();
 	if (block == NULL)
 		return 0;
 
