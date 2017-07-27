@@ -1,13 +1,16 @@
 /***
- * A queue for requests from remote peers
- * NOTE: This should handle multiple threads
+ * A queue for requests to/from remote peers
+ * NOTE: This must handle multiple threads
  */
 
 #include <pthread.h>
+#include "ipfs/blocks/block.h"
 
 struct PeerRequest {
-	int peer_id;
-	struct Cid* cid;
+	pthread_mutex_t request_mutex;
+	struct SessionContext* context;
+	struct Libp2pVector* cids;
+	struct Libp2pVector* blocks;
 };
 
 struct PeerRequestEntry {
@@ -37,6 +40,7 @@ int ipfs_bitswap_peer_request_free(struct PeerRequest* request);
 
 /**
  * Allocate resources for a new queue
+ * @returns a new PeerRequestQueue
  */
 struct PeerRequestQueue* ipfs_bitswap_peer_request_queue_new();
 
@@ -77,6 +81,15 @@ struct PeerRequest* ipfs_bitswap_peer_request_queue_pop(struct PeerRequestQueue*
  * @returns the PeerRequestEntry or NULL if not found
  */
 struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerRequestQueue* queue, struct PeerRequest* request);
+
+/***
+ * Add a block to the appropriate peer's queue
+ * @param queue the queue
+ * @param who the session context that identifies the peer
+ * @param block the block
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_bitswap_peer_request_queue_fill(struct PeerRequestQueue* queue, struct SessionContext* who, struct Block* block);
 
 /***
  * Allocate resources for a PeerRequestEntry struct

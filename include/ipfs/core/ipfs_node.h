@@ -1,11 +1,12 @@
 #pragma once
 
+#include "libp2p/peer/peerstore.h"
+#include "libp2p/peer/providerstore.h"
 #include "ipfs/blocks/blockstore.h"
+#include "ipfs/exchange/exchange.h"
 #include "ipfs/repo/config/identity.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/routing/routing.h"
-#include "libp2p/peer/peerstore.h"
-#include "libp2p/peer/providerstore.h"
 
 enum NodeMode { MODE_OFFLINE, MODE_ONLINE };
 
@@ -17,6 +18,7 @@ struct IpfsNode {
 	struct ProviderStore* providerstore;
 	struct IpfsRouting* routing;
 	struct Blockstore* blockstore;
+	struct Exchange* exchange;
 	//struct Pinner pinning; // an interface
 	//struct Mount** mounts;
 	// TODO: Add more here

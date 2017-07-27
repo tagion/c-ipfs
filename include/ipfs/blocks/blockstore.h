@@ -16,6 +16,9 @@ struct Blockstore {
 	struct BlockstoreContext* blockstoreContext;
 	int (*Delete)(const struct BlockstoreContext* context, struct Cid* cid);
 	int (*Has)(const struct BlockstoreContext* context, struct Cid* cid);
+	/**
+	 * Retrieve a block from the blockstore
+	 */
 	int (*Get)(const struct BlockstoreContext* context, struct Cid* cid, struct Block** block);
 	int (*Put)(const struct BlockstoreContext* context, struct Block* block);
 };

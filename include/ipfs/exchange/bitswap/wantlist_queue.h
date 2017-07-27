@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include "ipfs/cid/cid.h"
 #include "ipfs/blocks/block.h"
+#include "ipfs/exchange/bitswap/bitswap.h"
 
 enum WantListSessionType { WANTLIST_SESSION_TYPE_LOCAL, WANTLIST_SESSION_TYPE_REMOTE };
 
@@ -22,6 +23,7 @@ struct WantListQueueEntry {
 	// a vector of WantListSessions
 	struct Libp2pVector* sessionsRequesting;
 	struct Block* block;
+	int attempts;
 };
 
 struct WantListQueue {
@@ -88,3 +90,10 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_find(struct WantListQueue
  */
 int ipfs_bitswap_wantlist_session_compare(const struct WantListSession* a, const struct WantListSession* b);
 
+/**
+ * Called by the Bitswap engine, this processes an item on the WantListQueue
+ * @param context the context
+ * @param entry the WantListQueueEntry
+ * @returns true(1) on success, false(0) if not.
+ */
+int ipfs_bitswap_wantlist_process_entry(struct BitswapContext* context, struct WantListQueueEntry* entry);

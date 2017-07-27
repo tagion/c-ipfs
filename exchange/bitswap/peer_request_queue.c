@@ -4,6 +4,7 @@
  */
 
 #include <stdlib.h>
+#include "libp2p/conn/session.h"
 #include "ipfs/cid/cid.h"
 #include "ipfs/exchange/bitswap/peer_request_queue.h"
 
@@ -14,8 +15,9 @@
 struct PeerRequest* ipfs_bitswap_peer_request_new() {
 	struct PeerRequest* request = (struct PeerRequest*) malloc(sizeof(struct PeerRequest));
 	if (request != NULL) {
-		request->peer_id = 0;
-		request->cid = NULL;
+		request->cids = NULL;
+		request->blocks = NULL;
+		request->context = NULL;
 	}
 	return request;
 }
@@ -116,9 +118,9 @@ struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerR
 	if (request != NULL) {
 		struct PeerRequestEntry* current = queue->first;
 		while (current != NULL) {
-			if (current->current->peer_id == request->peer_id && ipfs_cid_compare(request->cid, current->current->cid) == 0) {
+			if (libp2p_session_context_compare(current->current->context, request->context) == 0)
 				return current;
-			}
+			current = current->next;
 		}
 	}
 	return NULL;
@@ -171,3 +173,15 @@ int ipfs_bitswap_peer_request_entry_free(struct PeerRequestEntry* entry) {
 	return 1;
 }
 
+/***
+ * Add a block to the appropriate peer's queue
+ * @param queue the queue
+ * @param who the session context that identifies the peer
+ * @param block the block
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_bitswap_peer_request_queue_fill(struct PeerRequestQueue* queue, struct SessionContext* who, struct Block* block) {
+	// find the right entry
+	// add to the block array
+	return 0;
+}

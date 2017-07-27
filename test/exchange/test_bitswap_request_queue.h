@@ -28,6 +28,8 @@ int test_bitswap_peer_request_queue_new() {
 }
 
 int test_bitswap_peer_request_queue_find() {
+	return 0;
+	/*
 	int retVal = 0;
 	struct PeerRequestQueue* queue = NULL;
 	struct PeerRequest* request1 = NULL;
@@ -72,4 +74,5 @@ int test_bitswap_peer_request_queue_find() {
 	// clean up
 	ipfs_bitswap_peer_request_queue_free(queue);
 	return retVal;
+	*/
 }

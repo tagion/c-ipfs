@@ -7,10 +7,13 @@
 
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/exchange.h"
+#include "ipfs/exchange/bitswap/engine.h"
 
 struct BitswapContext {
 	struct IpfsNode* ipfsNode;
 	struct WantListQueue* localWantlist;
+	struct PeerRequestQueue* peerRequestQueue;
+	struct BitswapEngine* bitswap_engine;
 };
 
 /**

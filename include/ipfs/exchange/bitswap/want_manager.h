@@ -22,7 +22,7 @@ struct WantListQueueEntry* ipfs_bitswap_want_manager_add(const struct BitswapCon
 int ipfs_bitswap_want_manager_received(const struct BitswapContext* context, const struct Cid* cid);
 
 /***
- * retrieve a block from the WantManager. NOTE: a call to want_manager_received should be done first
+ * retrieve a block from the WantManager.
  * @param context the context
  * @param cid the Cid to get
  * @param block a pointer to the block that will be allocated

@@ -14,8 +14,12 @@
 /**
  * We received a BitswapMessage from the network
  */
+/*
+ipfs_bitswap_network_receive_message(struct BitswapContext* context) {
+
+}
+*/
 
 /**
- * We want to pop something off the queue to send to a peer.
- * This can be a wantlist or blocks
+ * We want to pop something off the queue
  */
