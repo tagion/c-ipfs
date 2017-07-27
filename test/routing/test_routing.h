@@ -313,6 +313,9 @@ int test_routing_provide() {
 	struct Libp2pVector* ma_vector2 = NULL;
 	struct HashtableNode* node = NULL;
 
+	libp2p_logger_add_class("daemon");
+	libp2p_logger_add_class("null");
+
 	// create peer 1
 	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
 	char multiaddress_string[255];
@@ -366,6 +369,8 @@ int test_routing_provide() {
 	}
 	if (node != NULL)
 		ipfs_hashtable_node_free(node);
+	if (ma_peer1 != NULL)
+		multiaddress_free(ma_peer1);
 	return retVal;
 
 }

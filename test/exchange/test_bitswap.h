@@ -118,7 +118,6 @@ int test_bitswap_protobuf() {
 int test_bitswap_retrieve_file()
 {
 	int retVal = 0;
-	struct Exchange* exchange = NULL;
 	struct IpfsNode* localNode = NULL;
 	const char* ipfs_path = "/tmp/ipfstest1";
 	struct HashtableNode* node = NULL; // the node created by adding the file
@@ -140,11 +139,8 @@ int test_bitswap_retrieve_file()
 	if (cid == NULL)
 		goto exit;
 
-	// fire up the exchange
-	exchange = ipfs_bitswap_new(localNode);
-
 	// attempt to retrieve the file
-	if (!exchange->GetBlock(exchange, cid, &block)) {
+	if (!localNode->exchange->GetBlock(localNode->exchange, cid, &block)) {
 		goto exit;
 	}
 
@@ -157,9 +153,6 @@ int test_bitswap_retrieve_file()
 		ipfs_cid_free(cid);
 	if (node != NULL)
 		ipfs_hashtable_node_free(node);
-	if (exchange != NULL) {
-		exchange->Close(exchange);
-	}
 	ipfs_node_free(localNode);
 	return retVal;
 }

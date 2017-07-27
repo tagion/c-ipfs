@@ -101,5 +101,7 @@ int ipfs_bitswap_engine_stop(const struct BitswapContext* context) {
 	int error1 = pthread_join(context->bitswap_engine->wantlist_processor_thread, NULL);
 	int error2 = pthread_join(context->bitswap_engine->peer_request_processor_thread, NULL);
 
+	ipfs_bitswap_engine_free(context->bitswap_engine);
+
 	return !error1 && !error2;
 }

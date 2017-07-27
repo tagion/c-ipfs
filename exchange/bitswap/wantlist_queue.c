@@ -129,7 +129,7 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_find(struct WantListQueue
 struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_pop(struct WantListQueue* wantlist) {
 	struct WantListQueueEntry* entry = NULL;
 
-	if (wantlist->queue->total == 0)
+	if (wantlist == NULL || wantlist->queue == NULL || wantlist->queue->total == 0)
 		return entry;
 
 	//TODO: This should be a linked list, not an array

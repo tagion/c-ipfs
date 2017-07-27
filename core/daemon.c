@@ -19,7 +19,7 @@ int ipfs_daemon_start(char* repo_path) {
     struct IpfsNodeListenParams listen_param;
     struct MultiAddress* ma = NULL;
 
-    libp2p_logger_info("daemon", "Initializing daemon...\n");
+    libp2p_logger_info("daemon", "Initializing daemon for %s...\n", repo_path);
 
     struct IpfsNode* local_node = NULL;
     if (!ipfs_node_online_new(repo_path, &local_node))
@@ -37,7 +37,7 @@ int ipfs_daemon_start(char* repo_path) {
     	goto exit;
     }
 
-    local_node->routing->Bootstrap (local_node->routing);
+    local_node->routing->Bootstrap(local_node->routing);
 
     libp2p_logger_info("daemon", "Daemon for %s is ready on port %d\n", listen_param.local_node->identity->peer_id, listen_param.port);
 
@@ -51,7 +51,7 @@ int ipfs_daemon_start(char* repo_path) {
 
     retVal = 1;
     exit:
-	libp2p_logger_debug("daemon", "Cleaning up daemon processes\n");
+	libp2p_logger_debug("daemon", "Cleaning up daemon processes for %s\n", repo_path);
     // clean up
     if (ma != NULL)
     	multiaddress_free(ma);

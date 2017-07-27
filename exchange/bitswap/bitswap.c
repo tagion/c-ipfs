@@ -53,6 +53,9 @@ struct Exchange* ipfs_bitswap_new(struct IpfsNode* ipfs_node) {
 int ipfs_bitswap_free(struct Exchange* exchange) {
 	if (exchange != NULL) {
 		if (exchange->exchangeContext != NULL) {
+			struct BitswapContext* bitswapContext = (struct BitswapContext*) exchange->exchangeContext;
+			if (bitswapContext != NULL)
+				ipfs_bitswap_engine_stop(bitswapContext);
 			free(exchange->exchangeContext);
 		}
 		free(exchange);
