@@ -20,6 +20,59 @@ pthread_t listen_thread = 0;
 struct s_list api_list;
 
 /**
+ * Write two strings on one write.
+ * @param fd file descriptor to write.
+ * @param str1 first string to write.
+ * @param str2 second string to write.
+ */
+size_t write_dual(int fd, char *str1, char *str2)
+{
+	struct iovec iov[2];
+
+	iov[0].iov_base = str1;
+	iov[0].iov_len = strlen(str1);
+	iov[1].iov_base = str2;
+	iov[1].iov_len = strlen(str2);
+
+	return writev(fd, iov, 2);
+}
+
+int read_all(int fd, struct s_request *req, char *already, size_t alread_size)
+{
+	char buf[MAX_READ], *p;
+	size_t size = 0;
+
+	if (alread_size > 0) {
+		p = realloc(req->buf, req->size + alread_size);
+		if (!p) {
+			return 0;
+		}
+		req->buf = p;
+		req->size += alread_size;
+		memcpy(req->buf + req->body + req->body_size, already, alread_size);
+		req->body_size += alread_size;
+	}
+	for(;;) {
+		if (socket_read_select4(fd, 5) <= 0) {
+			break;
+		}
+		size = read(fd, buf, sizeof buf);
+		if (size <= 0) {
+			break;
+		}
+		p = realloc(req->buf, req->size + size);
+		if (!p) {
+			return 0;
+		}
+		req->buf = p;
+		req->size += size;
+		memcpy(req->buf + req->body + req->body_size, buf, size);
+		req->body_size += size;
+	}
+	return 1;
+}
+
+/**
  * Pthread to take care of each client connection.
  * @param ptr is the connection index in api_list, integer not pointer, cast required.
  * @returns nothing
@@ -28,9 +81,10 @@ void *api_connection_thread (void *ptr)
 {
 	int timeout, s, r;
 	const INT_TYPE i = (INT_TYPE) ptr;
-	char buf[MAX_READ+1], *p;
+	char buf[MAX_READ+1], *p, *body;
 	char client[INET_ADDRSTRLEN];
 	struct s_request req;
+	int (*read_func)(int, struct s_request*, char*, size_t) = read_all;
 
 	req.buf = NULL; // sanity.
 
@@ -53,6 +107,8 @@ void *api_connection_thread (void *ptr)
 	p = strstr(buf, "\r\n\r\n");
 
 	if (p) {
+		body = p + 4;
+
 		req.size = p - buf + 1;
 		req.buf = malloc(req.size);
 		if (!req.buf) {
@@ -64,42 +120,58 @@ void *api_connection_thread (void *ptr)
 		memcpy(req.buf, buf, req.size - 1);
 		req.buf[req.size-1] = '\0';
 
-		req.method = req.buf;
-		p = strchr(req.method, ' ');
+		req.method = 0;
+		p = strchr(req.buf + req.method, ' ');
 		if (!p) {
 			write_cstr (s, HTTP_400);
 			goto quit;
 		}
 		*p++ = '\0'; // End of method.
-		req.path = p;
-		p = strchr(req.path, ' ');
+		req.path = p - req.buf;
+		p = strchr(p, ' ');
 		if (!p) {
 			write_cstr (s, HTTP_400);
 			goto quit;
 		}
 		*p++ = '\0'; // End of path.
-		req.http_ver = p;
-		p = strchr(req.http_ver, '\r');
+		req.http_ver = p - req.buf;
+		p = strchr(req.buf + req.http_ver, '\r');
 		if (!p) {
 			write_cstr (s, HTTP_400);
 			goto quit;
 		}
 		*p++ = '\0'; // End of http version.
 		while (*p == '\r' || *p == '\n') p++;
-		req.header = p;
-		req.body = req.buf + req.size;
+		req.header = p - req.buf;
+		req.body = req.size;
 		req.body_size = 0;
+
+		p = strstr(req.buf + req.header, "Transfer-Encoding:");
+		if (p) {
+			p += strlen("Transfer-Encoding:");
+			while(*p == ' ') p++;
+			if (cstrstart(p, "chunked\r\n") || strcmp(p, "chunked")==0) {
+				write_cstr (s, HTTP_501);
+				goto quit;
+			}
+		}
+
+		if (!read_func(s, &req, body, r - (body - buf))) {
+			write_cstr (s, HTTP_500);
+			goto quit;
+		}
 
 		libp2p_logger_error("api", "method = '%s'\n"
 					   "path = '%s'\n"
 					   "http_ver = '%s'\n"
 					   "header {\n%s\n}\n"
 					   "body_size = %d\n",
-		req.method, req.path, req.http_ver, req.header, req.body_size);
+		req.buf+req.method, req.buf+req.path, req.buf+req.http_ver,
+		req.buf+req.header, req.body_size);
 
-		if (strcmp(req.method, "GET")==0) {
+		if (strcmp(req.buf + req.method, "GET")==0) {
 			// just an error message, because it's not used.
-			write_cstr (s, HTTP_404);
+			write_dual (s, req.buf + req.http_ver, strchr (HTTP_404, ' '));
 		//} else if (cstrstart(buf, "POST ")) {
 			// TODO: Handle chunked/gzip/form-data/json POST requests.
 		}
