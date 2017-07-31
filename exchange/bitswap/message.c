@@ -359,7 +359,7 @@ int ipfs_bitswap_wantlist_protobuf_decode(unsigned char* buffer, size_t buffer_l
 	if (buffer_length == 0)
 		return 1;
 
-	*output = (struct BitswapWantlist*) malloc(sizeof(struct BitswapWantlist));
+	*output = ipfs_bitswap_wantlist_new();
 	if (*output == NULL)
 		return 0;
 
@@ -567,7 +567,7 @@ int ipfs_bitswap_message_protobuf_decode(const uint8_t* buffer, size_t buffer_le
 	if (buffer_length == 0)
 		return 1;
 
-	*output = (struct BitswapMessage*) malloc(sizeof(struct BitswapMessage));
+	*output = (struct BitswapMessage*) ipfs_bitswap_message_new();
 	if (*output == NULL)
 		return 0;
 

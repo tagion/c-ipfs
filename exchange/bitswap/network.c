@@ -69,9 +69,11 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 		return 0;
 	// process the message
 	// payload - what we want
-	for(int i = 0; i < message->payload->total; i++) {
-		struct Block* blk = (struct Block*)libp2p_utils_vector_get(message->payload, i);
-		node->exchange->HasBlock(node->exchange, blk);
+	if (message->payload != NULL) {
+		for(int i = 0; i < message->payload->total; i++) {
+			struct Block* blk = (struct Block*)libp2p_utils_vector_get(message->payload, i);
+			node->exchange->HasBlock(node->exchange, blk);
+		}
 	}
 	// wantlist - what they want
 	if (message->wantlist != NULL && message->wantlist->entries != NULL && message->wantlist->entries->total > 0) {
