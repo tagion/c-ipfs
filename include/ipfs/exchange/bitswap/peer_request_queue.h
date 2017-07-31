@@ -83,7 +83,7 @@ struct PeerRequest* ipfs_bitswap_peer_request_queue_pop(struct PeerRequestQueue*
  * @param request what we're looking for
  * @returns the PeerRequestEntry or NULL if not found
  */
-struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerRequestQueue* queue, struct PeerRequest* request);
+struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerRequestQueue* queue, struct Libp2pPeer* peer);
 
 /***
  * Add a block to the appropriate peer's queue

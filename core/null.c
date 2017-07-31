@@ -21,6 +21,7 @@
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/merkledag/node.h"
 #include "ipfs/util/thread_pool.h"
+#include "ipfs/exchange/bitswap/network.h"
 
 #define BUF_SIZE 4096
 
@@ -101,6 +102,9 @@ int ipfs_null_marshal(const unsigned char* incoming, size_t incoming_size, struc
 		// this handles 1 transaction
 		libp2p_routing_dht_handle_message(session, connection_param->local_node->peerstore, connection_param->local_node->providerstore);
 		libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia message handled\n");
+	} else if (protocol_compare(incoming, incoming_size, "/ipfs/bitswap/")) {
+		libp2p_logger_debug("null", "Attempting bitswap connection...\n");
+		return ipfs_bitswap_network_handle_message(connection_param->local_node, session, incoming, incoming_size);
 	}
 	else {
 		libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Disconnecting.\n");

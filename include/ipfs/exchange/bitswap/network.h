@@ -70,4 +70,14 @@ struct BitswapNetwork {
  * @param peer the peer that is the recipient
  * @param message the message to send
  */
-int ipfs_bitswap_network_send_message(const struct BitswapContext* context, const struct Libp2pPeer* peer, const struct BitswapMessage* message);
+int ipfs_bitswap_network_send_message(const struct BitswapContext* context, struct Libp2pPeer* peer, const struct BitswapMessage* message);
+
+/***
+ * Handle a raw incoming bitswap message from the network
+ * @param node us
+ * @param sessionContext the connection context
+ * @param bytes the message
+ * @param bytes_size the size of the message
+ * @returns true(1) on success, false(0) otherwise.
+ */
+int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struct SessionContext* sessionContext, const uint8_t* bytes, size_t bytes_length);

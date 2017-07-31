@@ -95,7 +95,7 @@ int ipfs_bitswap_peer_request_queue_add(struct PeerRequestQueue* queue, struct P
  */
 int ipfs_bitswap_peer_request_queue_remove(struct PeerRequestQueue* queue, struct PeerRequest* request) {
 	if (request != NULL) {
-		struct PeerRequestEntry* entry = ipfs_bitswap_peer_request_queue_find_entry(queue, request);
+		struct PeerRequestEntry* entry = ipfs_bitswap_peer_request_queue_find_entry(queue, request->peer);
 		if (entry != NULL) {
 			pthread_mutex_lock(&queue->queue_mutex);
 			// remove the entry's link, and hook prior and next together
@@ -116,11 +116,11 @@ int ipfs_bitswap_peer_request_queue_remove(struct PeerRequestQueue* queue, struc
  * @param request what we're looking for
  * @returns the PeerRequestEntry or NULL if not found
  */
-struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerRequestQueue* queue, struct PeerRequest* request) {
-	if (request != NULL) {
+struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerRequestQueue* queue, struct Libp2pPeer* peer) {
+	if (peer != NULL) {
 		struct PeerRequestEntry* current = queue->first;
 		while (current != NULL) {
-			if (libp2p_peer_compare(current->current->peer, request->peer) == 0)
+			if (libp2p_peer_compare(current->current->peer, peer) == 0)
 				return current;
 			current = current->next;
 		}

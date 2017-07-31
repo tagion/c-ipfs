@@ -464,7 +464,7 @@ int ipfs_bitswap_message_free(struct BitswapMessage* message) {
  * @param message the BitswapMessage
  * @returns the maximum size of the protobuf'd BitswapMessage
  */
-size_t ipfs_bitswap_message_protobuf_encode_size(struct BitswapMessage* message) {
+size_t ipfs_bitswap_message_protobuf_encode_size(const struct BitswapMessage* message) {
 	size_t total = 0;
 	if (message != NULL) {
 		if (message->blocks != NULL) {
@@ -495,7 +495,7 @@ size_t ipfs_bitswap_message_protobuf_encode_size(struct BitswapMessage* message)
  * @param bytes_written the total number of bytes written to the buffer
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_bitswap_message_protobuf_encode(struct BitswapMessage* message, unsigned char* buffer, size_t buffer_length, size_t* bytes_written) {
+int ipfs_bitswap_message_protobuf_encode(const struct BitswapMessage* message, unsigned char* buffer, size_t buffer_length, size_t* bytes_written) {
 	size_t bytes_used = 0;
 	*bytes_written = 0;
 
@@ -558,7 +558,7 @@ int ipfs_bitswap_message_protobuf_encode(struct BitswapMessage* message, unsigne
  * @param output the newly allocated BitswapMessage
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_bitswap_message_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct BitswapMessage** output) {
+int ipfs_bitswap_message_protobuf_decode(const uint8_t* buffer, size_t buffer_length, struct BitswapMessage** output) {
 	size_t pos = 0;
 
 	*output = NULL;
