@@ -24,8 +24,9 @@ int repo_config_identity_build_peer_id(struct Identity* identity) {
 	public_key.data = (unsigned char*)identity->private_key.public_key_der;
 	public_key.data_size = identity->private_key.public_key_length;
 	public_key.type = KEYTYPE_RSA;
-	if (!libp2p_crypto_public_key_to_peer_id(&public_key, &identity->peer_id))
+	if (!libp2p_crypto_public_key_to_peer_id(&public_key, &identity->peer->id))
 		return 0;
+	identity->peer->id_size = strlen(identity->peer->id);
 	return 1;
 }
 
@@ -61,7 +62,7 @@ int repo_config_identity_new(struct Identity** identity) {
 
 	memset(*identity, 0, sizeof(struct Identity));
 
-	(*identity)->peer_id = NULL;
+	(*identity)->peer = NULL;
 	(*identity)->private_key.public_key_der = NULL;
 	(*identity)->private_key.der = NULL;
 
@@ -74,8 +75,8 @@ int repo_config_identity_free(struct Identity* identity) {
 			free(identity->private_key.public_key_der);
 		if (identity->private_key.der != NULL)
 			free(identity->private_key.der);
-		if (identity->peer_id != NULL)
-			free(identity->peer_id);
+		if (identity->peer != NULL)
+			libp2p_peer_free(identity->peer);
 		free(identity);
 	}
 	return 1;

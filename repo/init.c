@@ -88,10 +88,10 @@ int make_ipfs_repository(const char* path, int swarm_port, struct Libp2pVector* 
 		goto exit;
 
 	// give some results to the user
-	printf("peer identity: %s\n", fs_repo->config->identity->peer_id);
+	printf("peer identity: %s\n", fs_repo->config->identity->peer->id);
 	if (peer_id != NULL) {
-		*peer_id = malloc(strlen(fs_repo->config->identity->peer_id) + 1);
-		strcpy(*peer_id, fs_repo->config->identity->peer_id);
+		*peer_id = malloc(fs_repo->config->identity->peer->id_size + 1);
+		strcpy(*peer_id, fs_repo->config->identity->peer->id);
 	}
 
 	// make sure the repository exists

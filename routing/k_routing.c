@@ -108,7 +108,7 @@ int ipfs_routing_kademlia_provide(struct IpfsRouting* routing, const unsigned ch
 	//TODO: Announce to the network that I can provide this file
 	// save in a cache
 	// store key and address in cache. Key is the hash, peer id is the value
-	libp2p_providerstore_add(routing->local_node->providerstore, (unsigned char*)key, key_size, (unsigned char*)routing->local_node->identity->peer_id, strlen(routing->local_node->identity->peer_id));
+	libp2p_providerstore_add(routing->local_node->providerstore, (unsigned char*)key, key_size, (unsigned char*)routing->local_node->identity->peer->id, routing->local_node->identity->peer->id_size);
 
 	return 1;
 }
@@ -151,10 +151,10 @@ int ipfs_routing_kademlia_bootstrap(struct IpfsRouting* routing) {
 struct IpfsRouting* ipfs_routing_new_kademlia(struct IpfsNode* local_node, struct RsaPrivateKey* private_key) {
 	char kademlia_id[21];
 	// generate kademlia compatible id by getting first 20 chars of peer id
-	if (local_node->identity->peer_id == NULL || strlen(local_node->identity->peer_id) < 20) {
+	if (local_node->identity->peer->id == NULL || local_node->identity->peer->id_size < 20) {
 		return NULL;
 	}
-	strncpy(kademlia_id, local_node->identity->peer_id, 20);
+	strncpy(kademlia_id, local_node->identity->peer->id, 20);
 	kademlia_id[20] = 0;
 	struct IpfsRouting* routing = (struct IpfsRouting*)malloc(sizeof(struct IpfsRouting));
 	if (routing != NULL) {

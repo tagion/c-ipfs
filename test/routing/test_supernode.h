@@ -83,11 +83,11 @@ int test_routing_supernode_get_remote_value() {
 	ipfs_node->mode = MODE_ONLINE;
 	ipfs_node->identity = fs_repo->config->identity;
 	ipfs_node->repo = fs_repo;
-	ipfs_node->providerstore = libp2p_providerstore_new();
-	ipfs_node->peerstore = libp2p_peerstore_new(ipfs_node->identity->peer_id);
+	ipfs_node->providerstore = libp2p_providerstore_new(fs_repo->config->datastore, fs_repo->config->identity->peer);
+	ipfs_node->peerstore = libp2p_peerstore_new(ipfs_node->identity->peer);
 	// add the local peer to the peerstore
-	this_peer.id = fs_repo->config->identity->peer_id;
-	this_peer.id_size = strlen(fs_repo->config->identity->peer_id);
+	this_peer.id = fs_repo->config->identity->peer->id;
+	this_peer.id_size = fs_repo->config->identity->peer->id_size;
 	this_peer.addr_head = libp2p_utils_linked_list_new();
 	this_peer.addr_head->item = multiaddress_new_from_string("/ip4/127.0.0.1/tcp/4001");
 	libp2p_peerstore_add_peer(ipfs_node->peerstore, &this_peer);
@@ -184,11 +184,11 @@ int test_routing_supernode_get_value() {
 	ipfs_node->mode = MODE_ONLINE;
 	ipfs_node->identity = fs_repo->config->identity;
 	ipfs_node->repo = fs_repo;
-	ipfs_node->providerstore = libp2p_providerstore_new();
-	ipfs_node->peerstore = libp2p_peerstore_new(ipfs_node->identity->peer_id);
+	ipfs_node->providerstore = libp2p_providerstore_new(fs_repo->config->datastore, fs_repo->config->identity->peer);
+	ipfs_node->peerstore = libp2p_peerstore_new(ipfs_node->identity->peer);
 	struct Libp2pPeer this_peer;
-	this_peer.id = fs_repo->config->identity->peer_id;
-	this_peer.id_size = strlen(fs_repo->config->identity->peer_id);
+	this_peer.id = fs_repo->config->identity->peer->id;
+	this_peer.id_size = fs_repo->config->identity->peer->id_size;
 	this_peer.addr_head = libp2p_utils_linked_list_new();
 	this_peer.addr_head->item = multiaddress_new_from_string("/ip4/127.0.0.1/tcp/4001");
 	libp2p_peerstore_add_peer(ipfs_node->peerstore, &this_peer);

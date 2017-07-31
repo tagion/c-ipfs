@@ -60,7 +60,7 @@ int do_init(FILE* out_file, char* repo_root, int empty, int num_bits_for_keypair
 	if (fs_repo_is_initialized(repo_root))
 		return 0;
 	//TODO: If the conf is null, make one
-	if ( conf->identity->peer_id == NULL) {
+	if ( conf->identity->peer == NULL || conf->identity->peer->id == NULL) {
 		int retVal = ipfs_repo_config_init(conf, num_bits_for_keypair, repo_root, 4001, NULL);
 		if (retVal == 0)
 			return 0;

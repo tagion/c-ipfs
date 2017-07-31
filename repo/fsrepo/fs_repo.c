@@ -3,6 +3,7 @@
 
 #include "libp2p/crypto/encoding/base64.h"
 #include "libp2p/crypto/key.h"
+#include "libp2p/peer/peer.h"
 #include "libp2p/utils/vector.h"
 #include "ipfs/blocks/blockstore.h"
 #include "ipfs/datastore/ds_helper.h"
@@ -31,7 +32,7 @@ int repo_config_write_config_file(char* full_filename, struct RepoConfig* config
 	
 	fprintf(out_file, "{\n");
 	fprintf(out_file, " \"Identity\": {\n");
-	fprintf(out_file, "  \"PeerID\": \"%s\",\n", config->identity->peer_id);
+	fprintf(out_file, "  \"PeerID\": \"%s\",\n", config->identity->peer->id);
 	// print correct format of private key
 	// first put it in a protobuf
 	struct PrivateKey* priv_key = libp2p_crypto_private_key_new();
@@ -396,19 +397,20 @@ int fs_repo_open_config(struct FSRepo* repo) {
 	// the next should be the array, then string "PeerID"
 	//NOTE: the code below compares the peer id of the file with the peer id generated
 	// by the key. If they don't match, we fail.
-	char* peer_id = NULL;
-	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PeerID", &peer_id);
+	repo->config->identity->peer = libp2p_peer_new();
+	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PeerID", &repo->config->identity->peer->id);
+	// build the Libp2pPeer object
+	repo->config->identity->peer->id_size = strlen(repo->config->identity->peer->id);
+	repo->config->identity->peer->is_local = 1;
 	char* priv_key_base64;
 	// then PrivKey
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PrivKey", &priv_key_base64);
 	retVal = repo_config_identity_build_private_key(repo->config->identity, priv_key_base64);
-	if (retVal == 0 || strcmp(peer_id, repo->config->identity->peer_id) != 0) {
+	if (retVal == 0) {
 		free(data);
 		free(priv_key_base64);
-		free(peer_id);
 		return 0;
 	}
-	free(peer_id);
 	// now the datastore
 	//int datastore_position = _find_token(data, tokens, num_tokens, 0, "Datastore");
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Type", &repo->config->datastore->type);

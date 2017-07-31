@@ -219,17 +219,14 @@ int ipfs_routing_online_find_peer(struct IpfsRouting* routing, const unsigned ch
 
 struct Libp2pPeer* ipfs_routing_online_build_local_peer(struct IpfsRouting* routing) {
 	// create the local_peer to be attached to the message
-	struct Libp2pPeer* local_peer = libp2p_peer_new();
-	local_peer->id_size = strlen(routing->local_node->identity->peer_id);
-	local_peer->id = malloc(local_peer->id_size);
-	memcpy(local_peer->id, routing->local_node->identity->peer_id, local_peer->id_size);
+	struct Libp2pPeer* local_peer = libp2p_peer_copy(routing->local_node->identity->peer);
 	local_peer->connection_type = CONNECTION_TYPE_CONNECTED;
 	local_peer->addr_head = libp2p_utils_linked_list_new();
 	struct MultiAddress* temp_ma = multiaddress_new_from_string((char*)routing->local_node->repo->config->addresses->swarm_head->item);
 	int port = multiaddress_get_ip_port(temp_ma);
 	multiaddress_free(temp_ma);
 	char str[255];
-	sprintf(str, "/ip4/127.0.0.1/tcp/%d/ipfs/%s/", port, routing->local_node->identity->peer_id);
+	sprintf(str, "/ip4/127.0.0.1/tcp/%d/ipfs/%s/", port, routing->local_node->identity->peer->id);
 	struct MultiAddress* ma = multiaddress_new_from_string(str);
 	libp2p_logger_debug("online", "Adding local MultiAddress %s to peer.\n", ma->string);
 	local_peer->addr_head->item = ma;
@@ -261,17 +258,16 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, const unsigned char
 	while (current != NULL) {
 		struct PeerEntry* current_peer_entry = (struct PeerEntry*)current->item;
 		struct Libp2pPeer* current_peer = current_peer_entry->peer;
-		if (current_peer->connection_type == CONNECTION_TYPE_CONNECTED) {
-			// ignoring results is okay this time
-			struct Libp2pMessage* rslt = ipfs_routing_online_send_receive_message(current_peer->sessionContext, msg);
-			if (rslt != NULL)
-				libp2p_message_free(rslt);
-		} else if(current_peer->addr_head == NULL
-				&& strlen(routing->local_node->identity->peer_id) == current_peer->id_size
-				&& strncmp(routing->local_node->identity->peer_id, current_peer->id, current_peer->id_size) == 0) {
-			//this is the local node, add it
-			libp2p_providerstore_add(routing->local_node->providerstore, key, key_size, (unsigned char*)current_peer->id, current_peer->id_size);
-
+		if (current_peer->is_local) {
+			// don't bother adding it
+		} else {
+			// notify everyone we're connected to
+			if (current_peer->connection_type == CONNECTION_TYPE_CONNECTED) {
+				// ignoring results is okay this time
+				struct Libp2pMessage* rslt = ipfs_routing_online_send_receive_message(current_peer->sessionContext, msg);
+				if (rslt != NULL)
+					libp2p_message_free(rslt);
+			}
 		}
 		current = current->next;
 	}
@@ -309,7 +305,7 @@ int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* pee
 		msg = NULL;
 
 		// connect using a dialer
-		struct Dialer *dialer = libp2p_conn_dialer_new(routing->local_node->identity->peer_id, libp2p_crypto_rsa_to_private_key(routing->sk));
+		struct Dialer *dialer = libp2p_conn_dialer_new(routing->local_node->identity->peer->id, libp2p_crypto_rsa_to_private_key(routing->sk));
 		struct Connection *conn = libp2p_conn_dialer_get_connection(dialer, peer->addr_head->item);
 		// send the record
 		conn->write(conn, (char*)protobuf, protobuf_size);
@@ -389,7 +385,7 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 
 	for(int i = 0; i < peers->total; i++) {
 		struct Libp2pPeer* current_peer = libp2p_peerstore_get_or_add_peer(routing->local_node->peerstore, libp2p_utils_vector_get(peers, i));
-		if (libp2p_peer_matches_id(current_peer, (unsigned char*)routing->local_node->identity->peer_id)) {
+		if (current_peer->is_local) {
 			// it's a local fetch. Retrieve it
 			if (ipfs_routing_generic_get_value(routing, key, key_size, buffer, buffer_size) == 0) {
 				retVal = 1;
@@ -407,7 +403,7 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 		// we didn't get the file. Try to connect to the peers we're not connected to, and ask for the file
 		for(int i = 0; i < peers->total; i++) {
 			struct Libp2pPeer* current_peer = (struct Libp2pPeer*)libp2p_utils_vector_get(peers, i);
-			if (libp2p_peer_matches_id(current_peer, (unsigned char*)routing->local_node->identity->peer_id)) {
+			if (current_peer->is_local) {
 				// we tried this once, it didn't work. Skip it.
 				continue;
 			}

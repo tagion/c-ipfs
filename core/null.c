@@ -132,7 +132,7 @@ void ipfs_null_connection (void *ptr)
 
     session->insecure_stream = libp2p_net_multistream_stream_new(connection_param->file_descriptor, connection_param->ip, connection_param->port);
 
-    libp2p_logger_debug("null", "%s null has a file descriptor of %d\n", connection_param->local_node->identity->peer_id, *((int*)session->insecure_stream->socket_descriptor) );
+    libp2p_logger_debug("null", "%s null has a file descriptor of %d\n", connection_param->local_node->identity->peer->id, *((int*)session->insecure_stream->socket_descriptor) );
 
     session->default_stream = session->insecure_stream;
     session->datastore = connection_param->local_node->repo->config->datastore;
@@ -142,23 +142,27 @@ void ipfs_null_connection (void *ptr)
 
 	if (libp2p_net_multistream_negotiate(session)) {
 		// Someone has connected and successfully negotiated multistream. Now talk to them...
-
+		int unsuccessful_max = 30;
+		int unsuccessful_counter = 0;
 		for(;;) {
 			// Wait for them to ask something...
 			unsigned char* results = NULL;
 			size_t bytes_read = 0;
 			if (null_shutting_down) {
-				libp2p_logger_debug("null", "%s null shutting down before read.\n", connection_param->local_node->identity->peer_id);
+				libp2p_logger_debug("null", "%s null shutting down before read.\n", connection_param->local_node->identity->peer->id);
 				// this service is shutting down. Ignore the request and exit the loop
 				break;
 			}
 			if (!session->default_stream->read(session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT) ) {
 				// the read was unsuccessful wait a sec
 				sleep(1);
+				unsuccessful_counter++;
+				if (unsuccessful_counter >= unsuccessful_max)
+					break;
 				continue;
 			}
 			if (null_shutting_down) {
-				libp2p_logger_debug("null", "%s null shutting down after read.\n", connection_param->local_node->identity->peer_id);
+				libp2p_logger_debug("null", "%s null shutting down after read.\n", connection_param->local_node->identity->peer->id);
 				// this service is shutting down. Ignore the request and exit the loop
 				break;
 			}
@@ -168,7 +172,7 @@ void ipfs_null_connection (void *ptr)
 			}
 
 			// We actually got something. Process the request...
-
+			unsuccessful_counter = 0;
 			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
 			int retVal = ipfs_null_marshal(results, bytes_read, session, connection_param);
 			free(results);
@@ -181,7 +185,7 @@ void ipfs_null_connection (void *ptr)
    		libp2p_logger_log("null", LOGLEVEL_DEBUG, "Multistream negotiation failed\n");
    	}
 
-    libp2p_logger_debug("null", "%s Freeing session context.\n", connection_param->local_node->identity->peer_id);
+    libp2p_logger_debug("null", "%s Freeing session context.\n", connection_param->local_node->identity->peer->id);
     (*(connection_param->count))--; // update counter.
     if (connection_param->ip != NULL)
     	free(connection_param->ip);
@@ -212,10 +216,10 @@ void* ipfs_null_listen (void *ptr)
     libp2p_logger_error("null", "Ipfs listening on %d\n", listen_param->port);
 
     for (;;) {
-    	libp2p_logger_debug("null", "%s Attempting socket read\n", listen_param->local_node->identity->peer_id);
+    	libp2p_logger_debug("null", "%s Attempting socket read\n", listen_param->local_node->identity->peer->id);
     	int numDescriptors = socket_read_select4(socketfd, 2);
     	if (null_shutting_down) {
-    		libp2p_logger_debug("null", "%s null_listen shutting down.\n", listen_param->local_node->identity->peer_id);
+    		libp2p_logger_debug("null", "%s null_listen shutting down.\n", listen_param->local_node->identity->peer->id);
     		break;
     	}
     	if (numDescriptors > 0) {

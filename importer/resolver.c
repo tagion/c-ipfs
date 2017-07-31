@@ -57,8 +57,8 @@ const char* ipfs_resolver_remove_path_prefix(const char* path, const struct FSRe
 			if (pos == first_non_slash && (strncmp(&path[pos], "ipfs", 4) == 0 || strncmp(&path[pos], "ipns", 4) == 0) ) {
 				// ipfs or ipns should be up front. Otherwise, it could be part of the path
 				pos += 4;
-			} else if (strncmp(&path[pos], fs_repo->config->identity->peer_id, strlen(fs_repo->config->identity->peer_id)) == 0) {
-				pos += strlen(fs_repo->config->identity->peer_id) + 1; // the slash
+			} else if (strncmp(&path[pos], fs_repo->config->identity->peer->id, fs_repo->config->identity->peer->id_size) == 0) {
+				pos += fs_repo->config->identity->peer->id_size + 1; // the slash
 			} else {
 				return &path[pos];
 			}
@@ -91,7 +91,7 @@ int ipfs_resolver_is_remote(const char* path, const struct FSRepo* fs_repo) {
 
 	// if this is a Qm code, see if it is a local Qm code
 	if (path[pos] == 'Q' && path[pos+1] == 'm') {
-		if (strncmp(&path[pos], fs_repo->config->identity->peer_id, strlen(fs_repo->config->identity->peer_id)) != 0) {
+		if (strncmp(&path[pos], fs_repo->config->identity->peer->id, fs_repo->config->identity->peer->id_size) != 0) {
 			return 1;
 		}
 	}

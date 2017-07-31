@@ -2,9 +2,10 @@
 #define __REPO_CONFIG_IDENTITY_H__
 
 #include "libp2p/crypto/rsa.h"
+#include "libp2p/peer/peer.h"
 
 struct Identity {
-	char* peer_id; // a pretty-printed hash of the public key
+	struct Libp2pPeer* peer; // a Peer object
 	struct RsaPrivateKey private_key; // a private key
 };
 

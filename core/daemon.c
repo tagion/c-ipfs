@@ -39,7 +39,7 @@ int ipfs_daemon_start(char* repo_path) {
 
     local_node->routing->Bootstrap(local_node->routing);
 
-    libp2p_logger_info("daemon", "Daemon for %s is ready on port %d\n", listen_param.local_node->identity->peer_id, listen_param.port);
+    libp2p_logger_info("daemon", "Daemon for %s is ready on port %d\n", listen_param.local_node->identity->peer->id, listen_param.port);
 
     // Wait for pthreads to finish.
     while (count_pths) {

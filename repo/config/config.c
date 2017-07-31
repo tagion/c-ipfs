@@ -77,7 +77,7 @@ int repo_config_get_file_name(char* path, char** result) {
 }
 
 int ipfs_repo_config_is_valid_identity(struct Identity* identity) {
-	if (identity->peer_id == NULL || identity->peer_id[0] != 'Q' || identity->peer_id[1] != 'm')
+	if (identity == NULL || identity->peer == NULL || identity->peer->id == NULL || identity->peer->id[0] != 'Q' || identity->peer->id[1] != 'm')
 		return 0;
 	return 1;
 }
@@ -101,8 +101,8 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 				free(config->identity->private_key.public_key_der);
 			if (config->identity->private_key.der != NULL)
 				free(config->identity->private_key.der);
-			if (config->identity->peer_id != NULL)
-				free(config->identity->peer_id);
+			if (config->identity->peer != NULL)
+				libp2p_peer_free(config->identity->peer);
 		}
 		if (!repo_config_identity_init(config->identity, num_bits_for_keypair))
 			return 0;

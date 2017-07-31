@@ -51,7 +51,7 @@ int test_resolver_get() {
 	// find something where path includes the local node
 	char path[255];
 	strcpy(path, "/ipfs/");
-	strcat(path, fs_repo->config->identity->peer_id);
+	strcat(path, fs_repo->config->identity->peer->id);
 	strcat(path, "/QmbMecmXESf96ZNry7hRuzaRkEBhjqXpoYfPCwgFzVGDzB");
 	result = ipfs_resolver_get(path, NULL, &ipfs_node);
 	if (result == NULL) {
@@ -119,14 +119,14 @@ int test_resolver_remote_get() {
 	ipfs_repo_fsrepo_open(fs_repo);
 
 	// put the server in the peer store and change our peer id so we think it is remote (hack for now)
-	strcpy(remote_peer_id, fs_repo->config->identity->peer_id);
+	strcpy(remote_peer_id, fs_repo->config->identity->peer->id);
 	char multiaddress_string[100];
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", remote_peer_id);
 	struct MultiAddress* remote_addr = multiaddress_new_from_string(multiaddress_string);
-	struct Peerstore* peerstore = libp2p_peerstore_new(fs_repo->config->identity->peer_id);
+	struct Peerstore* peerstore = libp2p_peerstore_new(fs_repo->config->identity->peer);
 	struct Libp2pPeer* peer = libp2p_peer_new_from_multiaddress(remote_addr);
 	libp2p_peerstore_add_peer(peerstore, peer);
-	strcpy(fs_repo->config->identity->peer_id, "QmABCD");
+	strcpy(fs_repo->config->identity->peer->id, "QmABCD");
 
     struct IpfsNode local_node;
     local_node.mode = MODE_ONLINE;
