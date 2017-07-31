@@ -231,15 +231,30 @@ int ipfs_bitswap_wantlist_get_block_locally(struct BitswapContext* context, stru
  *
  * This will ask the network for who has the file, using the router.
  * It will then ask the specific nodes for the file. This method
- * does not queue anything. It actually does the work.
+ * does not queue anything. It actually does the work. The remotes
+ * will queue the file, but we'll return before they respond.
  *
  * @param context the BitswapContext
  * @param cid the id of the file
- * @param block where to put the results
- * @returns true(1) if found, false(0) otherwise
+ * @returns true(1) if we found some providers to ask, false(0) otherwise
  */
-int ipfs_bitswap_wantlist_get_block_remote(struct BitswapContext* context, struct Cid* cid, struct Block** block) {
-	//TODO: Implement this workhorse of a method
+int ipfs_bitswap_wantlist_get_block_remote(struct BitswapContext* context, struct Cid* cid) {
+	// find out who may have the file
+	struct Libp2pVector* providers = NULL;
+	if (context->ipfsNode->routing->FindProviders(context->ipfsNode->routing, cid->hash, cid->hash_length, &providers)) {
+		for(int i = 0; i < providers->total; i++) {
+			struct Libp2pPeer* current = (struct Libp2pPeer*) libp2p_utils_vector_get(providers, i);
+			// add this to their queue
+			struct PeerRequest* queueEntry = ipfs_peer_request_queue_find_peer(context->peerRequestQueue, current);
+			libp2p_utils_vector_add(queueEntry->cids, cid);
+			// process this queue
+			// NOTE: We need to ask the remotes via bitswap, and wait for  a response before returning
+			// there will need to be some fancy stuff to know when we get it back so that this method
+			// can return with the block
+			ipfs_bitswap_peer_request_process_entry(context, queueEntry);
+		}
+		return 1;
+	}
 	return 0;
 }
 
@@ -257,7 +272,7 @@ int ipfs_bitswap_wantlist_process_entry(struct BitswapContext* context, struct W
 		return 0;
 	}
 	if (local_request && !have_local) {
-		if (!ipfs_bitswap_wantlist_get_block_remote(context, entry->cid, &entry->block)) {
+		if (!ipfs_bitswap_wantlist_get_block_remote(context, entry->cid)) {
 			// if we were unsuccessful in retrieving it, put it back in the queue?
 			// I don't think so. But I'm keeping this counter here until we have
 			// a final decision. Maybe lower the priority?

@@ -1,3 +1,4 @@
+#pragma once
 /***
  * A protobuf-able Bitswap Message
  */
@@ -200,4 +201,18 @@ int ipfs_bitswap_message_protobuf_encode(struct BitswapMessage* message, unsigne
  */
 int ipfs_bitswap_message_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct BitswapMessage** output);
 
+/****
+ * Add a vector of Cids to the bitswap message
+ * @param message the message
+ * @param cids a Libp2pVector of cids
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, struct Libp2pVector* cids);
 
+/***
+ * Add the blocks to the BitswapMessage
+ * @param message the message
+ * @param blocks the requested blocks
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_bitswap_message_add_blocks(struct BitswapMessage* message, struct Libp2pVector* blocks);

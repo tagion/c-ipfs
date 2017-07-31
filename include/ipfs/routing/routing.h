@@ -37,7 +37,7 @@ struct IpfsRouting {
 	 * @param routing the context
 	 * @param key the information that is being looked for
 	 * @param key_size the size of param 2
-	 * @param peers a vector of peers found that can provide the value for the key
+	 * @param peers a vector of Libp2pPeers found that can provide the value for the key
 	 * @returns true(1) on success, otherwise false(0)
 	 */
 	int (*FindProviders) (struct IpfsRouting* routing, const unsigned char* key, size_t key_size, struct Libp2pVector** peers);

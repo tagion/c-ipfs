@@ -149,8 +149,8 @@ void ipfs_null_connection (void *ptr)
 				break;
 			}
 			if (!session->default_stream->read(session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT) ) {
-				// the read was unsuccessful. We should close the connection.
-				libp2p_logger_debug("null", "%s stream transaction read returned false.\n", connection_param->local_node->identity->peer_id);
+				// the read was unsuccessful wait a sec
+				sleep(1);
 				continue;
 			}
 			if (null_shutting_down) {

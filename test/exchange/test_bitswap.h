@@ -164,9 +164,6 @@ int test_bitswap_retrieve_file_third_party() {
 	int retVal = 0;
 
 	/*
-	libp2p_logger_add_class("online");
-	libp2p_logger_add_class("multistream");
-	libp2p_logger_add_class("null");
 	libp2p_logger_add_class("dht_protocol");
 	libp2p_logger_add_class("providerstore");
 	libp2p_logger_add_class("peerstore");
@@ -174,6 +171,9 @@ int test_bitswap_retrieve_file_third_party() {
 	libp2p_logger_add_class("peer");
 	*/
 	libp2p_logger_add_class("test_bitswap");
+	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("multistream");
 
 	// clean out repository
 	char* ipfs_path = "/tmp/test1";

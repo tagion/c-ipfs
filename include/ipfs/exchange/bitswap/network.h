@@ -4,6 +4,8 @@
  */
 
 #include "libp2p/conn/session.h"
+#include "libp2p/peer/peer.h"
+#include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/exchange/bitswap/message.h"
 
 struct BitswapRouting {
@@ -61,3 +63,11 @@ struct BitswapNetwork {
 	 */
 	struct BitswapMessageSender* (*NewMessageSender)(struct SessionContext* context, unsigned char* peerId);
 };
+
+/****
+ * send a message to a particular peer
+ * @param context the BitswapContext
+ * @param peer the peer that is the recipient
+ * @param message the message to send
+ */
+int ipfs_bitswap_network_send_message(const struct BitswapContext* context, const struct Libp2pPeer* peer, const struct BitswapMessage* message);

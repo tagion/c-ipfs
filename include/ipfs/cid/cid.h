@@ -45,7 +45,7 @@ struct CidSet {
  * @param max_buffer_length the length of the buffer
  * @param bytes_written the number of bytes written
  */
-int ipfs_cid_protobuf_encode(struct Cid* incoming, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written);
+int ipfs_cid_protobuf_encode(const struct Cid* incoming, unsigned char* buffer, size_t max_buffer_length, size_t* bytes_written);
 
 /***
  * decode an array of bytes into a Cid structure

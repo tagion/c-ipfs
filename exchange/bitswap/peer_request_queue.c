@@ -7,6 +7,8 @@
 #include "libp2p/conn/session.h"
 #include "ipfs/cid/cid.h"
 #include "ipfs/exchange/bitswap/peer_request_queue.h"
+#include "ipfs/exchange/bitswap/message.h"
+#include "ipfs/exchange/bitswap/network.h"
 
 /**
  * Allocate resources for a new PeerRequest
@@ -17,7 +19,7 @@ struct PeerRequest* ipfs_bitswap_peer_request_new() {
 	if (request != NULL) {
 		request->cids = NULL;
 		request->blocks = NULL;
-		request->context = NULL;
+		request->peer = NULL;
 	}
 	return request;
 }
@@ -118,7 +120,7 @@ struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerR
 	if (request != NULL) {
 		struct PeerRequestEntry* current = queue->first;
 		while (current != NULL) {
-			if (libp2p_session_context_compare(current->current->context, request->context) == 0)
+			if (libp2p_peer_compare(current->current->peer, request->peer) == 0)
 				return current;
 			current = current->next;
 		}
@@ -193,7 +195,58 @@ int ipfs_bitswap_peer_request_queue_fill(struct PeerRequestQueue* queue, struct 
  * @returns true(1) on succes, otherwise false(0)
  */
 int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context, struct PeerRequest* request) {
-	//TODO: Implement this method
+	// determine if we're connected
+	int connected = request->peer == NULL || request->peer->connection_type == CONNECTION_TYPE_CONNECTED;
+	int need_to_connect = request->cids != NULL;
+
+	// determine if we need to connect
+	if (need_to_connect) {
+		if (!connected) {
+			// connect
+			connected = libp2p_peer_connect(&context->ipfsNode->identity->private_key, request->peer, 0);
+		}
+		if (connected) {
+			// build a message
+			struct BitswapMessage* msg = ipfs_bitswap_message_new();
+			// add requests
+			ipfs_bitswap_message_add_wantlist_items(msg, request->cids);
+			// add blocks
+			ipfs_bitswap_message_add_blocks(msg, request->blocks);
+			// send message
+			if (ipfs_bitswap_network_send_message(context, request->peer, msg))
+				return 1;
+		}
+	}
 	return 0;
 }
+
+/***
+ * Find a PeerRequest related to a peer. If one is not found, it is created.
+ *
+ * @param peer_request_queue the queue to look through
+ * @param peer the peer to look for
+ * @returns a PeerRequestEntry or NULL on error
+ */
+struct PeerRequest* ipfs_peer_request_queue_find_peer(struct PeerRequestQueue* queue, struct Libp2pPeer* peer) {
+
+	struct PeerRequestEntry* entry = queue->first;
+	while (entry != NULL) {
+		if (libp2p_peer_compare(entry->current->peer, peer) == 0) {
+			return entry->current;
+		}
+	}
+
+	entry = ipfs_bitswap_peer_request_entry_new();
+	entry->current->peer = peer;
+	entry->prior = queue->last;
+	queue->last = entry;
+
+	return entry->current;
+}
+
+
+
+
+
+
 

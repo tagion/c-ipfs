@@ -23,3 +23,14 @@ ipfs_bitswap_network_receive_message(struct BitswapContext* context) {
 /**
  * We want to pop something off the queue
  */
+
+/****
+ * send a message to a particular peer
+ * @param context the BitswapContext
+ * @param peer the peer that is the recipient
+ * @param message the message to send
+ */
+int ipfs_bitswap_network_send_message(const struct BitswapContext* context, const struct Libp2pPeer* peer, const struct BitswapMessage* message) {
+	return 0;
+}
+

@@ -22,7 +22,7 @@ size_t ipfs_cid_protobuf_encode_size(struct Cid* cid) {
 	return 0;
 }
 
-int ipfs_cid_protobuf_encode(struct Cid* cid, unsigned char* buffer, size_t buffer_length, size_t* bytes_written) {
+int ipfs_cid_protobuf_encode(const struct Cid* cid, unsigned char* buffer, size_t buffer_length, size_t* bytes_written) {
 	size_t bytes_used;
 	*bytes_written = 0;
 	int retVal = 0;

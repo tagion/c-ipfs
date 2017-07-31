@@ -1,15 +1,17 @@
+#pragma once
 /***
  * A queue for requests to/from remote peers
  * NOTE: This must handle multiple threads
  */
 
 #include <pthread.h>
+#include "libp2p/peer/peer.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/blocks/block.h"
 
 struct PeerRequest {
 	pthread_mutex_t request_mutex;
-	struct SessionContext* context;
+	struct Libp2pPeer* peer;
 	struct Libp2pVector* cids;
 	struct Libp2pVector* blocks;
 };
@@ -112,3 +114,13 @@ int ipfs_bitswap_peer_request_entry_free(struct PeerRequestEntry* entry);
  * @returns true(1) on succes, otherwise false(0)
  */
 int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context, struct PeerRequest* request);
+
+/***
+ * Find a PeerRequest related to a peer. If one is not found, it is created.
+ *
+ * @param peer_request_queue the queue to look through
+ * @param peer the peer to look for
+ * @returns a PeerRequestEntry or NULL on error
+ */
+struct PeerRequest* ipfs_peer_request_queue_find_peer(struct PeerRequestQueue* queue, struct Libp2pPeer* peer);
+

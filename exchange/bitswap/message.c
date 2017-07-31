@@ -638,5 +638,59 @@ int ipfs_bitswap_message_protobuf_decode(unsigned char* buffer, size_t buffer_le
 	return 1;
 }
 
+/****
+ * Add a vector of Cids to the bitswap message
+ * @param message the message
+ * @param cids a Libp2pVector of cids
+ * @returns true(1) on success, otherwise false(0)
+ */
+int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, struct Libp2pVector* cids) {
+	if (message->wantlist == NULL) {
+		message->wantlist = ipfs_bitswap_wantlist_new();
+		if (message->wantlist == NULL)
+			return 0;
+	}
+	if (message->wantlist->entries == NULL) {
+		message->wantlist->entries = libp2p_utils_vector_new(1);
+		if (message->wantlist->entries == NULL)
+			return 0;
+	}
+	for(int i = 0; i < cids->total; i++) {
+		const struct Cid* cid = (const struct Cid*)libp2p_utils_vector_get(cids, i);
+		struct WantlistEntry* entry = ipfs_bitswap_wantlist_entry_new();
+		if (!ipfs_cid_protobuf_encode(cid, entry->block, entry->block_size, &entry->block_size)) {
+			// TODO: we should do more than return a half-baked list
+			return 0;
+		}
+		entry->cancel = 0;
+		entry->priority = 1;
+		libp2p_utils_vector_add(message->wantlist->entries, entry);
+	}
+	return 1;
+}
+
+/***
+ * Add the blocks to the BitswapMessage
+ * @param message the message
+ * @param blocks the requested blocks
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_bitswap_message_add_blocks(struct BitswapMessage* message, struct Libp2pVector* blocks) {
+	// bitswap 1.0 uses blocks, bitswap 1.1 uses payload
+
+	if (message == NULL)
+		return 0;
+	if (message->payload == NULL) {
+		message->payload = libp2p_utils_vector_new(blocks->total);
+		if (message->payload == NULL)
+			return 0;
+	}
+	for(int i = 0; i < blocks->total; i++) {
+		const struct Block* current = (const struct Block*) libp2p_utils_vector_get(blocks, i);
+		libp2p_utils_vector_add(message->payload, current);
+	}
+	return 1;
+}
+
 
 
