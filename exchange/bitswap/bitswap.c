@@ -7,6 +7,7 @@
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/exchange/bitswap/message.h"
+#include "ipfs/exchange/bitswap/peer_request_queue.h"
 #include "ipfs/exchange/bitswap/want_manager.h"
 
 /**
@@ -28,8 +29,8 @@ struct Exchange* ipfs_bitswap_new(struct IpfsNode* ipfs_node) {
 			free(exchange);
 			return NULL;
 		}
-		bitswapContext->localWantlist = NULL;
-		bitswapContext->peerRequestQueue = NULL;
+		bitswapContext->localWantlist = ipfs_bitswap_wantlist_queue_new();
+		bitswapContext->peerRequestQueue = ipfs_bitswap_peer_request_queue_new();
 		bitswapContext->ipfsNode = ipfs_node;
 
 		exchange->exchangeContext = (void*) bitswapContext;
@@ -109,7 +110,7 @@ int ipfs_bitswap_get_block(struct Exchange* exchange, struct Cid* cid, struct Bl
 			return 1;
 		// now ask the network
 		//NOTE: this timeout should be configurable
-		int timeout = 10;
+		int timeout = 60;
 		int waitSecs = 1;
 		int timeTaken = 0;
 		struct WantListSession wantlist_session;

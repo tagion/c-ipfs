@@ -39,6 +39,9 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct SessionCon
 	sessionContext->default_stream->write(sessionContext, protobuf, protobuf_size);
 	sessionContext->default_stream->read(sessionContext, &results, &results_size, 5);
 
+	if (results_size == 0)
+		goto exit;
+
 	// see if we can unprotobuf
 	if (!libp2p_message_protobuf_decode(results, results_size, &return_message))
 		goto exit;

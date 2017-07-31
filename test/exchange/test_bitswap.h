@@ -158,6 +158,186 @@ int test_bitswap_retrieve_file()
 }
 
 /***
+ * Attempt to retrieve a file from a known node
+ */
+int test_bitswap_retrieve_file_remote() {
+	int retVal = 0;
+
+	/*
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("providerstore");
+	libp2p_logger_add_class("peerstore");
+	libp2p_logger_add_class("exporter");
+	libp2p_logger_add_class("peer");
+	*/
+	libp2p_logger_add_class("test_bitswap");
+	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("multistream");
+
+	// clean out repository
+	char* ipfs_path = "/tmp/test1";
+	char* peer_id_1 = NULL, *peer_id_2 = NULL;
+	struct IpfsNode* ipfs_node1 = NULL, *ipfs_node2 = NULL;
+	pthread_t thread1;
+	int thread1_started = 0;
+	struct MultiAddress* ma_peer1 = NULL;
+	struct Libp2pVector* ma_vector2 = NULL;
+	struct HashtableNode* node = NULL;
+	struct Block* result = NULL;
+	struct Cid* cid = NULL;
+
+	// create peer 1
+	libp2p_logger_debug("test_bitswap", "Firing up daemon 1.\n");
+	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
+	char multiaddress_string[255];
+	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
+	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
+	// add a file
+	size_t bytes_written = 0;
+	ipfs_node_online_new(ipfs_path, &ipfs_node1);
+	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, ipfs_node1, &bytes_written, 0);
+	// start the daemon in a separate thread
+	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+		libp2p_logger_error("test_bitswap", "Unable to start thread 1\n");
+		goto exit;
+	}
+	thread1_started = 1;
+    // wait for everything to start up
+    sleep(3);
+
+    // create my peer, peer 2
+    libp2p_logger_debug("test_routing", "Firing up the client\n");
+	ipfs_path = "/tmp/test2";
+	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
+	ma_vector2 = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector2, ma_peer1);
+	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
+	multiaddress_free(ma_peer1);
+	ipfs_node_online_new(ipfs_path, &ipfs_node2);
+
+    ipfs_node2->routing->Bootstrap(ipfs_node2->routing);
+
+    // this does the heavy lifting...
+    cid = ipfs_cid_new(0, node->hash, node->hash_size, CID_PROTOBUF);
+    if (!ipfs_node2->exchange->GetBlock(ipfs_node2->exchange, cid, &result)) {
+    	libp2p_logger_error("test_bitswap", "GetBlock returned false\n");
+    	goto exit;
+    }
+
+    if (node->hash_size != result->cid->hash_length) {
+    	libp2p_logger_error("test_bitswap", "Node hash sizes do not match. Should be %lu but is %lu\n", node->hash_size, result->cid->hash_length);
+    	goto exit;
+    }
+
+    if (node->data_size != result->data_length) {
+    	libp2p_logger_error("test_bitswap", "Result sizes do not match. Should be %lu but is %lu\n", node->data_size, result->data_length);
+    	goto exit;
+    }
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (thread1_started)
+		pthread_join(thread1, NULL);
+	if (peer_id_1 != NULL)
+		free(peer_id_1);
+	if (peer_id_2 != NULL)
+		free(peer_id_2);
+	if (ma_vector2 != NULL) {
+		libp2p_utils_vector_free(ma_vector2);
+	}
+	if (node != NULL)
+		ipfs_hashtable_node_free(node);
+	if (result != NULL)
+		ipfs_block_free(result);
+	if (cid != NULL)
+		ipfs_cid_free(cid);
+	return retVal;
+}
+
+
+/***
+ * Attempt to retrieve a file from a known node
+ */
+int test_bitswap_retrieve_file_known_remote() {
+	int retVal = 0;
+	/***
+	 * This assumes a remote server with the hello_world.txt file already in its database
+	 */
+	char* remote_ip = "10.211.55.2";
+	int remote_port = 4001;
+	char* remote_peer_id = "QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4";
+	char* hello_world_hash = "QmTUFTVgkHT3Qdd9ospVjSLi2upd6VdkeNXZQH66cVmzja";
+
+	/*
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("providerstore");
+	libp2p_logger_add_class("peerstore");
+	libp2p_logger_add_class("exporter");
+	libp2p_logger_add_class("peer");
+	*/
+	libp2p_logger_add_class("test_bitswap");
+	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("multistream");
+
+	char* ipfs_path = "/tmp/test1";
+	char* peer_id_1 = NULL, *peer_id_2 = NULL;
+	struct IpfsNode* ipfs_node2 = NULL;
+	struct MultiAddress* ma_peer1 = NULL;
+	struct Libp2pVector* ma_vector2 = NULL;
+	struct Block* result = NULL;
+	struct Cid* cid = NULL;
+
+	// create peer 1
+	char multiaddress_string[255];
+	sprintf(multiaddress_string, "/ip4/%s/tcp/%d/ipfs/%s", remote_ip, remote_port, remote_peer_id);
+	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
+
+    // create my peer, peer 2
+    libp2p_logger_debug("test_routing", "Firing up the client\n");
+	ipfs_path = "/tmp/test2";
+	ma_vector2 = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector2, ma_peer1);
+	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
+	multiaddress_free(ma_peer1);
+	ipfs_node_online_new(ipfs_path, &ipfs_node2);
+
+    ipfs_node2->routing->Bootstrap(ipfs_node2->routing);
+
+    // this does the heavy lifting...
+    cid = ipfs_cid_new(0, (unsigned char*)hello_world_hash, strlen(hello_world_hash), CID_PROTOBUF);
+    if (!ipfs_node2->exchange->GetBlock(ipfs_node2->exchange, cid, &result)) {
+    	libp2p_logger_error("test_bitswap", "GetBlock returned false\n");
+    	goto exit;
+    }
+
+    if (strlen(hello_world_hash) != result->cid->hash_length) {
+    	libp2p_logger_error("test_bitswap", "Node hash sizes do not match. Should be %lu but is %lu\n", strlen(hello_world_hash), result->cid->hash_length);
+    	goto exit;
+    }
+
+	retVal = 1;
+	exit:
+	if (peer_id_1 != NULL)
+		free(peer_id_1);
+	if (peer_id_2 != NULL)
+		free(peer_id_2);
+	if (ma_vector2 != NULL) {
+		libp2p_utils_vector_free(ma_vector2);
+	}
+	if (result != NULL)
+		ipfs_block_free(result);
+	if (cid != NULL)
+		ipfs_cid_free(cid);
+	return retVal;
+}
+
+
+
+
+/***
  * Attempt to retrieve a file from a previously unknown node
  */
 int test_bitswap_retrieve_file_third_party() {

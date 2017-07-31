@@ -147,10 +147,14 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_pop(struct WantListQueue*
 struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_entry_new() {
 	struct WantListQueueEntry* entry = (struct WantListQueueEntry*) malloc(sizeof(struct WantListQueueEntry));
 	if (entry != NULL) {
+		entry->sessionsRequesting = libp2p_utils_vector_new(1);
+		if (entry->sessionsRequesting == NULL) {
+			free(entry);
+			return NULL;
+		}
 		entry->block = NULL;
 		entry->cid = NULL;
 		entry->priority = 0;
-		entry->sessionsRequesting = NULL;
 		entry->attempts = 0;
 	}
 	return entry;

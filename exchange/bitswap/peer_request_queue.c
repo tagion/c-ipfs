@@ -139,10 +139,13 @@ struct PeerRequest* ipfs_bitswap_peer_request_queue_pop(struct PeerRequestQueue*
 	if (queue != NULL) {
 		pthread_mutex_lock(&queue->queue_mutex);
 		struct PeerRequestEntry* entry = queue->first;
-		retVal = entry->current;
-		queue->first = queue->first->next;
+		if (entry != NULL) {
+			retVal = entry->current;
+			queue->first = queue->first->next;
+		}
 		pthread_mutex_unlock(&queue->queue_mutex);
-		ipfs_bitswap_peer_request_entry_free(entry);
+		if (entry != NULL)
+			ipfs_bitswap_peer_request_entry_free(entry);
 	}
 	return retVal;
 }
