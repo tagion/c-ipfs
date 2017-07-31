@@ -304,8 +304,6 @@ int test_bitswap_retrieve_file_known_remote() {
 	multiaddress_free(ma_peer1);
 	ipfs_node_online_new(ipfs_path, &ipfs_node2);
 
-    ipfs_node2->routing->Bootstrap(ipfs_node2->routing);
-
     if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hello_world_hash, strlen(hello_world_hash), &cid))
     	goto exit;
 

@@ -658,6 +658,8 @@ int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, stru
 	for(int i = 0; i < cids->total; i++) {
 		const struct Cid* cid = (const struct Cid*)libp2p_utils_vector_get(cids, i);
 		struct WantlistEntry* entry = ipfs_bitswap_wantlist_entry_new();
+		entry->block_size = ipfs_cid_protobuf_encode_size(cid);
+		entry->block = (unsigned char*) malloc(entry->block_size);
 		if (!ipfs_cid_protobuf_encode(cid, entry->block, entry->block_size, &entry->block_size)) {
 			// TODO: we should do more than return a half-baked list
 			return 0;

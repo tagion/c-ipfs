@@ -61,7 +61,7 @@ int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct
  * @param incoming the struct to encode
  * @returns the number of approximate bytes
  */
-size_t ipfs_cid_protobuf_encode_size(struct Cid* incoming);
+size_t ipfs_cid_protobuf_encode_size(const struct Cid* incoming);
 
 /**
  * Create a new CID based on the given hash

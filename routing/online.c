@@ -87,6 +87,10 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const
 				struct Libp2pLinkedList * current_provider_peer_list_item = return_message->provider_peer_head;
 				while (current_provider_peer_list_item != NULL) {
 					struct Libp2pPeer *current_peer = current_provider_peer_list_item->item;
+					// if we can find the peer in the peerstore, use that one instead
+					struct Libp2pPeer* peerstorePeer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (unsigned char*)current_peer->id, current_peer->id_size);
+					if (peerstorePeer != NULL)
+						current_peer = peerstorePeer;
 					libp2p_utils_vector_add(*peers, libp2p_peer_copy(current_peer));
 					current_provider_peer_list_item = current_provider_peer_list_item->next;
 				}

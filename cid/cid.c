@@ -16,7 +16,7 @@
 enum WireType ipfs_cid_message_fields[] = { WIRETYPE_VARINT, WIRETYPE_VARINT, WIRETYPE_LENGTH_DELIMITED };
 
 
-size_t ipfs_cid_protobuf_encode_size(struct Cid* cid) {
+size_t ipfs_cid_protobuf_encode_size(const struct Cid* cid) {
 	if (cid != NULL)
 		return 11+12+cid->hash_length+11;
 	return 0;
