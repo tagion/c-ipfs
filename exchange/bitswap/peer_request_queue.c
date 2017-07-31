@@ -17,8 +17,17 @@
 struct PeerRequest* ipfs_bitswap_peer_request_new() {
 	struct PeerRequest* request = (struct PeerRequest*) malloc(sizeof(struct PeerRequest));
 	if (request != NULL) {
-		request->cids = NULL;
-		request->blocks = NULL;
+		request->cids = libp2p_utils_vector_new(1);
+		if (request->cids == NULL) {
+			free(request);
+			return NULL;
+		}
+		request->blocks = libp2p_utils_vector_new(1);
+		if (request->blocks == NULL) {
+			libp2p_utils_vector_free(request->cids);
+			free(request);
+			return NULL;
+		}
 		request->peer = NULL;
 	}
 	return request;
@@ -240,6 +249,7 @@ struct PeerRequest* ipfs_peer_request_queue_find_peer(struct PeerRequestQueue* q
 	}
 
 	entry = ipfs_bitswap_peer_request_entry_new();
+	entry->current = ipfs_bitswap_peer_request_new();
 	entry->current->peer = peer;
 	entry->prior = queue->last;
 	queue->last = entry;

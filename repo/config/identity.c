@@ -24,6 +24,12 @@ int repo_config_identity_build_peer_id(struct Identity* identity) {
 	public_key.data = (unsigned char*)identity->private_key.public_key_der;
 	public_key.data_size = identity->private_key.public_key_length;
 	public_key.type = KEYTYPE_RSA;
+	if (identity->peer == NULL)
+		identity->peer = libp2p_peer_new();
+	if (identity->peer->id != NULL) {
+		free(identity->peer->id);
+		identity->peer->id = NULL;
+	}
 	if (!libp2p_crypto_public_key_to_peer_id(&public_key, &identity->peer->id))
 		return 0;
 	identity->peer->id_size = strlen(identity->peer->id);

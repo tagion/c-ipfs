@@ -517,6 +517,8 @@ ipfs_routing* ipfs_routing_new_online (struct IpfsNode* local_node, struct RsaPr
 
     onlineRouting->local_node->mode = MODE_ONLINE;
 
+    onlineRouting->Bootstrap(onlineRouting);
+
     return onlineRouting;
 }
 

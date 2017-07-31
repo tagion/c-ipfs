@@ -306,8 +306,10 @@ int test_bitswap_retrieve_file_known_remote() {
 
     ipfs_node2->routing->Bootstrap(ipfs_node2->routing);
 
+    if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hello_world_hash, strlen(hello_world_hash), &cid))
+    	goto exit;
+
     // this does the heavy lifting...
-    cid = ipfs_cid_new(0, (unsigned char*)hello_world_hash, strlen(hello_world_hash), CID_PROTOBUF);
     if (!ipfs_node2->exchange->GetBlock(ipfs_node2->exchange, cid, &result)) {
     	libp2p_logger_error("test_bitswap", "GetBlock returned false\n");
     	goto exit;
