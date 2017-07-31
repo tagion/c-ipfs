@@ -215,7 +215,7 @@ int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context
 	if (need_to_connect) {
 		if (!connected) {
 			// connect
-			connected = libp2p_peer_connect(&context->ipfsNode->identity->private_key, request->peer, 0);
+			connected = libp2p_peer_connect(&context->ipfsNode->identity->private_key, request->peer, context->ipfsNode->peerstore, 0);
 		}
 		if (connected) {
 			// build a message

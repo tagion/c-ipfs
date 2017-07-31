@@ -17,7 +17,7 @@
 int ipfs_bitswap_network_send_message(const struct BitswapContext* context, struct Libp2pPeer* peer, const struct BitswapMessage* message) {
 	// get a connection to the peer
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
-		libp2p_peer_connect(&context->ipfsNode->identity->private_key, peer, 10);
+		libp2p_peer_connect(&context->ipfsNode->identity->private_key, peer, context->ipfsNode->peerstore, 10);
 		if(peer->connection_type != CONNECTION_TYPE_CONNECTED)
 			return 0;
 	}
@@ -78,8 +78,36 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 	// wantlist - what they want
 	if (message->wantlist != NULL && message->wantlist->entries != NULL && message->wantlist->entries->total > 0) {
 		// get the peer
-		struct Libp2pPeer* peer = libp2p_peerstore_get_peer(node->peerstore, (unsigned char*)sessionContext->remote_peer_id, strlen(sessionContext->remote_peer_id));
+		if (sessionContext->remote_peer_id == NULL) {
+			ipfs_bitswap_message_free(message);
+			return 0;
+		}
+		struct Libp2pPeer* temp_peer = libp2p_peer_new();
+		temp_peer->id_size = strlen(sessionContext->remote_peer_id);
+		temp_peer->id = malloc(temp_peer->id_size);
+		if (temp_peer->id == NULL) {
+			libp2p_peer_free(temp_peer);
+			ipfs_bitswap_message_free(message);
+			return 0;
+		}
+		memcpy(temp_peer->id, sessionContext->remote_peer_id, strlen(sessionContext->remote_peer_id));
+		struct Libp2pPeer* peer = libp2p_peerstore_get_or_add_peer(node->peerstore, temp_peer);
+		libp2p_peer_free(temp_peer);
+		if (peer == NULL) {
+			ipfs_bitswap_message_free(message);
+			return 0;
+		}
 		struct PeerRequestEntry* queueEntry = ipfs_bitswap_peer_request_queue_find_entry(bitswapContext->peerRequestQueue, peer);
+		if (queueEntry == NULL) {
+			struct PeerRequest* peerRequest =ipfs_bitswap_peer_request_new();
+			peerRequest->peer = peer;
+			ipfs_bitswap_peer_request_queue_add(bitswapContext->peerRequestQueue, peerRequest);
+			queueEntry = ipfs_bitswap_peer_request_queue_find_entry(bitswapContext->peerRequestQueue, peer);
+			if (queueEntry == NULL) {
+				ipfs_bitswap_message_free(message);
+				return 0;
+			}
+		}
 		for(int i = 0; i < message->wantlist->entries->total; i++) {
 			struct WantlistEntry* entry = (struct WantlistEntry*) libp2p_utils_vector_get(message->wantlist->entries, i);
 			// turn the "block" back into a cid

@@ -55,7 +55,7 @@ int protocol_compare(const unsigned char* incoming, size_t incoming_size, const 
 int ipfs_null_marshal(const unsigned char* incoming, size_t incoming_size, struct SessionContext* session, struct null_connection_params *connection_param) {
 	if (protocol_compare(incoming, incoming_size, "/secio")) {
 		libp2p_logger_debug("null", "Attempting secure io connection...\n");
-		if (!libp2p_secio_handshake(session, &connection_param->local_node->identity->private_key, 1)) {
+		if (!libp2p_secio_handshake(session, &connection_param->local_node->identity->private_key, connection_param->local_node->peerstore, 1)) {
 			// rejecting connection
 			libp2p_logger_debug("null", "Secure IO connection failed\n");
 			return 0;
