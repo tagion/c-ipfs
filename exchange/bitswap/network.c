@@ -44,6 +44,28 @@ int ipfs_bitswap_network_send_message(const struct BitswapContext* context, stru
 }
 
 /***
+ * Remove a cid from the queue
+ * @param cids the vector of cids
+ * @param cid the cid to remove
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_bitswap_network_remove_cid_from_queue(struct Libp2pVector* collection, struct Cid* cid) {
+	if (collection == NULL || cid == NULL)
+		return 0;
+
+	for(int i = 0; i < collection->total; collection++) {
+		const struct Cid* current = (const struct Cid*)libp2p_utils_vector_get(collection, i);
+		if (ipfs_cid_compare(current, cid) == 0) {
+			libp2p_utils_vector_delete(collection, i);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+
+/***
  * Handle a raw incoming bitswap message from the network
  * @param node us
  * @param sessionContext the connection context
@@ -116,8 +138,10 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 				ipfs_cid_free(cid);
 				return 0;
 			}
-			// add the cid to their queue
-			libp2p_utils_vector_add(queueEntry->current->cids, cid);
+			if (entry->cancel)
+				ipfs_bitswap_network_remove_cid_from_queue(queueEntry->current->cids_they_want, cid);
+			else
+				libp2p_utils_vector_add(queueEntry->current->cids_they_want, cid);
 		}
 	}
 	return 1;

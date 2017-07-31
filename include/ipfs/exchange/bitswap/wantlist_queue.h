@@ -14,7 +14,7 @@ enum WantListSessionType { WANTLIST_SESSION_TYPE_LOCAL, WANTLIST_SESSION_TYPE_RE
 
 struct WantListSession {
 	enum WantListSessionType type;
-	void* context; // either an IpfsNode (local) or a SessionContext (remote)
+	void* context; // either an IpfsNode (local) or a Libp2pPeer (remote)
 };
 
 struct WantListQueueEntry {

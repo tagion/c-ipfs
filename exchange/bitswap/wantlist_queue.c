@@ -197,9 +197,9 @@ int ipfs_bitswap_wantlist_session_compare(const struct WantListSession* a, const
 		// it's local, there should be only 1
 		return 0;
 	} else {
-		struct SessionContext* contextA = (struct SessionContext*)a->context;
-		struct SessionContext* contextB = (struct SessionContext*)b->context;
-		return libp2p_session_context_compare(contextA, contextB);
+		struct Libp2pPeer* contextA = (struct Libp2pPeer*)a->context;
+		struct Libp2pPeer* contextB = (struct Libp2pPeer*)b->context;
+		return libp2p_peer_compare(contextA, contextB);
 	}
 }
 
@@ -250,11 +250,8 @@ int ipfs_bitswap_wantlist_get_block_remote(struct BitswapContext* context, struc
 			struct Libp2pPeer* current = (struct Libp2pPeer*) libp2p_utils_vector_get(providers, i);
 			// add this to their queue
 			struct PeerRequest* queueEntry = ipfs_peer_request_queue_find_peer(context->peerRequestQueue, current);
-			libp2p_utils_vector_add(queueEntry->cids, cid);
-			// process this queue
-			// NOTE: We need to ask the remotes via bitswap, and wait for  a response before returning
-			// there will need to be some fancy stuff to know when we get it back so that this method
-			// can return with the block
+			libp2p_utils_vector_add(queueEntry->cids_we_want, cid);
+			// process this queue via bitswap protocol
 			ipfs_bitswap_peer_request_process_entry(context, queueEntry);
 		}
 		return 1;
@@ -263,7 +260,10 @@ int ipfs_bitswap_wantlist_get_block_remote(struct BitswapContext* context, struc
 }
 
 /**
- * Called by the Bitswap engine, this processes an item on the WantListQueue
+ * Called by the Bitswap engine, this processes an item on the WantListQueue. This is called when
+ * we want a file locally from a remote source. Send a message immediately, adding in stuff that
+ * perhaps the remote source wanted.
+ *
  * @param context the context
  * @param entry the WantListQueueEntry
  * @returns true(1) on success, false(0) if not.
@@ -293,8 +293,8 @@ int ipfs_bitswap_wantlist_process_entry(struct BitswapContext* context, struct W
 			if (session->type == WANTLIST_SESSION_TYPE_LOCAL) {
 				context->ipfsNode->exchange->HasBlock(context->ipfsNode->exchange, entry->block);
 			} else {
-				struct SessionContext* sessionContext = (struct SessionContext*) session->context;
-				ipfs_bitswap_peer_request_queue_fill(context->peerRequestQueue, sessionContext, entry->block);
+				struct Libp2pPeer* peer = (struct Libp2pPeer*) session->context;
+				ipfs_bitswap_peer_request_queue_fill(context->peerRequestQueue, peer, entry->block);
 			}
 		}
 

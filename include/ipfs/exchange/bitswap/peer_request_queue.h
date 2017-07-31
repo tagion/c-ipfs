@@ -9,11 +9,22 @@
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/blocks/block.h"
 
+struct CidEntry {
+	struct Cid* cid;
+	int cancel;
+};
+
 struct PeerRequest {
 	pthread_mutex_t request_mutex;
 	struct Libp2pPeer* peer;
-	struct Libp2pVector* cids;
-	struct Libp2pVector* blocks;
+	// Cid collection of cids that they want. Note cancellations are removed immediately
+	struct Libp2pVector* cids_they_want;
+	// CidEntry collection of cids that we want or are canceling
+	struct Libp2pVector* cids_we_want;
+	// blocks to send to them
+	struct Libp2pVector* blocks_we_want_to_send;
+	// blocks they sent us are processed immediately, so no queue necessary
+	// although the cid can go in cids_we_want again, with a cancel flag
 };
 
 struct PeerRequestEntry {
@@ -92,7 +103,7 @@ struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerR
  * @param block the block
  * @returns true(1) on success, otherwise false(0)
  */
-int ipfs_bitswap_peer_request_queue_fill(struct PeerRequestQueue* queue, struct SessionContext* who, struct Block* block);
+int ipfs_bitswap_peer_request_queue_fill(struct PeerRequestQueue* queue, struct Libp2pPeer* who, struct Block* block);
 
 /***
  * Allocate resources for a PeerRequestEntry struct

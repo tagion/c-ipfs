@@ -30,7 +30,7 @@ int ipfs_bitswap_engine_free(struct BitswapEngine* engine) {
 }
 
 /***
- * A separate thread that processes the queue
+ * A separate thread that processes the queue of local requests
  * @param context the context
  */
 void* ipfs_bitswap_engine_wantlist_processor_start(void* ctx) {
@@ -50,7 +50,7 @@ void* ipfs_bitswap_engine_wantlist_processor_start(void* ctx) {
 }
 
 /***
- * A separate thread that processes the queue
+ * A separate thread that processes the queue of remote requests
  * @param context the context
  */
 void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {

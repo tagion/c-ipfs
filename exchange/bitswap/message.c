@@ -682,6 +682,8 @@ int ipfs_bitswap_message_add_blocks(struct BitswapMessage* message, struct Libp2
 
 	if (message == NULL)
 		return 0;
+	if (blocks == NULL || blocks->total == 0)
+		return 0;
 	if (message->payload == NULL) {
 		message->payload = libp2p_utils_vector_new(blocks->total);
 		if (message->payload == NULL)
