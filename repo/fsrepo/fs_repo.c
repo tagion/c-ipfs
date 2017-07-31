@@ -398,14 +398,14 @@ int fs_repo_open_config(struct FSRepo* repo) {
 	//NOTE: the code below compares the peer id of the file with the peer id generated
 	// by the key. If they don't match, we fail.
 	unsigned char* test_peer_id = NULL;
-	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PeerID", &test_peer_id);
+	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PeerID", (char**)&test_peer_id);
 	char* priv_key_base64;
 	// then PrivKey
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "PrivKey", &priv_key_base64);
 	retVal = repo_config_identity_build_private_key(repo->config->identity, priv_key_base64);
 	if (retVal == 0
-			|| strlen(test_peer_id) != repo->config->identity->peer->id_size
-			|| strcmp(test_peer_id, repo->config->identity->peer->id) != 0) {
+			|| strlen((char*)test_peer_id) != repo->config->identity->peer->id_size
+			|| strcmp((char*)test_peer_id, repo->config->identity->peer->id) != 0) {
 		free(data);
 		free(priv_key_base64);
 		return 0;
