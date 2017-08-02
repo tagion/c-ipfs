@@ -604,7 +604,7 @@ int test_routing_retrieve_large_file() {
     stat(temp_file_name, &buf);
 
     if (buf.st_size != 1000000) {
-    	fprintf(stderr, "File size should be 1000000, but is %lu\n", buf.st_size);
+    	fprintf(stderr, "File size should be 1000000, but is %lu\n", (unsigned long)buf.st_size);
     	goto exit;
     }
 

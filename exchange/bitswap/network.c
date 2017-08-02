@@ -5,6 +5,7 @@
  * For a somewhat accurate diagram of how this may work, @see https://github.com/ipfs/js-ipfs-bitswap
  */
 
+#include "libp2p/utils/logger.h"
 #include "ipfs/exchange/bitswap/network.h"
 #include "ipfs/exchange/bitswap/peer_request_queue.h"
 
@@ -104,23 +105,16 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 			ipfs_bitswap_message_free(message);
 			return 0;
 		}
-		struct Libp2pPeer* temp_peer = libp2p_peer_new();
-		temp_peer->id_size = strlen(sessionContext->remote_peer_id);
-		temp_peer->id = malloc(temp_peer->id_size);
-		if (temp_peer->id == NULL) {
-			libp2p_peer_free(temp_peer);
-			ipfs_bitswap_message_free(message);
-			return 0;
-		}
-		memcpy(temp_peer->id, sessionContext->remote_peer_id, strlen(sessionContext->remote_peer_id));
-		struct Libp2pPeer* peer = libp2p_peerstore_get_or_add_peer(node->peerstore, temp_peer);
-		libp2p_peer_free(temp_peer);
+		struct Libp2pPeer* peer = libp2p_peerstore_get_or_add_peer_by_id(node->peerstore, (unsigned char*)sessionContext->remote_peer_id, strlen(sessionContext->remote_peer_id));
 		if (peer == NULL) {
+			libp2p_logger_error("bitswap_network", "Unable to find or add peer %s of length %d to peerstore.\n", sessionContext->remote_peer_id, strlen(sessionContext->remote_peer_id));
 			ipfs_bitswap_message_free(message);
 			return 0;
 		}
+		// find the queue
 		struct PeerRequestEntry* queueEntry = ipfs_bitswap_peer_request_queue_find_entry(bitswapContext->peerRequestQueue, peer);
 		if (queueEntry == NULL) {
+			// add the queue
 			struct PeerRequest* peerRequest =ipfs_bitswap_peer_request_new();
 			peerRequest->peer = peer;
 			ipfs_bitswap_peer_request_queue_add(bitswapContext->peerRequestQueue, peerRequest);
@@ -134,17 +128,18 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 			struct WantlistEntry* entry = (struct WantlistEntry*) libp2p_utils_vector_get(message->wantlist->entries, i);
 			// turn the "block" back into a cid
 			struct Cid* cid = NULL;
-			if (!ipfs_cid_protobuf_decode(entry->block, entry->block_size, &cid)) {
+			if (!ipfs_cid_protobuf_decode(entry->block, entry->block_size, &cid) || cid->hash_length == 0) {
+				libp2p_logger_error("bitswap_network", "Message had invalid CID\n");
 				ipfs_cid_free(cid);
 				return 0;
 			}
 			if (entry->cancel)
 				ipfs_bitswap_network_remove_cid_from_queue(queueEntry->current->cids_they_want, cid);
 			else {
-				struct CidEntry* entry = ipfs_bitswap_peer_request_cid_entry_new();
-				entry->cid = cid;
-				entry->cancel = 0;
-				libp2p_utils_vector_add(queueEntry->current->cids_they_want, entry);
+				struct CidEntry* cidEntry = ipfs_bitswap_peer_request_cid_entry_new();
+				cidEntry->cid = cid;
+				cidEntry->cancel = 0;
+				libp2p_utils_vector_add(queueEntry->current->cids_they_want, cidEntry);
 			}
 		}
 	}

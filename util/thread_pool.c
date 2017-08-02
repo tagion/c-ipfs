@@ -306,6 +306,10 @@ static void thread_hold(int sig_id) {
 }
 
 
+#if defined(__APPLE__) && defined(__MACH__)
+	int pthread_setname_np(const char* name);
+#endif
+
 /* What each thread is doing
 *
 * In principle this is an endless loop. The only time this loop gets interuppted is once

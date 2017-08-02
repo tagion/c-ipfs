@@ -160,6 +160,39 @@ struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerR
 	return NULL;
 }
 
+/***
+ * Determine if any of the cids in the list are waiting to be filled
+ * @param cidEntries a Vector of CidEntry objects
+ * @returns true(1) if we have some waiting, false(0) otherwise
+ */
+int ipfs_bitswap_peer_request_cids_waiting(struct Libp2pVector* cidEntries) {
+	if (cidEntries == NULL)
+		return 0;
+	for(int i = 0; i < cidEntries->total; i++) {
+		const struct CidEntry* entry = (const struct CidEntry*)libp2p_utils_vector_get(cidEntries, i);
+		if (entry != NULL && !entry->cancel)
+			return 1;
+	}
+	return 0;
+}
+
+/***
+ * Determine if there is something to process in this request
+ * @param entry the entry to look at
+ * @returns true(1) if there is something to do
+ */
+int ipfs_bitswap_peer_request_something_to_do(struct PeerRequestEntry* entry) {
+	if (entry != NULL) {
+		struct PeerRequest* request = entry->current;
+		if (request->blocks_we_want_to_send->total > 0)
+			return 1;
+		if (request->cids_we_want->total > 0)
+			return 1;
+		if (ipfs_bitswap_peer_request_cids_waiting(request->cids_they_want))
+			return 1;
+	}
+	return 0;
+}
 
 /**
  * Pull a PeerRequest off the queue
@@ -171,13 +204,17 @@ struct PeerRequest* ipfs_bitswap_peer_request_queue_pop(struct PeerRequestQueue*
 	if (queue != NULL) {
 		pthread_mutex_lock(&queue->queue_mutex);
 		struct PeerRequestEntry* entry = queue->first;
-		if (entry != NULL) {
+		if (entry != NULL && ipfs_bitswap_peer_request_something_to_do(entry)) {
 			retVal = entry->current;
 			queue->first = queue->first->next;
 		}
 		pthread_mutex_unlock(&queue->queue_mutex);
+		// disable temporarily
+		// JMJ Debugging
+		/*
 		if (entry != NULL)
 			ipfs_bitswap_peer_request_entry_free(entry);
+		*/
 	}
 	return retVal;
 }
@@ -246,22 +283,6 @@ int ipfs_bitswap_peer_request_get_blocks_they_want(const struct BitswapContext* 
 	return 0;
 }
 
-/***
- * Determine if any of the cids in the list are waiting to be filled
- * @param cidEntries a Vector of CidEntry objects
- * @returns true(1) if we have some waiting, false(0) otherwise
- */
-int ipfs_peer_request_cids_waiting(struct Libp2pVector* cidEntries) {
-	if (cidEntries == NULL)
-		return 0;
-	for(int i = 0; i < cidEntries->total; i++) {
-		const struct CidEntry* entry = (const struct CidEntry*)libp2p_utils_vector_get(cidEntries, i);
-		if (entry != NULL && !entry->cancel)
-			return 1;
-	}
-	return 0;
-}
-
 /****
  * Handle a PeerRequest
  * @param context the BitswapContext
@@ -281,7 +302,7 @@ int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context
 	}
 	// determine if we're connected
 	int connected = request->peer->is_local || request->peer->connection_type == CONNECTION_TYPE_CONNECTED;
-	int need_to_connect = request->cids_we_want->total != 0 || ipfs_peer_request_cids_waiting(request->cids_they_want) || request->blocks_we_want_to_send->total != 0;
+	int need_to_connect = request->cids_we_want->total != 0 || ipfs_bitswap_peer_request_cids_waiting(request->cids_they_want) || request->blocks_we_want_to_send->total != 0;
 
 	// determine if we need to connect
 	if (need_to_connect) {
