@@ -323,7 +323,7 @@ int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context
 			struct BitswapMessage* msg = ipfs_bitswap_message_new();
 			// see if we can fulfill any of their requests. If so, fill in msg->payload
 			ipfs_bitswap_peer_request_get_blocks_they_want(context, request);
-			ipfs_bitswap_message_add_blocks(msg, request->blocks_we_want_to_send);
+			ipfs_bitswap_message_add_blocks(msg, request->blocks_we_want_to_send, request->cids_they_want);
 			// add requests that we would like
 			ipfs_bitswap_message_add_wantlist_items(msg, request->cids_we_want);
 			// send message
