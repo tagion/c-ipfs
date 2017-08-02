@@ -17,7 +17,7 @@ struct CidEntry {
 struct PeerRequest {
 	pthread_mutex_t request_mutex;
 	struct Libp2pPeer* peer;
-	// Cid collection of cids that they want. Note cancellations are removed immediately
+	// CidEntry collection of cids that they want
 	struct Libp2pVector* cids_they_want;
 	// CidEntry collection of cids that we want or are canceling
 	struct Libp2pVector* cids_we_want;
@@ -38,6 +38,12 @@ struct PeerRequestQueue {
 	struct PeerRequestEntry* first;
 	struct PeerRequestEntry* last;
 };
+
+/***
+ * Allocate memory for CidEntry
+ * @returns new CidEntry struct
+ */
+struct CidEntry* ipfs_bitswap_peer_request_cid_entry_new();
 
 /**
  * Allocate resources for a new PeerRequest

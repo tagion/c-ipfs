@@ -54,8 +54,8 @@ int ipfs_bitswap_network_remove_cid_from_queue(struct Libp2pVector* collection, 
 		return 0;
 
 	for(int i = 0; i < collection->total; collection++) {
-		const struct Cid* current = (const struct Cid*)libp2p_utils_vector_get(collection, i);
-		if (ipfs_cid_compare(current, cid) == 0) {
+		const struct CidEntry* current = (const struct CidEntry*)libp2p_utils_vector_get(collection, i);
+		if (ipfs_cid_compare(current->cid, cid) == 0) {
 			libp2p_utils_vector_delete(collection, i);
 			return 1;
 		}
@@ -140,8 +140,12 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 			}
 			if (entry->cancel)
 				ipfs_bitswap_network_remove_cid_from_queue(queueEntry->current->cids_they_want, cid);
-			else
-				libp2p_utils_vector_add(queueEntry->current->cids_they_want, cid);
+			else {
+				struct CidEntry* entry = ipfs_bitswap_peer_request_cid_entry_new();
+				entry->cid = cid;
+				entry->cancel = 0;
+				libp2p_utils_vector_add(queueEntry->current->cids_they_want, entry);
+			}
 		}
 	}
 	return 1;
