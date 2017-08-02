@@ -673,12 +673,29 @@ int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, stru
 }
 
 /***
+ * Look through vector for specific Cid, then mark it cancel
+ * @param vector the vector of CidEntrys
+ * @param incoming_cid the cid to look for
+ * @returns true(1) if found one, false(0) if not
+ */
+int ipfs_bitswap_message_cancel_cid(struct Libp2pVector* vector, struct Cid* incoming_cid) {
+	for(int i = 0; i < vector->total; i++) {
+		struct CidEntry* entry = (struct CidEntry*)libp2p_utils_vector_get(vector, i);
+		if (ipfs_cid_compare(entry->cid, incoming_cid) == 0) {
+			entry->cancel = 1;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/***
  * Add the blocks to the BitswapMessage
  * @param message the message
  * @param blocks the requested blocks
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_bitswap_message_add_blocks(struct BitswapMessage* message, struct Libp2pVector* blocks) {
+int ipfs_bitswap_message_add_blocks(struct BitswapMessage* message, struct Libp2pVector* blocks, struct Libp2pVector* cids_they_want) {
 	// bitswap 1.0 uses blocks, bitswap 1.1 uses payload
 
 	if (message == NULL)
@@ -690,9 +707,15 @@ int ipfs_bitswap_message_add_blocks(struct BitswapMessage* message, struct Libp2
 		if (message->payload == NULL)
 			return 0;
 	}
-	for(int i = 0; i < blocks->total; i++) {
+	int tot_blocks = blocks->total;
+	for(int i = 0; i < tot_blocks; i++) {
 		const struct Block* current = (const struct Block*) libp2p_utils_vector_get(blocks, i);
 		libp2p_utils_vector_add(message->payload, current);
+		ipfs_bitswap_message_cancel_cid(cids_they_want, current->cid);
+	}
+
+	for (int i = 0; i < tot_blocks; i++) {
+		libp2p_utils_vector_delete(blocks, 0);
 	}
 	return 1;
 }

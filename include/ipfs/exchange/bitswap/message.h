@@ -215,4 +215,4 @@ int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, stru
  * @param blocks the requested blocks
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_bitswap_message_add_blocks(struct BitswapMessage* message, struct Libp2pVector* blocks);
+int ipfs_bitswap_message_add_blocks(struct BitswapMessage* message, struct Libp2pVector* blocks, struct Libp2pVector* cids_they_want);
