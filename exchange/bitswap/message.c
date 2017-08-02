@@ -4,6 +4,7 @@
 #include "libp2p/utils/vector.h"
 #include "ipfs/blocks/block.h"
 #include "ipfs/exchange/bitswap/message.h"
+#include "ipfs/exchange/bitswap/peer_request_queue.h"
 
 /***
  * Allocate memory for a struct BitswapBlock
@@ -656,15 +657,15 @@ int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, stru
 			return 0;
 	}
 	for(int i = 0; i < cids->total; i++) {
-		const struct Cid* cid = (const struct Cid*)libp2p_utils_vector_get(cids, i);
+		const struct CidEntry* cidEntry = (const struct CidEntry*)libp2p_utils_vector_get(cids, i);
 		struct WantlistEntry* entry = ipfs_bitswap_wantlist_entry_new();
-		entry->block_size = ipfs_cid_protobuf_encode_size(cid);
+		entry->block_size = ipfs_cid_protobuf_encode_size(cidEntry->cid);
 		entry->block = (unsigned char*) malloc(entry->block_size);
-		if (!ipfs_cid_protobuf_encode(cid, entry->block, entry->block_size, &entry->block_size)) {
+		if (!ipfs_cid_protobuf_encode(cidEntry->cid, entry->block, entry->block_size, &entry->block_size)) {
 			// TODO: we should do more than return a half-baked list
 			return 0;
 		}
-		entry->cancel = 0;
+		entry->cancel = cidEntry->cancel;
 		entry->priority = 1;
 		libp2p_utils_vector_add(message->wantlist->entries, entry);
 	}

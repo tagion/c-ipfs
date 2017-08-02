@@ -216,7 +216,7 @@ void* ipfs_null_listen (void *ptr)
     libp2p_logger_error("null", "Ipfs listening on %d\n", listen_param->port);
 
     for (;;) {
-    	libp2p_logger_debug("null", "%s Attempting socket read\n", listen_param->local_node->identity->peer->id);
+    	libp2p_logger_debug("null", "%s Attempting socket read with fd %d.\n", listen_param->local_node->identity->peer->id, socketfd);
     	int numDescriptors = socket_read_select4(socketfd, 2);
     	if (null_shutting_down) {
     		libp2p_logger_debug("null", "%s null_listen shutting down.\n", listen_param->local_node->identity->peer->id);
