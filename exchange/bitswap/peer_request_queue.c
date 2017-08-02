@@ -184,6 +184,7 @@ int ipfs_bitswap_peer_request_cids_waiting(struct Libp2pVector* cidEntries) {
 int ipfs_bitswap_peer_request_something_to_do(struct PeerRequestEntry* entry) {
 	if (entry != NULL) {
 		struct PeerRequest* request = entry->current;
+		// do we have something in the queue?
 		if (request->blocks_we_want_to_send->total > 0)
 			return 1;
 		if (request->cids_we_want->total > 0)
@@ -204,9 +205,14 @@ struct PeerRequest* ipfs_bitswap_peer_request_queue_pop(struct PeerRequestQueue*
 	if (queue != NULL) {
 		pthread_mutex_lock(&queue->queue_mutex);
 		struct PeerRequestEntry* entry = queue->first;
-		if (entry != NULL && ipfs_bitswap_peer_request_something_to_do(entry)) {
-			retVal = entry->current;
-			queue->first = queue->first->next;
+		if (entry != NULL) {
+			if (ipfs_bitswap_peer_request_something_to_do(entry)) {
+				retVal = entry->current;
+				// move to the end of the queue
+				queue->first = queue->first->next;
+				queue->last->next = entry;
+				queue->last = entry;
+			}
 		}
 		pthread_mutex_unlock(&queue->queue_mutex);
 		// disable temporarily

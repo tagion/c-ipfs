@@ -52,10 +52,10 @@ int protocol_compare(const unsigned char* incoming, size_t incoming_size, const 
  * @param connection_param the connection parameters
  * @returns True(1) on success, False(0) on error
  */
-int ipfs_null_marshal(const unsigned char* incoming, size_t incoming_size, struct SessionContext* session, struct null_connection_params *connection_param) {
+int ipfs_multistream_marshal(const unsigned char* incoming, size_t incoming_size, struct SessionContext* session, struct IpfsNode* local_node) {
 	if (protocol_compare(incoming, incoming_size, "/secio")) {
 		libp2p_logger_debug("null", "Attempting secure io connection...\n");
-		if (!libp2p_secio_handshake(session, &connection_param->local_node->identity->private_key, connection_param->local_node->peerstore, 1)) {
+		if (!libp2p_secio_handshake(session, &local_node->identity->private_key, local_node->peerstore, 1)) {
 			// rejecting connection
 			libp2p_logger_debug("null", "Secure IO connection failed\n");
 			return 0;
@@ -79,7 +79,7 @@ int ipfs_null_marshal(const unsigned char* incoming, size_t incoming_size, struc
 			else {
 				// try to get the Node
 				struct HashtableNode* node = NULL;
-				if (!ipfs_merkledag_get(hash, hash_length, &node, connection_param->local_node->repo)) {
+				if (!ipfs_merkledag_get(hash, hash_length, &node, local_node->repo)) {
 					_continue = 0;
 					continue;
 				}
@@ -100,11 +100,11 @@ int ipfs_null_marshal(const unsigned char* incoming, size_t incoming_size, struc
 			return 0;
 		}
 		// this handles 1 transaction
-		libp2p_routing_dht_handle_message(session, connection_param->local_node->peerstore, connection_param->local_node->providerstore);
+		libp2p_routing_dht_handle_message(session, local_node->peerstore, local_node->providerstore);
 		libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia message handled\n");
 	} else if (protocol_compare(incoming, incoming_size, "/ipfs/bitswap/")) {
 		libp2p_logger_debug("null", "Attempting bitswap connection...\n");
-		return ipfs_bitswap_network_handle_message(connection_param->local_node, session, incoming, incoming_size);
+		return ipfs_bitswap_network_handle_message(local_node, session, incoming, incoming_size);
 	}
 	else {
 		libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Disconnecting.\n");
@@ -174,7 +174,7 @@ void ipfs_null_connection (void *ptr)
 			// We actually got something. Process the request...
 			unsuccessful_counter = 0;
 			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
-			int retVal = ipfs_null_marshal(results, bytes_read, session, connection_param);
+			int retVal = ipfs_multistream_marshal(results, bytes_read, session, connection_param->local_node);
 			free(results);
 			if (!retVal) {
 				libp2p_logger_debug("null", "ipfs_null_marshal returned false\n");

@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include "ipfs/core/null.h"
 #include "ipfs/exchange/bitswap/engine.h"
 #include "ipfs/exchange/bitswap/wantlist_queue.h"
 #include "ipfs/exchange/bitswap/peer_request_queue.h"
@@ -59,6 +60,15 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 	while (!context->bitswap_engine->shutting_down) {
 		struct PeerRequest* item = ipfs_bitswap_peer_request_queue_pop(context->peerRequestQueue);
 		if (item != NULL) {
+			// Do they have something on the network to process?
+			// did they send us something over the network?
+			unsigned char* buffer = NULL;
+			size_t buffer_len = 0;
+			if (item->peer->sessionContext->default_stream->read(item->peer->sessionContext, &buffer, &buffer_len, 1)) {
+				// handle it
+				ipfs_multistream_marshal(buffer, buffer_len, item->peer->sessionContext, context->ipfsNode);
+			}
+
 			// if there is something on the queue process it.
 			ipfs_bitswap_peer_request_process_entry(context, item);
 		} else {
