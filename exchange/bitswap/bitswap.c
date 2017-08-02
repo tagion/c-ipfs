@@ -87,9 +87,15 @@ int ipfs_bitswap_close(struct Exchange* exchange) {
  * adds the block to the blockstore. This still has to be sorted.
  */
 int ipfs_bitswap_has_block(struct Exchange* exchange, struct Block* block) {
-	//TODO: Implement this method
-	// NOTE: The GO version adds the block to the blockstore. I have yet to
-	// understand the flow and if this is correct for us.
+	// add the block to the blockstore
+	struct BitswapContext* context = exchange->exchangeContext;
+	context->ipfsNode->blockstore->Put(context->ipfsNode->blockstore->blockstoreContext, block);
+	// update requests
+	struct WantListQueueEntry* queueEntry = ipfs_bitswap_wantlist_queue_find(context->localWantlist, block->cid);
+	if (queueEntry != NULL) {
+		queueEntry->block = block;
+	}
+	// TODO: Announce to world that we now have the block
 	return 0;
 }
 

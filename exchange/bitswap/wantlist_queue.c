@@ -293,7 +293,7 @@ int ipfs_bitswap_wantlist_process_entry(struct BitswapContext* context, struct W
 			// TODO: Review this code.
 			struct WantListSession* session = (struct WantListSession*) libp2p_utils_vector_get(entry->sessionsRequesting, i);
 			if (session->type == WANTLIST_SESSION_TYPE_LOCAL) {
-				context->ipfsNode->exchange->HasBlock(context->ipfsNode->exchange, entry->block);
+				//context->ipfsNode->exchange->HasBlock(context->ipfsNode->exchange, entry->block);
 			} else {
 				struct Libp2pPeer* peer = (struct Libp2pPeer*) session->context;
 				ipfs_bitswap_peer_request_queue_fill(context->peerRequestQueue, peer, entry->block);

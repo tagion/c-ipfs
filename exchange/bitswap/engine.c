@@ -60,7 +60,6 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 	while (!context->bitswap_engine->shutting_down) {
 		struct PeerRequest* item = ipfs_bitswap_peer_request_queue_pop(context->peerRequestQueue);
 		if (item != NULL) {
-			// Do they have something on the network to process?
 			// did they send us something over the network?
 			unsigned char* buffer = NULL;
 			size_t buffer_len = 0;

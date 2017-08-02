@@ -206,12 +206,14 @@ struct PeerRequest* ipfs_bitswap_peer_request_queue_pop(struct PeerRequestQueue*
 		pthread_mutex_lock(&queue->queue_mutex);
 		struct PeerRequestEntry* entry = queue->first;
 		if (entry != NULL) {
+			retVal = entry->current;
 			if (ipfs_bitswap_peer_request_something_to_do(entry)) {
-				retVal = entry->current;
 				// move to the end of the queue
-				queue->first = queue->first->next;
-				queue->last->next = entry;
-				queue->last = entry;
+				if (queue->first->next != NULL) {
+					queue->first = queue->first->next;
+					queue->last->next = entry;
+					queue->last = entry;
+				}
 			}
 		}
 		pthread_mutex_unlock(&queue->queue_mutex);
@@ -348,9 +350,13 @@ struct PeerRequest* ipfs_peer_request_queue_find_peer(struct PeerRequestQueue* q
 		}
 	}
 
+	// we didn't find one, so create one
 	entry = ipfs_bitswap_peer_request_entry_new();
 	entry->current = ipfs_bitswap_peer_request_new();
 	entry->current->peer = peer;
+	// attach it to the queue
+	if (queue->first == NULL)
+		queue->first = entry;
 	entry->prior = queue->last;
 	queue->last = entry;
 
