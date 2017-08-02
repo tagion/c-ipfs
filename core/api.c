@@ -37,6 +37,84 @@ size_t write_dual(int fd, char *str1, char *str2)
 	return writev(fd, iov, 2);
 }
 
+int find_chunk(char *buf, const size_t buf_size, size_t *pos, size_t *size)
+{
+	char *p = NULL;
+
+	*size = strtol(buf, &p, 16);
+	if (*size < 0 || !p || p < buf || p > (buf + 10)) {
+		return 0;
+	}
+	*pos = (int)(p - buf);
+	if (p[0] == '\r' && p[1] == '\n') {
+		*pos += 2;
+		return 1;
+	}
+	return 0;
+}
+
+int read_chunked(int fd, struct s_request *req, char *already, size_t already_size)
+{
+	char buf[MAX_READ], *p;
+	size_t pos, nsize;
+
+	while (already_size > 0) {
+		if (already_size < 10 &&
+		   (already < buf || already > (buf + already_size))) {
+			memcpy(buf, already, already_size);
+			already = buf;
+			if (socket_read_select4(fd, 5) <= 0) {
+				libp2p_logger_error("api", "socket timeout.\n");
+				break;
+			}
+			nsize = read(fd, buf+already_size, sizeof(buf) - already_size);
+			if (nsize > 0) {
+				already_size += nsize;
+			}
+		}
+		if (!find_chunk(already, already_size, &pos, &nsize)) {
+			return 0;
+		}
+		if (nsize == 0) {
+			break;
+		}
+		p = realloc(req->buf, req->size + nsize);
+		if (!p) {
+			return 0;
+		}
+		req->buf = p;
+		req->size += nsize;
+		already += pos;
+		already_size -= pos;
+		while (nsize > already_size) {
+			memcpy(req->buf + req->body + req->body_size, already, already_size);
+			req->body_size += already_size;
+			nsize -= already_size;
+			already = buf;
+			if (socket_read_select4(fd, 5) <= 0) {
+				libp2p_logger_error("api", "socket timeout.\n");
+				break;
+			}
+			already_size = read(fd, buf, sizeof buf);
+			if (nsize <= 0) {
+				libp2p_logger_error("api", "read fail.\n");
+				break;
+			}
+		}
+		if (nsize) {
+			memcpy(req->buf + req->body + req->body_size, already, nsize);
+			req->body_size += nsize;
+			already += nsize;
+		}
+		if (memcmp (already, "\r\n", 2)!=0) {
+			return 0;
+		}
+		already += 2;
+		already_size -= 2;
+	}
+	return 1;
+}
+
 int read_all(int fd, struct s_request *req, char *already, size_t alread_size)
 {
 	char buf[MAX_READ], *p;
@@ -151,8 +229,7 @@ void *api_connection_thread (void *ptr)
 			p += strlen("Transfer-Encoding:");
 			while(*p == ' ') p++;
 			if (cstrstart(p, "chunked\r\n") || strcmp(p, "chunked")==0) {
-				write_cstr (s, HTTP_501);
-				goto quit;
+				read_func = read_chunked;
 			}
 		}
 
