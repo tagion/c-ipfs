@@ -23,6 +23,7 @@ struct WantListQueueEntry {
 	// a vector of WantListSessions
 	struct Libp2pVector* sessionsRequesting;
 	struct Block* block;
+	int asked_network;
 	int attempts;
 };
 

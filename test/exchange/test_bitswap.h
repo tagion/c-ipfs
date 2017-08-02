@@ -322,7 +322,7 @@ int test_bitswap_retrieve_file_known_remote() {
     	goto exit;
     }
 
-    if (strlen(hello_world_hash) != result->cid->hash_length) {
+    if (cid->hash_length != result->cid->hash_length) {
     	libp2p_logger_error("test_bitswap", "Node hash sizes do not match. Should be %lu but is %lu\n", strlen(hello_world_hash), result->cid->hash_length);
     	goto exit;
     }

@@ -134,8 +134,14 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_pop(struct WantListQueue*
 
 	//TODO: This should be a linked list, not an array
 	pthread_mutex_lock(&wantlist->wantlist_mutex);
-	entry = (struct WantListQueueEntry*)libp2p_utils_vector_get(wantlist->queue, 0);
-	libp2p_utils_vector_delete(wantlist->queue, 0);
+	for(int i = 0; i < wantlist->queue->total; i++) {
+		struct WantListQueueEntry* current = (struct WantListQueueEntry*)libp2p_utils_vector_get(wantlist->queue, i);
+		if (current->block == NULL && !current->asked_network) {
+			entry = current;
+			break;
+		}
+	}
+	//libp2p_utils_vector_delete(wantlist->queue, 0);
 	pthread_mutex_unlock(&wantlist->wantlist_mutex);
 	return entry;
 }
@@ -156,6 +162,7 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_entry_new() {
 		entry->cid = NULL;
 		entry->priority = 0;
 		entry->attempts = 0;
+		entry->asked_network = 0;
 	}
 	return entry;
 }
@@ -284,6 +291,8 @@ int ipfs_bitswap_wantlist_process_entry(struct BitswapContext* context, struct W
 			// a final decision. Maybe lower the priority?
 			entry->attempts++;
 			return 0;
+		} else {
+			entry->asked_network = 1;
 		}
 	}
 	if (entry->block != NULL) {
