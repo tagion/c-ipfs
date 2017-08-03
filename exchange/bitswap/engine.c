@@ -82,23 +82,27 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 			break;
 		}
 		if (current_peer_entry->connection_type == CONNECTION_TYPE_CONNECTED) {
-			libp2p_logger_debug("bitswap_engine", "We're connected to this peer. Lets see if there is a message waiting for us.\n");
-			int retVal = current_peer_entry->sessionContext->default_stream->peek(current_peer_entry->sessionContext);
-			if (retVal < 0) {
-				libp2p_logger_debug("bitswap_engine", "We thought we were connected, but Peek reported an error.\n");
-				libp2p_peer_handle_connection_error(current_peer_entry);
-			} else if (retVal > 0) {
-				libp2p_logger_debug("bitswap_engine", "Something waiting on network for peer %s.\n", current_peer_entry->id);
-				unsigned char* buffer = NULL;
-				size_t buffer_len = 0;
-				if (current_peer_entry->sessionContext->default_stream->read(current_peer_entry->sessionContext, &buffer, &buffer_len, 1)) {
-					// handle it
-					int retVal = ipfs_multistream_marshal(buffer, buffer_len, current_peer_entry->sessionContext, context->ipfsNode);
-					did_some_processing = 1;
-					if (retVal == -1) {
-						// there was a problem. Clean up
-						current_peer_entry->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
-						libp2p_session_context_free(current_peer_entry->sessionContext);
+			if (current_peer_entry->sessionContext == NULL || current_peer_entry->sessionContext->default_stream == NULL) {
+				current_peer_entry->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
+			} else {
+				libp2p_logger_debug("bitswap_engine", "We're connected to this peer. Lets see if there is a message waiting for us.\n");
+				int retVal = current_peer_entry->sessionContext->default_stream->peek(current_peer_entry->sessionContext);
+				if (retVal < 0) {
+					libp2p_logger_debug("bitswap_engine", "We thought we were connected, but Peek reported an error.\n");
+					libp2p_peer_handle_connection_error(current_peer_entry);
+				} else if (retVal > 0) {
+					libp2p_logger_debug("bitswap_engine", "Something waiting on network for peer %s.\n", current_peer_entry->id);
+					unsigned char* buffer = NULL;
+					size_t buffer_len = 0;
+					if (current_peer_entry->sessionContext->default_stream->read(current_peer_entry->sessionContext, &buffer, &buffer_len, 1)) {
+						// handle it
+						int retVal = ipfs_multistream_marshal(buffer, buffer_len, current_peer_entry->sessionContext, context->ipfsNode);
+						did_some_processing = 1;
+						if (retVal == -1) {
+							// there was a problem. Clean up
+							current_peer_entry->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
+							libp2p_session_context_free(current_peer_entry->sessionContext);
+						}
 					}
 				}
 			}
