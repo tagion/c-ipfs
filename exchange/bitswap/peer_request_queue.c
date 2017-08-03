@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include "libp2p/conn/session.h"
+#include "libp2p/utils/logger.h"
 #include "ipfs/cid/cid.h"
 #include "ipfs/exchange/bitswap/peer_request_queue.h"
 #include "ipfs/exchange/bitswap/message.h"
@@ -191,6 +192,19 @@ int ipfs_bitswap_peer_request_something_to_do(struct PeerRequestEntry* entry) {
 			return 1;
 		if (ipfs_bitswap_peer_request_cids_waiting(request->cids_they_want))
 			return 1;
+		// is there something waiting for us on the network?
+		if (request->peer->connection_type == CONNECTION_TYPE_CONNECTED) {
+			int retVal = request->peer->sessionContext->default_stream->peek(request->peer->sessionContext);
+			if (retVal < 0) {
+				libp2p_logger_debug("peer_request_queue", "Connection returned %d. Marking connection NOT CONNECTED.\n", retVal);
+				libp2p_peer_handle_connection_error(request->peer);
+				return 0;
+			}
+			if (retVal > 0) {
+				libp2p_logger_debug("peer_request_queue", "We have something to read. %d bytes.\n", retVal);
+			}
+			return retVal;
+		}
 	}
 	return 0;
 }
@@ -206,8 +220,8 @@ struct PeerRequest* ipfs_bitswap_peer_request_queue_pop(struct PeerRequestQueue*
 		pthread_mutex_lock(&queue->queue_mutex);
 		struct PeerRequestEntry* entry = queue->first;
 		if (entry != NULL) {
-			retVal = entry->current;
 			if (ipfs_bitswap_peer_request_something_to_do(entry)) {
+				retVal = entry->current;
 				// move to the end of the queue
 				if (queue->first->next != NULL) {
 					queue->first = queue->first->next;
@@ -295,7 +309,7 @@ int ipfs_bitswap_peer_request_get_blocks_they_want(const struct BitswapContext* 
  * Handle a PeerRequest
  * @param context the BitswapContext
  * @param request the request to process
- * @returns true(1) on succes, otherwise false(0)
+ * @returns true(1) if something was done, otherwise false(0)
  */
 int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context, struct PeerRequest* request) {
 	// determine if we have enough information to continue

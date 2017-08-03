@@ -408,8 +408,12 @@ int fs_repo_open_config(struct FSRepo* repo) {
 			|| strcmp((char*)test_peer_id, repo->config->identity->peer->id) != 0) {
 		free(data);
 		free(priv_key_base64);
+		free(test_peer_id);
 		return 0;
 	}
+	repo->config->identity->peer->is_local = 1;
+	free(test_peer_id);
+
 	// now the datastore
 	//int datastore_position = _find_token(data, tokens, num_tokens, 0, "Datastore");
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Type", &repo->config->datastore->type);

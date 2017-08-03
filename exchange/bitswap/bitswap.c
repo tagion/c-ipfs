@@ -3,6 +3,7 @@
  */
 #include <stdlib.h>
 #include <unistd.h> // for sleep()
+#include "libp2p/utils/logger.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
@@ -42,6 +43,7 @@ struct Exchange* ipfs_bitswap_new(struct IpfsNode* ipfs_node) {
 
 		// Start the threads for the network
 		ipfs_bitswap_engine_start(bitswapContext);
+		libp2p_logger_debug("bitswap", "Bitswap engine started\n");
 	}
 	return exchange;
 }

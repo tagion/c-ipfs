@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "libp2p/utils/logger.h"
 #include "ipfs/repo/init.h"
 #include "ipfs/importer/importer.h"
 #include "ipfs/importer/exporter.h"
@@ -98,6 +99,14 @@ int parse_arguments(int argc, char** argv) {
  * The beginning
  */
 int main(int argc, char** argv) {
+	// for debugging
+	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("bitswap");
+	libp2p_logger_add_class("secio");
+	libp2p_logger_add_class("peer_request_queue");
+	libp2p_logger_add_class("bitswap_engine");
+	libp2p_logger_add_class("peerstore");
+
 	strip_quotes(argc, argv);
 	int retVal = parse_arguments(argc, argv);
 	switch (retVal) {
@@ -126,4 +135,5 @@ int main(int argc, char** argv) {
 		ipfs_ping(argc, argv);
 		break;
 	}
+	libp2p_logger_free();
 }

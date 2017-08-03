@@ -50,7 +50,7 @@ int protocol_compare(const unsigned char* incoming, size_t incoming_size, const 
  * @param incoming_size the size of the request in bytes
  * @param session the session context
  * @param connection_param the connection parameters
- * @returns True(1) on success, False(0) on error
+ * @returns 1 to indicate it was handled, 0 to indicate that the daemon should no longer loop (future messages will be handled by another message loop), and -1 to indicate a problem
  */
 int ipfs_multistream_marshal(const unsigned char* incoming, size_t incoming_size, struct SessionContext* session, struct IpfsNode* local_node) {
 	if (protocol_compare(incoming, incoming_size, "/secio")) {
@@ -58,13 +58,14 @@ int ipfs_multistream_marshal(const unsigned char* incoming, size_t incoming_size
 		if (!libp2p_secio_handshake(session, &local_node->identity->private_key, local_node->peerstore, 1)) {
 			// rejecting connection
 			libp2p_logger_debug("null", "Secure IO connection failed\n");
-			return 0;
+			return -1;
 		}
 		libp2p_logger_debug("null", "Secure IO connection successful.\n");
+		return 0;
 	} else if (protocol_compare(incoming, incoming_size, "/nodeio")) {
 		libp2p_logger_debug("null", "Attempting a nodeio connection.\n");
 		if (!libp2p_nodeio_handshake(session)) {
-			return 0;
+			return -1;
 		}
 		// loop through file requests
 		int _continue = 1;
@@ -97,18 +98,19 @@ int ipfs_multistream_marshal(const unsigned char* incoming, size_t incoming_size
 		libp2p_logger_log("null", LOGLEVEL_DEBUG, "Attempting kademlia connection...\n");
 		if (!libp2p_routing_dht_handshake(session)) {
 			libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia connection handshake failed\n");
-			return 0;
+			return -1;
 		}
 		// this handles 1 transaction
 		libp2p_routing_dht_handle_message(session, local_node->peerstore, local_node->providerstore);
 		libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia message handled\n");
 	} else if (protocol_compare(incoming, incoming_size, "/ipfs/bitswap/")) {
 		libp2p_logger_debug("null", "Attempting bitswap connection...\n");
-		return ipfs_bitswap_network_handle_message(local_node, session, incoming, incoming_size);
+		if (!ipfs_bitswap_network_handle_message(local_node, session, incoming, incoming_size))
+			return -1;
 	}
 	else {
 		libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Disconnecting.\n");
-		return 0;
+		return -1;
 	}
 	return 1;
 }
@@ -118,27 +120,22 @@ int ipfs_multistream_marshal(const unsigned char* incoming, size_t incoming_size
  *
  * @param ptr a pointer to a null_connection_params struct
  */
-void ipfs_null_connection (void *ptr)
-{
+void ipfs_null_connection (void *ptr) {
     struct null_connection_params *connection_param = (struct null_connection_params*) ptr;
-
-    // TODO: when should we exit the for loop and disconnect?
+    int retVal = 0;
 
     struct SessionContext* session = libp2p_session_context_new();
     if (session == NULL) {
-    	libp2p_logger_error("null", "Unable to allocate SessionContext. Out of memory?\n");
-    	return;
+		libp2p_logger_error("null", "Unable to allocate SessionContext. Out of memory?\n");
+		return;
     }
 
     session->insecure_stream = libp2p_net_multistream_stream_new(connection_param->file_descriptor, connection_param->ip, connection_param->port);
-
-    libp2p_logger_debug("null", "%s null has a file descriptor of %d\n", connection_param->local_node->identity->peer->id, *((int*)session->insecure_stream->socket_descriptor) );
-
     session->default_stream = session->insecure_stream;
     session->datastore = connection_param->local_node->repo->config->datastore;
     session->filestore = connection_param->local_node->repo->config->filestore;
 
-    libp2p_logger_log("null", LOGLEVEL_INFO, "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
+    libp2p_logger_info("null", "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
 	if (libp2p_net_multistream_negotiate(session)) {
 		// Someone has connected and successfully negotiated multistream. Now talk to them...
@@ -153,44 +150,64 @@ void ipfs_null_connection (void *ptr)
 				// this service is shutting down. Ignore the request and exit the loop
 				break;
 			}
-			if (!session->default_stream->read(session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT) ) {
-				// the read was unsuccessful wait a sec
+			// see if we have something to read
+			retVal = session->default_stream->peek(session);
+			if (retVal < 0) { // error
+				libp2p_logger_debug("null", "Peer returned %d. Exiting loop\n", retVal);
+				retVal = -1;
+				break;
+			}
+			if (retVal == 0) { // nothing to read
 				sleep(1);
 				unsuccessful_counter++;
-				if (unsuccessful_counter >= unsuccessful_max)
+				if (unsuccessful_counter >= unsuccessful_max) {
+					libp2p_logger_debug("null", "We've tried %d times in the daemon loop. Exiting.\n", unsuccessful_counter);
+					retVal = -1;
 					break;
+				}
 				continue;
+			}
+			if (retVal > 0 && !session->default_stream->read(session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT) ) {
+				// it said it was ready, but something happened
+				libp2p_logger_debug("null", "Peek said there was something there, but there was not. Exiting.\n");
+				retVal = -1;
+				break;
 			}
 			if (null_shutting_down) {
 				libp2p_logger_debug("null", "%s null shutting down after read.\n", connection_param->local_node->identity->peer->id);
 				// this service is shutting down. Ignore the request and exit the loop
+				retVal = -1;
 				break;
-			}
-			if (bytes_read == 0) {
-				// They did not ask for anything. There was a timeout. Wait again.
-				continue;
 			}
 
 			// We actually got something. Process the request...
 			unsuccessful_counter = 0;
 			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
-			int retVal = ipfs_multistream_marshal(results, bytes_read, session, connection_param->local_node);
+			retVal = ipfs_multistream_marshal(results, bytes_read, session, connection_param->local_node);
 			free(results);
-			if (!retVal) {
+			if (retVal == -1) {
 				libp2p_logger_debug("null", "ipfs_null_marshal returned false\n");
 				break;
+			} else if (retVal == 0) {
+				// clean up, but let someone else handle this from now on
+				libp2p_logger_debug("null", "ipfs_null_marshal returns 0. The daemon will no longer handle this.\n");
+				break;
+			} else {
+				libp2p_logger_debug("null", "ipfs_null_marshal returned 1. Looping again.");
 			}
 		}
    	} else {
    		libp2p_logger_log("null", LOGLEVEL_DEBUG, "Multistream negotiation failed\n");
    	}
 
-    libp2p_logger_debug("null", "%s Freeing session context.\n", connection_param->local_node->identity->peer->id);
-    (*(connection_param->count))--; // update counter.
-    if (connection_param->ip != NULL)
-    	free(connection_param->ip);
-    free (connection_param);
-    libp2p_session_context_free(session);
+	(*(connection_param->count))--; // update counter.
+	if (connection_param->ip != NULL)
+		free(connection_param->ip);
+	free (connection_param);
+	if (retVal != 0) {
+		libp2p_logger_debug("null", "%s Freeing session context.\n", connection_param->local_node->identity->peer->id);
+		libp2p_session_context_free(session);
+	}
     return;
 }
 
@@ -215,14 +232,15 @@ void* ipfs_null_listen (void *ptr)
 
     libp2p_logger_error("null", "Ipfs listening on %d\n", listen_param->port);
 
+    // the main loop, listening for new connections
     for (;;) {
-    	libp2p_logger_debug("null", "%s Attempting socket read with fd %d.\n", listen_param->local_node->identity->peer->id, socketfd);
-    	int numDescriptors = socket_read_select4(socketfd, 2);
-    	if (null_shutting_down) {
-    		libp2p_logger_debug("null", "%s null_listen shutting down.\n", listen_param->local_node->identity->peer->id);
-    		break;
-    	}
-    	if (numDescriptors > 0) {
+		//libp2p_logger_debug("null", "%s Attempting socket read with fd %d.\n", listen_param->local_node->identity->peer->id, socketfd);
+		int numDescriptors = socket_read_select4(socketfd, 2);
+		if (null_shutting_down) {
+			libp2p_logger_debug("null", "%s null_listen shutting down.\n", listen_param->local_node->identity->peer->id);
+			break;
+		}
+		if (numDescriptors > 0) {
 			s = socket_accept4(socketfd, &(listen_param->ipv4), &(listen_param->port));
 			if (count >= CONNECTIONS) { // limit reached.
 				close (s);
@@ -245,7 +263,7 @@ void* ipfs_null_listen (void *ptr)
 				// Create pthread for ipfs_null_connection.
 				thpool_add_work(thpool, ipfs_null_connection, connection_param);
 			}
-    	}
+    		}
     }
 
     thpool_destroy(thpool);

@@ -33,8 +33,8 @@ int ipfs_daemon_start(char* repo_path) {
 
     // Create pthread for swarm listener.
     if (pthread_create(&work_pths[count_pths++], NULL, local_node->routing->Listen, &listen_param)) {
-    	libp2p_logger_error("daemon", "Error creating thread for ipfs null listen\n");
-    	goto exit;
+    		libp2p_logger_error("daemon", "Error creating thread for ipfs null listen\n");
+    		goto exit;
     }
 
     local_node->routing->Bootstrap(local_node->routing);
