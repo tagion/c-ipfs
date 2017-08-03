@@ -105,8 +105,10 @@ int ipfs_multistream_marshal(const unsigned char* incoming, size_t incoming_size
 		libp2p_logger_log("null", LOGLEVEL_DEBUG, "kademlia message handled\n");
 	} else if (protocol_compare(incoming, incoming_size, "/ipfs/bitswap/")) {
 		libp2p_logger_debug("null", "Attempting bitswap connection...\n");
-		if (!ipfs_bitswap_network_handle_message(local_node, session, incoming, incoming_size))
+		if (!ipfs_bitswap_network_handle_message(local_node, session, incoming, incoming_size)) {
+			libp2p_logger_error("null", "Bitswap message handler reported a failure.\n");
 			return -1;
+		}
 	}
 	else {
 		libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Disconnecting.\n");

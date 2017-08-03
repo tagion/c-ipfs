@@ -101,8 +101,7 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 						did_some_processing = 1;
 						if (retVal == -1) {
 							// there was a problem. Clean up
-							current_peer_entry->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
-							libp2p_session_context_free(current_peer_entry->sessionContext);
+							libp2p_peer_handle_connection_error(current_peer_entry);
 						}
 					}
 				}
