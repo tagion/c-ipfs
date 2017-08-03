@@ -109,13 +109,14 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 		} else {
 			if (current_peer_entry->is_local) {
 				//libp2p_logger_debug("bitswap_engine", "Local peer %s. Skipping.\n", current_peer_entry->id);
-			} else
-				libp2p_logger_debug("bitswap_engine", "We are not connected to this peer %s.\n", current_peer_entry->id);
+			} else {
+				//libp2p_logger_debug("bitswap_engine", "We are not connected to this peer %s.\n", current_peer_entry->id);
+			}
 		}
 		// attempt to get queue and process
 		struct PeerRequestEntry* entry = ipfs_bitswap_peer_request_queue_find_entry(context->peerRequestQueue, current_peer_entry);
 		if (entry != NULL) {
-			libp2p_logger_debug("bitswap_engine", "Processing queue for peer %s.\n", current_peer_entry->id);
+			//libp2p_logger_debug("bitswap_engine", "Processing queue for peer %s.\n", current_peer_entry->id);
 			// we have a queue. Do some queue processing
 			struct PeerRequest* item = entry->current;
 			if (item != NULL) {
@@ -134,7 +135,7 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 			did_some_processing = 0;
 		}
 		else {
-			libp2p_logger_debug("bitswap_engine", "Moving on to the next peer.\n");
+			//libp2p_logger_debug("bitswap_engine", "Moving on to the next peer.\n");
 			current = current->next;
 		}
 	}
