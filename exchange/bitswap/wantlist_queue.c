@@ -47,6 +47,10 @@ struct WantListQueue* ipfs_bitswap_wantlist_queue_new() {
 int ipfs_bitswap_wantlist_queue_free(struct WantListQueue* wantlist) {
 	if (wantlist != NULL) {
 		if (wantlist->queue != NULL) {
+			for(int i = 0; i < wantlist->queue->total; i++) {
+				struct WantListQueueEntry* entry = (struct WantListQueueEntry*)libp2p_utils_vector_get(wantlist->queue, i);
+				ipfs_bitswap_wantlist_queue_entry_free(entry);
+			}
 			libp2p_utils_vector_free(wantlist->queue);
 			wantlist->queue = NULL;
 		}
@@ -262,7 +266,9 @@ int ipfs_bitswap_wantlist_get_block_remote(struct BitswapContext* context, struc
 			libp2p_utils_vector_add(queueEntry->cids_we_want, entry);
 			// process this queue via bitswap protocol
 			ipfs_bitswap_peer_request_process_entry(context, queueEntry);
+			//libp2p_peer_free(current);
 		}
+		libp2p_utils_vector_free(providers);
 		return 1;
 	}
 	return 0;

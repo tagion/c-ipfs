@@ -36,16 +36,24 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct SessionCon
 	}
 
 	// send the message, and expect the same back
-	sessionContext->default_stream->write(sessionContext, protobuf, protobuf_size);
-	sessionContext->default_stream->read(sessionContext, &results, &results_size, 5);
-
-	if (results_size == 0)
+	if (!sessionContext->default_stream->write(sessionContext, protobuf, protobuf_size)) {
+		libp2p_logger_error("online", "Attempted to write to Kademlia stream, but could not.\n");
 		goto exit;
+	}
+	if (!sessionContext->default_stream->read(sessionContext, &results, &results_size, 5)) {
+		libp2p_logger_error("online", "Attempted to read from Kademlia stream, but could not.\n");
+	}
+
+	if (results_size == 0) {
+		libp2p_logger_error("online", "reading kademlia response returned nothing.\n");
+		goto exit;
+	}
 
 	// see if we can unprotobuf
-	if (!libp2p_message_protobuf_decode(results, results_size, &return_message))
+	if (!libp2p_message_protobuf_decode(results, results_size, &return_message)) {
+		libp2p_logger_error("online", "Received kademlia response, but cannot decode it.\n");
 		goto exit;
-
+	}
 	exit:
 
 	if (protobuf != NULL)
@@ -464,13 +472,14 @@ int ipfs_routing_online_bootstrap(struct IpfsRouting* routing) {
 			peer_id_size = strlen(peer_id);
 			peer = libp2p_peer_new();
 			peer->id_size = peer_id_size;
-			peer->id = malloc(peer->id_size);
+			peer->id = malloc(peer->id_size + 1);
 			if (peer->id == NULL) { // out of memory?
 				libp2p_peer_free(peer);
 				free(peer_id);
 				return -1;
 			}
 			memcpy(peer->id, peer_id, peer->id_size);
+			peer->id[peer->id_size] = 0;
 			peer->addr_head = libp2p_utils_linked_list_new();
 			if (peer->addr_head == NULL) { // out of memory?
 				libp2p_peer_free(peer);

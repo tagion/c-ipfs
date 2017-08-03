@@ -139,10 +139,12 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 			if (!ipfs_cid_protobuf_decode(entry->block, entry->block_size, &cid) || cid->hash_length == 0) {
 				libp2p_logger_error("bitswap_network", "Message had invalid CID\n");
 				ipfs_cid_free(cid);
+				ipfs_bitswap_message_free(message);
 				return 0;
 			}
 			ipfs_bitswap_network_adjust_cid_queue(queueEntry->current->cids_they_want, cid, entry->cancel);
 		}
 	}
+	ipfs_bitswap_message_free(message);
 	return 1;
 }

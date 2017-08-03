@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <signal.h>
 #include "../test_helper.h"
 #include "../routing/test_routing.h" // for test_routing_daemon_start
 #include "libp2p/utils/vector.h"
@@ -262,16 +263,17 @@ int test_bitswap_retrieve_file_remote() {
  */
 int test_bitswap_retrieve_file_known_remote() {
 	int retVal = 0;
+	signal(SIGPIPE, SIG_IGN);
 	/***
 	 * This assumes a remote server with the hello_world.txt file already in its database
 	 */
 	int remote_port = 4001;
 	// mac
-	// char* remote_peer_id = "QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4";
-	// char* remote_ip = "10.211.55.2";
+	char* remote_peer_id = "QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4";
+	char* remote_ip = "10.211.55.2";
 	// linux
-	char* remote_peer_id = "QmRKm1d9kSCRpMFtLYpfhhCQ3DKuSSPJa3qn9wWXfwnWnY";
-	char* remote_ip = "10.211.55.4";
+	//char* remote_peer_id = "QmRKm1d9kSCRpMFtLYpfhhCQ3DKuSSPJa3qn9wWXfwnWnY";
+	//char* remote_ip = "10.211.55.4";
 	char* hello_world_hash = "QmTUFTVgkHT3Qdd9ospVjSLi2upd6VdkeNXZQH66cVmzja";
 
 	/*
@@ -317,6 +319,16 @@ int test_bitswap_retrieve_file_known_remote() {
     	goto exit;
     }
 
+    if (result == NULL) {
+    	libp2p_logger_error("test_bitswap", "GetBlock returned NULL");
+    	goto exit;
+    }
+
+    if (result->cid == NULL) {
+    	libp2p_logger_error("test_bitswap", "GetBlock returned an object with no CID");
+    	goto exit;
+    }
+
     if (cid->hash_length != result->cid->hash_length) {
     	libp2p_logger_error("test_bitswap", "Node hash sizes do not match. Should be %lu but is %lu\n", strlen(hello_world_hash), result->cid->hash_length);
     	goto exit;
@@ -335,6 +347,7 @@ int test_bitswap_retrieve_file_known_remote() {
 		ipfs_block_free(result);
 	if (cid != NULL)
 		ipfs_cid_free(cid);
+	ipfs_node_free(ipfs_node2);
 	return retVal;
 }
 

@@ -59,6 +59,14 @@ int ipfs_bitswap_free(struct Exchange* exchange) {
 			struct BitswapContext* bitswapContext = (struct BitswapContext*) exchange->exchangeContext;
 			if (bitswapContext != NULL)
 				ipfs_bitswap_engine_stop(bitswapContext);
+			if (bitswapContext->localWantlist != NULL) {
+				ipfs_bitswap_wantlist_queue_free(bitswapContext->localWantlist);
+				bitswapContext->localWantlist = NULL;
+			}
+			if (bitswapContext->peerRequestQueue != NULL) {
+				ipfs_bitswap_peer_request_queue_free(bitswapContext->peerRequestQueue);
+				bitswapContext->peerRequestQueue = NULL;
+			}
 			free(exchange->exchangeContext);
 		}
 		free(exchange);

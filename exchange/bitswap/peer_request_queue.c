@@ -57,13 +57,45 @@ struct PeerRequest* ipfs_bitswap_peer_request_new() {
 	return request;
 }
 
+int ipfs_bitswap_cid_entry_free(struct CidEntry* entry) {
+	if (entry != NULL) {
+		if (entry->cid != NULL) {
+			ipfs_cid_free(entry->cid);
+			entry->cid = NULL;
+		}
+		free(entry);
+	}
+	return 1;
+}
+
 /**
  * Free resources from a PeerRequest
  * @param request the request to free
  * @returns true(1)
  */
 int ipfs_bitswap_peer_request_free(struct PeerRequest* request) {
-	free(request);
+	if (request != NULL) {
+		for(int i = 0; i < request->cids_we_want->total; i++) {
+			struct CidEntry* entry = (struct CidEntry*)libp2p_utils_vector_get(request->cids_we_want, i);
+			ipfs_bitswap_cid_entry_free(entry);
+		}
+		libp2p_utils_vector_free(request->cids_we_want);
+		request->cids_we_want = NULL;
+		for(int i = 0; i < request->cids_they_want->total; i++) {
+			struct CidEntry* entry = (struct CidEntry*)libp2p_utils_vector_get(request->cids_they_want, i);
+			ipfs_bitswap_cid_entry_free(entry);
+		}
+		libp2p_utils_vector_free(request->cids_they_want);
+		request->cids_they_want = NULL;
+		for(int i = 0; i < request->blocks_we_want_to_send->total; i++) {
+			struct Block* block = (struct Block*)libp2p_utils_vector_get(request->blocks_we_want_to_send, i);
+			ipfs_block_free(block);
+		}
+		libp2p_utils_vector_free(request->blocks_we_want_to_send);
+		request->blocks_we_want_to_send = NULL;
+		free(request);
+
+	}
 	return 1;
 }
 
@@ -341,8 +373,11 @@ int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context
 			// add requests that we would like
 			ipfs_bitswap_message_add_wantlist_items(msg, request->cids_we_want);
 			// send message
-			if (ipfs_bitswap_network_send_message(context, request->peer, msg))
+			if (ipfs_bitswap_network_send_message(context, request->peer, msg)) {
+				ipfs_bitswap_message_free(msg);
 				return 1;
+			}
+			ipfs_bitswap_message_free(msg);
 		}
 	}
 	return 0;
