@@ -265,12 +265,14 @@ int test_bitswap_retrieve_file_known_remote() {
 	/***
 	 * This assumes a remote server with the hello_world.txt file already in its database
 	 */
-	char* remote_ip = "10.211.55.2";
 	int remote_port = 4001;
-	char* remote_peer_id = "QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4";
+	// mac
+	// char* remote_peer_id = "QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4";
+	// char* remote_ip = "10.211.55.2";
+	// linux
+	char* remote_peer_id = "QmRKm1d9kSCRpMFtLYpfhhCQ3DKuSSPJa3qn9wWXfwnWnY";
+	char* remote_ip = "10.211.55.4";
 	char* hello_world_hash = "QmTUFTVgkHT3Qdd9ospVjSLi2upd6VdkeNXZQH66cVmzja";
-	pthread_t thread;
-	int thread_started = 0;
 
 	/*
 	libp2p_logger_add_class("dht_protocol");
@@ -306,15 +308,8 @@ int test_bitswap_retrieve_file_known_remote() {
 	multiaddress_free(ma_peer1);
 	ipfs_node_online_new(ipfs_path, &ipfs_node2);
 
-	// start the daemon in a separate thread
-	if (pthread_create(&thread, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
-		libp2p_logger_error("test_bitswap", "Unable to start thread 2\n");
-		goto exit;
-	}
-	thread_started = 1;
-
     if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hello_world_hash, strlen(hello_world_hash), &cid))
-    	goto exit;
+    		goto exit;
 
     // this does the heavy lifting...
     if (!ipfs_node2->exchange->GetBlock(ipfs_node2->exchange, cid, &result)) {
@@ -329,9 +324,6 @@ int test_bitswap_retrieve_file_known_remote() {
 
 	retVal = 1;
 	exit:
-	ipfs_daemon_stop();
-	if (thread_started)
-		pthread_join(thread, NULL);
 	if (peer_id_1 != NULL)
 		free(peer_id_1);
 	if (peer_id_2 != NULL)

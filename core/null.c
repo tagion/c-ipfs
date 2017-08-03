@@ -206,7 +206,7 @@ void ipfs_null_connection (void *ptr) {
 	free (connection_param);
 	if (retVal != 0) {
 		libp2p_logger_debug("null", "%s Freeing session context.\n", connection_param->local_node->identity->peer->id);
-		libp2p_session_context_free(session);
+		//libp2p_session_context_free(session);
 	}
     return;
 }

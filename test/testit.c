@@ -162,7 +162,7 @@ char* get_test(int argc, char** argv, int arg_number) {
 			ptr++;
 		retVal = malloc(strlen(ptr) + 1);
 		strcpy(retVal, ptr);
-		ptr = strchr(ptr, '\'');
+		ptr = strchr(retVal, '\'');
 		if (ptr != NULL)
 			ptr[0] = 0;
 	}
