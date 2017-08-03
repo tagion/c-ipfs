@@ -97,12 +97,18 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 	while (counter < 5) {
 		if (counter > 0) {
 			//TODO: This shouldn't be here, but it was the only way to cleanup. Need to find a better way...
-			if (config->identity->private_key.public_key_der != NULL)
+			if (config->identity->private_key.public_key_der != NULL) {
 				free(config->identity->private_key.public_key_der);
-			if (config->identity->private_key.der != NULL)
+				config->identity->private_key.public_key_der = NULL;
+			}
+			if (config->identity->private_key.der != NULL) {
 				free(config->identity->private_key.der);
-			if (config->identity->peer != NULL)
+				config->identity->private_key.der = NULL;
+			}
+			if (config->identity->peer != NULL) {
 				libp2p_peer_free(config->identity->peer);
+				config->identity->peer = NULL;
+			}
 		}
 		if (!repo_config_identity_init(config->identity, num_bits_for_keypair))
 			return 0;
