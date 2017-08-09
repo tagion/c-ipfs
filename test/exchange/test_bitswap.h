@@ -287,6 +287,7 @@ int test_bitswap_retrieve_file_known_remote() {
 	libp2p_logger_add_class("null");
 	libp2p_logger_add_class("online");
 	libp2p_logger_add_class("multistream");
+	libp2p_logger_add_class("secio");
 
 	char* ipfs_path = "/tmp/test1";
 	char* peer_id_1 = NULL, *peer_id_2 = NULL;

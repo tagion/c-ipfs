@@ -25,6 +25,7 @@ int ipfs_node_online_protocol_handlers_free(struct Libp2pVector* handlers) {
 	for(int i = 0; i < handlers->total; i++) {
 		struct Libp2pProtocolHandler* current = (struct Libp2pProtocolHandler*) libp2p_utils_vector_get(handlers, i);
 		current->Shutdown(current->context);
+		free(current);
 	}
 	libp2p_utils_vector_free(handlers);
 	return 1;
