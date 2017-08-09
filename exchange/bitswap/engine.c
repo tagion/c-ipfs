@@ -91,7 +91,7 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 					libp2p_logger_debug("bitswap_engine", "We thought we were connected, but Peek reported an error.\n");
 					libp2p_peer_handle_connection_error(current_peer_entry);
 				} else if (retVal > 0) {
-					libp2p_logger_debug("bitswap_engine", "Something waiting on network for peer %s.\n", current_peer_entry->id);
+					libp2p_logger_debug("bitswap_engine", "%d bytes waiting on network for peer %s.\n", retVal, current_peer_entry->id);
 					unsigned char* buffer = NULL;
 					size_t buffer_len = 0;
 					if (current_peer_entry->sessionContext->default_stream->read(current_peer_entry->sessionContext, &buffer, &buffer_len, 1)) {
@@ -100,9 +100,13 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 						free(buffer);
 						did_some_processing = 1;
 						if (retVal == -1) {
+							libp2p_logger_error("bitswap_engine", "protocol_marshal tried to handle the network traffic, but failed.\n");
 							// there was a problem. Clean up
 							libp2p_peer_handle_connection_error(current_peer_entry);
 						}
+					} else {
+						libp2p_logger_error("bitswap_engine", "It was said that there was %d bytes to read, but there wasn't. Cleaning up connection.\n");
+						libp2p_peer_handle_connection_error(current_peer_entry);
 					}
 				}
 			}

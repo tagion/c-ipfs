@@ -179,14 +179,14 @@ void ipfs_null_connection (void *ptr) {
 			retVal = libp2p_protocol_marshal(results, bytes_read, session, connection_param->local_node->protocol_handlers);
 			free(results);
 			if (retVal == -1) {
-				libp2p_logger_debug("null", "ipfs_null_marshal returned false\n");
+				libp2p_logger_debug("null", "protocol_marshal returned error.\n");
 				break;
 			} else if (retVal == 0) {
 				// clean up, but let someone else handle this from now on
-				libp2p_logger_debug("null", "ipfs_null_marshal returns 0. The daemon will no longer handle this.\n");
+				libp2p_logger_debug("null", "protocol_marshal returned 0. The daemon will no longer handle this.\n");
 				break;
 			} else {
-				libp2p_logger_debug("null", "ipfs_null_marshal returned 1. Looping again.");
+				libp2p_logger_debug("null", "protocol_marshal returned 1. Looping again.\n");
 			}
 		}
    	} else {

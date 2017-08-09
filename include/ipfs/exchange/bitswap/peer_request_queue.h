@@ -12,6 +12,8 @@
 struct CidEntry {
 	struct Cid* cid;
 	int cancel;
+	int cancel_has_been_sent;
+	int request_has_been_sent;
 };
 
 struct PeerRequest {

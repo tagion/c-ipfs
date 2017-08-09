@@ -657,7 +657,11 @@ int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, stru
 			return 0;
 	}
 	for(int i = 0; i < cids->total; i++) {
-		const struct CidEntry* cidEntry = (const struct CidEntry*)libp2p_utils_vector_get(cids, i);
+		struct CidEntry* cidEntry = (struct CidEntry*)libp2p_utils_vector_get(cids, i);
+		if (cidEntry->cancel && cidEntry->cancel_has_been_sent)
+			continue;
+		if (!cidEntry->cancel && cidEntry->request_has_been_sent)
+			continue;
 		struct WantlistEntry* entry = ipfs_bitswap_wantlist_entry_new();
 		entry->block_size = ipfs_cid_protobuf_encode_size(cidEntry->cid);
 		entry->block = (unsigned char*) malloc(entry->block_size);
@@ -668,6 +672,10 @@ int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, stru
 		entry->cancel = cidEntry->cancel;
 		entry->priority = 1;
 		libp2p_utils_vector_add(message->wantlist->entries, entry);
+		if (cidEntry->cancel)
+			cidEntry->cancel_has_been_sent = 1;
+		else
+			cidEntry->request_has_been_sent = 1;
 	}
 	return 1;
 }

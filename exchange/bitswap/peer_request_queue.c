@@ -20,6 +20,8 @@ struct CidEntry* ipfs_bitswap_peer_request_cid_entry_new() {
 	if (entry != NULL) {
 		entry->cid = NULL;
 		entry->cancel = 0;
+		entry->cancel_has_been_sent = 0;
+		entry->request_has_been_sent = 0;
 	}
 	return entry;
 }
@@ -337,6 +339,26 @@ int ipfs_bitswap_peer_request_get_blocks_they_want(const struct BitswapContext* 
 	return 0;
 }
 
+/***
+ * Determine if we have anything we want (that we haven't sent already)
+ * @param cid_entries the list of CidEntries that are in our queue to be sent
+ * @returns true(1) if we have something to send, false(0) otherwise
+ */
+int ipfs_bitswap_peer_request_we_want_cids(struct Libp2pVector* cid_entries) {
+	if (cid_entries == NULL)
+		return 0;
+	if (cid_entries->total == 0)
+		return 0;
+	for(int i = 0; i < cid_entries->total; i++) {
+		const struct CidEntry* entry = (const struct CidEntry*) libp2p_utils_vector_get(cid_entries, i);
+		if (entry->cancel && !entry->cancel_has_been_sent)
+			return 1;
+		if (!entry->cancel && !entry->request_has_been_sent)
+			return 1;
+	}
+	return 0;
+}
+
 /****
  * Handle a PeerRequest
  * @param context the BitswapContext
@@ -356,7 +378,7 @@ int ipfs_bitswap_peer_request_process_entry(const struct BitswapContext* context
 	}
 	// determine if we're connected
 	int connected = request->peer->is_local || request->peer->connection_type == CONNECTION_TYPE_CONNECTED;
-	int need_to_connect = request->cids_we_want->total != 0 || ipfs_bitswap_peer_request_cids_waiting(request->cids_they_want) || request->blocks_we_want_to_send->total != 0;
+	int need_to_connect = ipfs_bitswap_peer_request_we_want_cids(request->cids_we_want) || ipfs_bitswap_peer_request_cids_waiting(request->cids_they_want) || request->blocks_we_want_to_send->total != 0;
 
 	// determine if we need to connect
 	if (need_to_connect) {
