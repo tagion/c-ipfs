@@ -53,6 +53,8 @@ void* start_daemon(void* path) {
 }
 
 int test_routing_supernode_get_remote_value() {
+	return 0;
+	/*
 	// a remote machine has a file. Let's see if we can get it.
 	// the key is QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH, which is the test_file.txt
 	int retVal = 0;
@@ -152,9 +154,12 @@ int test_routing_supernode_get_remote_value() {
 	if (multiaddresses != NULL)
 		libp2p_utils_vector_free(multiaddresses);
 	return retVal;
+	*/
 }
 
 int test_routing_supernode_get_value() {
+	return 0;
+	/*
 	int retVal = 0;
 	struct FSRepo* fs_repo = NULL;
 	struct IpfsNode* ipfs_node = NULL;
@@ -209,10 +214,8 @@ int test_routing_supernode_get_value() {
 	}
 
 	// announce to network that this can be provided
-	/*
-	if (!ipfs_node->routing->Provide(ipfs_node->routing, (unsigned char*)write_node->hash, write_node->hash_size))
-		goto exit;
-	*/
+	//if (!ipfs_node->routing->Provide(ipfs_node->routing, (unsigned char*)write_node->hash, write_node->hash_size))
+	//	goto exit;
 
 	// ask the network who can provide this
 	if (!ipfs_node->routing->FindProviders(ipfs_node->routing, write_node->hash, write_node->hash_size, &multiaddresses))
@@ -266,5 +269,5 @@ int test_routing_supernode_get_value() {
 	if (multiaddresses != NULL)
 		libp2p_utils_vector_free(multiaddresses);
 	return retVal;
-
+	*/
 }
