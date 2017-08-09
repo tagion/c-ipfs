@@ -21,6 +21,15 @@ struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* n
 	return retVal;
 }
 
+int ipfs_node_online_protocol_handlers_free(struct Libp2pVector* handlers) {
+	for(int i = 0; i < handlers->total; i++) {
+		struct Libp2pProtocolHandler* current = (struct Libp2pProtocolHandler*) libp2p_utils_vector_get(handlers, i);
+		current->Shutdown(current->context);
+	}
+	libp2p_utils_vector_free(handlers);
+	return 1;
+}
+
 /***
  * build an online IpfsNode
  * @param repo_path where the IPFS repository directory is
@@ -85,6 +94,8 @@ int ipfs_node_free(struct IpfsNode* node) {
 			libp2p_peerstore_free(node->peerstore);
 		if (node->repo != NULL)
 			ipfs_repo_fsrepo_free(node->repo);
+		if (node->protocol_handlers != NULL)
+			ipfs_node_online_protocol_handlers_free(node->protocol_handlers);
 		if (node->mode == MODE_ONLINE) {
 			ipfs_routing_online_free(node->routing);
 		}
