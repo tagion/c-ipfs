@@ -126,8 +126,10 @@ struct Cid* ipfs_cid_new(int version, const unsigned char* hash, size_t hash_len
  */
 int ipfs_cid_free(struct Cid* cid) {
 	if (cid != NULL) {
-		if (cid->hash != NULL)
+		if (cid->hash != NULL) {
 			free(cid->hash);
+			cid->hash = NULL;
+		}
 		free(cid);
 	}
 	return 1;

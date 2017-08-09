@@ -97,9 +97,13 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const
 					struct Libp2pPeer *current_peer = current_provider_peer_list_item->item;
 					// if we can find the peer in the peerstore, use that one instead
 					struct Libp2pPeer* peerstorePeer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (unsigned char*)current_peer->id, current_peer->id_size);
-					if (peerstorePeer != NULL)
-						current_peer = peerstorePeer;
-					libp2p_utils_vector_add(*peers, libp2p_peer_copy(current_peer));
+					if (peerstorePeer != NULL) {
+						// add it to the peerstore
+						libp2p_peerstore_add_peer(routing->local_node->peerstore, current_peer);
+						peerstorePeer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (unsigned char*)current_peer->id, current_peer->id_size);
+					}
+					current_peer = peerstorePeer;
+					libp2p_utils_vector_add(*peers, current_peer);
 					current_provider_peer_list_item = current_provider_peer_list_item->next;
 				}
 				libp2p_message_free(return_message);
@@ -125,7 +129,7 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const
  * @param routing the context
  * @param key the hash to look for
  * @param key_size the size of the hash
- * @param multiaddresses the results
+ * @param peers the results
  * @returns true(1) on success, otherwise false(0)
  */
 int ipfs_routing_online_find_providers(struct IpfsRouting* routing, const unsigned char* key, size_t key_size, struct Libp2pVector** peers) {

@@ -103,7 +103,8 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 	if (message->payload != NULL) {
 		for(int i = 0; i < message->payload->total; i++) {
 			struct Block* blk = (struct Block*)libp2p_utils_vector_get(message->payload, i);
-			node->exchange->HasBlock(node->exchange, blk);
+			// we need a copy of the block so it survives the destruction of the message
+			node->exchange->HasBlock(node->exchange, ipfs_block_copy(blk));
 		}
 	}
 	// wantlist - what they want
@@ -119,19 +120,8 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 			ipfs_bitswap_message_free(message);
 			return 0;
 		}
-		// find the queue
-		struct PeerRequestEntry* queueEntry = ipfs_bitswap_peer_request_queue_find_entry(bitswapContext->peerRequestQueue, peer);
-		if (queueEntry == NULL) {
-			// add the queue
-			struct PeerRequest* peerRequest =ipfs_bitswap_peer_request_new();
-			peerRequest->peer = peer;
-			ipfs_bitswap_peer_request_queue_add(bitswapContext->peerRequestQueue, peerRequest);
-			queueEntry = ipfs_bitswap_peer_request_queue_find_entry(bitswapContext->peerRequestQueue, peer);
-			if (queueEntry == NULL) {
-				ipfs_bitswap_message_free(message);
-				return 0;
-			}
-		}
+		// find the queue (adds it if it is not there)
+		struct PeerRequest* peerRequest = ipfs_peer_request_queue_find_peer(bitswapContext->peerRequestQueue, peer);
 		for(int i = 0; i < message->wantlist->entries->total; i++) {
 			struct WantlistEntry* entry = (struct WantlistEntry*) libp2p_utils_vector_get(message->wantlist->entries, i);
 			// turn the "block" back into a cid
@@ -142,7 +132,7 @@ int ipfs_bitswap_network_handle_message(const struct IpfsNode* node, const struc
 				ipfs_bitswap_message_free(message);
 				return 0;
 			}
-			ipfs_bitswap_network_adjust_cid_queue(queueEntry->current->cids_they_want, cid, entry->cancel);
+			ipfs_bitswap_network_adjust_cid_queue(peerRequest->cids_they_want, cid, entry->cancel);
 		}
 	}
 	ipfs_bitswap_message_free(message);

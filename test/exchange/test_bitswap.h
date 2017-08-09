@@ -343,8 +343,9 @@ int test_bitswap_retrieve_file_known_remote() {
 	if (ma_vector2 != NULL) {
 		libp2p_utils_vector_free(ma_vector2);
 	}
-	if (result != NULL)
-		ipfs_block_free(result);
+	// this is freed by ipfs_node_free
+	//if (result != NULL)
+	//	ipfs_block_free(result);
 	if (cid != NULL)
 		ipfs_cid_free(cid);
 	ipfs_node_free(ipfs_node2);

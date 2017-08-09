@@ -176,9 +176,9 @@ int ipfs_bitswap_peer_request_queue_remove(struct PeerRequestQueue* queue, struc
 }
 
 /**
- * Finds a PeerRequestEntry that contains the specified PeerRequest
+ * Finds a PeerRequestEntry that contains the specified Peer
  * @param queue the queue to look through
- * @param request what we're looking for
+ * @param peer what we're looking for
  * @returns the PeerRequestEntry or NULL if not found
  */
 struct PeerRequestEntry* ipfs_bitswap_peer_request_queue_find_entry(struct PeerRequestQueue* queue, struct Libp2pPeer* peer) {

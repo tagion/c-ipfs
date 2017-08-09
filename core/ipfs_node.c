@@ -57,6 +57,9 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
  */
 int ipfs_node_free(struct IpfsNode* node) {
 	if (node != NULL) {
+		if (node->exchange != NULL) {
+			node->exchange->Close(node->exchange);
+		}
 		if (node->providerstore != NULL)
 			libp2p_providerstore_free(node->providerstore);
 		if (node->peerstore != NULL)
@@ -68,9 +71,6 @@ int ipfs_node_free(struct IpfsNode* node) {
 		}
 		if (node->blockstore != NULL) {
 			ipfs_blockstore_free(node->blockstore);
-		}
-		if (node->exchange != NULL) {
-			node->exchange->Close(node->exchange);
 		}
 		free(node);
 	}

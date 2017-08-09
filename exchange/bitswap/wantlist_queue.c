@@ -262,7 +262,7 @@ int ipfs_bitswap_wantlist_get_block_remote(struct BitswapContext* context, struc
 			// add this to their queue
 			struct PeerRequest* queueEntry = ipfs_peer_request_queue_find_peer(context->peerRequestQueue, current);
 			struct CidEntry* entry = ipfs_bitswap_peer_request_cid_entry_new();
-			entry->cid = cid;
+			entry->cid = ipfs_cid_copy(cid);
 			libp2p_utils_vector_add(queueEntry->cids_we_want, entry);
 			// process this queue via bitswap protocol
 			ipfs_bitswap_peer_request_process_entry(context, queueEntry);
