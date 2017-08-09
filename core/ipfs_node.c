@@ -1,7 +1,25 @@
 #include <stdlib.h>
 
+#include "libp2p/utils/vector.h"
+#include "libp2p/secio/secio.h"
+#include "libp2p/routing/dht_protocol.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
+
+struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* node) {
+	struct Libp2pVector* retVal = libp2p_utils_vector_new(1);
+	if (retVal != NULL) {
+		// secio
+		libp2p_utils_vector_add(retVal, libp2p_secio_build_protocol_handler(&node->identity->private_key, node->peerstore));
+		// nodeio
+		//libp2p_utils_vector_add(retVal, libp2p_nodeio_build_protocol_handler());
+		// kademlia
+		libp2p_utils_vector_add(retVal, libp2p_routing_dht_build_protocol_handler(node->peerstore, node->providerstore));
+		// bitswap
+		libp2p_utils_vector_add(retVal, ipfs_bitswap_build_protocol_handler(node));
+	}
+	return retVal;
+}
 
 /***
  * build an online IpfsNode
@@ -40,6 +58,7 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 	// fill in the node
 	local_node->repo = fs_repo;
 	local_node->identity = fs_repo->config->identity;
+	local_node->protocol_handlers = ipfs_node_online_build_protocol_handlers(*node);
 	local_node->peerstore = libp2p_peerstore_new(local_node->identity->peer);
 	local_node->providerstore = libp2p_providerstore_new(fs_repo->config->datastore, local_node->identity->peer);
 	local_node->blockstore = ipfs_blockstore_new(fs_repo);

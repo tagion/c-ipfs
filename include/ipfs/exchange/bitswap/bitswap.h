@@ -1,13 +1,18 @@
 #pragma once
 
 /***
- * Bitswap implements the exchange "interface"
+ * Bitswap implements the "exchange" and "Libp2pProtocolHandler" interfaces
  * @see ../exchange.h
+ * @see libp2p/net/protocol.h
  */
 
+#include "libp2p/net/protocol.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/exchange/bitswap/engine.h"
+
+struct Libp2pProtocolHandler* ipfs_bitswap_build_protocol_handler(const struct IpfsNode* local_node);
+
 
 struct BitswapContext {
 	struct IpfsNode* ipfsNode;

@@ -19,6 +19,7 @@ struct IpfsNode {
 	struct IpfsRouting* routing;
 	struct Blockstore* blockstore;
 	struct Exchange* exchange;
+	struct Libp2pVector* protocol_handlers;
 	//struct Pinner pinning; // an interface
 	//struct Mount** mounts;
 	// TODO: Add more here

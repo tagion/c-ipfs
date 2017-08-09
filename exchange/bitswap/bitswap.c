@@ -8,8 +8,38 @@
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/exchange/bitswap/message.h"
+#include "ipfs/exchange/bitswap/network.h"
 #include "ipfs/exchange/bitswap/peer_request_queue.h"
 #include "ipfs/exchange/bitswap/want_manager.h"
+
+int ipfs_bitswap_can_handle(const uint8_t* incoming, size_t incoming_size) {
+	if (incoming_size < 8)
+		return 0;
+	char* result = strstr((char*)incoming, "/ipfs/bitswap");
+	if(result == NULL || result != (char*)incoming)
+		return 0;
+	return 1;
+}
+
+int ipfs_bitswap_shutdown_handler(void* context) {
+	return 1;
+}
+
+int ipfs_bitswap_handle_message(const uint8_t* incoming, size_t incoming_size, struct SessionContext* session_context, void* protocol_context) {
+	struct IpfsNode* local_node = (struct IpfsNode*)protocol_context;
+	return ipfs_bitswap_network_handle_message(local_node, session_context, incoming, incoming_size);
+}
+
+struct Libp2pProtocolHandler* ipfs_bitswap_build_protocol_handler(const struct IpfsNode* local_node) {
+	struct Libp2pProtocolHandler* handler = (struct Libp2pProtocolHandler*) malloc(sizeof(struct Libp2pProtocolHandler));
+	if (handler != NULL) {
+		handler->context = (void*)local_node;
+		handler->CanHandle = ipfs_bitswap_can_handle;
+		handler->HandleMessage = ipfs_bitswap_handle_message;
+		handler->Shutdown = ipfs_bitswap_shutdown_handler;
+	}
+	return handler;
+}
 
 /**
  * Create a new bitswap exchange

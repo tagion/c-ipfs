@@ -10,6 +10,7 @@
 #include "libp2p/conn/session.h"
 #include "libp2p/net/multistream.h"
 #include "libp2p/net/p2pnet.h"
+#include "libp2p/net/protocol.h"
 #include "libp2p/nodeio/nodeio.h"
 #include "libp2p/record/message.h"
 #include "libp2p/routing/dht_protocol.h"
@@ -31,20 +32,6 @@
 static int null_shutting_down = 0;
 
 /***
- * Compare incoming to see if they are requesting a protocol upgrade
- * @param incoming the incoming string
- * @param incoming_size the size of the incoming string
- * @param test the protocol string to compare it with (i.e. "/secio" or "/nodeio"
- * @returns true(1) if there was a match, false(0) otherwise
- */
-int protocol_compare(const unsigned char* incoming, size_t incoming_size, const char* test) {
-	int test_size = strlen(test);
-	if (incoming_size >= test_size && strncmp((char*)incoming, test, test_size) == 0)
-		return 1;
-	return 0;
-}
-
-/***
  * Handle the incoming request from a Multistream
  * @param incoming the incoming request
  * @param incoming_size the size of the request in bytes
@@ -53,6 +40,8 @@ int protocol_compare(const unsigned char* incoming, size_t incoming_size, const 
  * @returns 1 to indicate it was handled, 0 to indicate that the daemon should no longer loop (future messages will be handled by another message loop), and -1 to indicate a problem
  */
 int ipfs_multistream_marshal(const unsigned char* incoming, size_t incoming_size, struct SessionContext* session, struct IpfsNode* local_node) {
+	/* to be deleted after we get rid of nodeio*/
+	/*
 	if (protocol_compare(incoming, incoming_size, "/secio")) {
 		libp2p_logger_debug("null", "Attempting secure io connection...\n");
 		if (!libp2p_secio_handshake(session, &local_node->identity->private_key, local_node->peerstore, 1)) {
@@ -114,7 +103,9 @@ int ipfs_multistream_marshal(const unsigned char* incoming, size_t incoming_size
 		libp2p_logger_error("null", "There was a problem with this connection. It is nothing I can handle. Disconnecting.\n");
 		return -1;
 	}
+*/
 	return 1;
+
 }
 
 /**
@@ -185,7 +176,7 @@ void ipfs_null_connection (void *ptr) {
 			// We actually got something. Process the request...
 			unsuccessful_counter = 0;
 			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
-			retVal = ipfs_multistream_marshal(results, bytes_read, session, connection_param->local_node);
+			retVal = libp2p_protocol_marshal(results, bytes_read, session, connection_param->local_node->protocol_handlers);
 			free(results);
 			if (retVal == -1) {
 				libp2p_logger_debug("null", "ipfs_null_marshal returned false\n");
