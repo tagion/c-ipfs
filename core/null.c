@@ -148,6 +148,11 @@ void* ipfs_null_listen (void *ptr)
 
     libp2p_logger_error("null", "Ipfs listening on %d\n", listen_param->port);
 
+    // when we have nothing to do, check on the connections to see if we're still connected
+    struct Libp2pLinkedList* current_peer_entry = NULL;
+    if (listen_param->local_node->peerstore->head_entry != NULL)
+    		current_peer_entry = listen_param->local_node->peerstore->head_entry;
+
     // the main loop, listening for new connections
     for (;;) {
 		//libp2p_logger_debug("null", "%s Attempting socket read with fd %d.\n", listen_param->local_node->identity->peer->id, socketfd);
@@ -179,6 +184,19 @@ void* ipfs_null_listen (void *ptr)
 				// Create pthread for ipfs_null_connection.
 				thpool_add_work(thpool, ipfs_null_connection, connection_param);
 			}
+    		} else {
+    			// timeout... do maintenance
+    			struct PeerEntry* entry = current_peer_entry->item;
+    			if (current_peer_entry != NULL && !entry->peer->is_local && entry->peer->connection_type == CONNECTION_TYPE_CONNECTED) {
+    				libp2p_logger_debug("null", "Attempting to ping %s.\n", entry->peer->id);
+    				if (!listen_param->local_node->routing->Ping(listen_param->local_node->routing, entry->peer)) {
+    					entry->peer->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
+    				}
+    			}
+    			if (current_peer_entry != NULL)
+    				current_peer_entry = current_peer_entry->next;
+    			if (current_peer_entry == NULL)
+    				current_peer_entry = listen_param->local_node->peerstore->head_entry;
     		}
     }
 
