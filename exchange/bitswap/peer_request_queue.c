@@ -419,6 +419,7 @@ struct PeerRequest* ipfs_peer_request_queue_find_peer(struct PeerRequestQueue* q
 		if (libp2p_peer_compare(entry->current->peer, peer) == 0) {
 			return entry->current;
 		}
+		entry = entry->next;
 	}
 
 	// we didn't find one, so create one

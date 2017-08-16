@@ -106,6 +106,8 @@ int main(int argc, char** argv) {
 	libp2p_logger_add_class("peer_request_queue");
 	libp2p_logger_add_class("bitswap_engine");
 	libp2p_logger_add_class("peerstore");
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("peer");
 
 	strip_quotes(argc, argv);
 	int retVal = parse_arguments(argc, argv);
