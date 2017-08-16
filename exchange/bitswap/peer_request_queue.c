@@ -427,10 +427,14 @@ struct PeerRequest* ipfs_peer_request_queue_find_peer(struct PeerRequestQueue* q
 	entry->current = ipfs_bitswap_peer_request_new();
 	entry->current->peer = peer;
 	// attach it to the queue
-	if (queue->first == NULL)
+	if (queue->first == NULL) {
 		queue->first = entry;
-	entry->prior = queue->last;
-	queue->last = entry;
+		queue->last = entry;
+	} else {
+		queue->last->next = entry;
+		entry->prior = queue->last;
+		queue->last = entry;
+	}
 
 	return entry->current;
 }

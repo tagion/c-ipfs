@@ -85,7 +85,7 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 			if (current_peer_entry->sessionContext == NULL || current_peer_entry->sessionContext->default_stream == NULL) {
 				current_peer_entry->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
 			} else {
-				libp2p_logger_debug("bitswap_engine", "We're connected to this peer. Lets see if there is a message waiting for us.\n");
+				libp2p_logger_debug("bitswap_engine", "We're connected to %s. Lets see if there is a message waiting for us.\n", current_peer_entry->id);
 				int retVal = current_peer_entry->sessionContext->default_stream->peek(current_peer_entry->sessionContext);
 				if (retVal < 0) {
 					libp2p_logger_debug("bitswap_engine", "We thought we were connected, but Peek reported an error.\n");
