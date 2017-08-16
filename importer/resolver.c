@@ -144,6 +144,7 @@ struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct Hashtabl
 	size_t message_protobuf_size = libp2p_message_protobuf_encode_size(message);
 	unsigned char message_protobuf[message_protobuf_size];
 	libp2p_message_protobuf_encode(message, message_protobuf, message_protobuf_size, &message_protobuf_size);
+	libp2p_message_free(message);
 	struct SessionContext session_context;
 	session_context.insecure_stream = stream;
 	session_context.default_stream = stream;
