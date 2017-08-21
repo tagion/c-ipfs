@@ -20,7 +20,7 @@ OBJS = testit.o test_helper.o \
 	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \
 	../repo/init.o \
-	../repo/fsrepo/fs_repo.o ../repo/fsrepo/jsmn.o ../repo/fsrepo/lmdb_datastore.o \
+	../repo/fsrepo/*.o \
 	../repo/config/*.o \
 	../routing/offline.o \
 	../routing/online.o \

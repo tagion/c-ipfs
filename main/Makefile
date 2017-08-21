@@ -20,7 +20,7 @@ OBJS = main.o \
 	../namesys/*.o \
 	../pin/pin.o \
 	../repo/init.o \
-	../repo/fsrepo/fs_repo.o ../repo/fsrepo/jsmn.o ../repo/fsrepo/lmdb_datastore.o \
+	../repo/fsrepo/*.o \
 	../repo/config/*.o \
 	../routing/*.o \
 	../thirdparty/ipfsaddr/ipfs_addr.o \

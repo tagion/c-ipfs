@@ -108,6 +108,7 @@ int main(int argc, char** argv) {
 	libp2p_logger_add_class("peerstore");
 	libp2p_logger_add_class("dht_protocol");
 	libp2p_logger_add_class("peer");
+	libp2p_logger_add_class("lmdb_datastore");
 
 	strip_quotes(argc, argv);
 	int retVal = parse_arguments(argc, argv);

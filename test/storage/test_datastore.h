@@ -3,6 +3,7 @@
 #include "ipfs/blocks/block.h"
 #include "ipfs/repo/config/config.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "ipfs/repo/fsrepo/journalstore.h"
 
 #include "../test_helper.h"
 
@@ -61,13 +62,48 @@ int test_ipfs_datastore_put() {
 		return 0;
 	}
 
-	// save the block
-
-	// check the results
-
 	// clean up
 	ipfs_repo_fsrepo_free(fs_repo);
 	ipfs_block_free(block);
 
+	return 1;
+}
+
+/**
+ * List what is in the journal
+ */
+int test_datastore_list_journal() {
+	libp2p_logger_add_class("test_datastore");
+	libp2p_logger_add_class("lmdb_datastore");
+	// open database
+	struct FSRepo* fs_repo;
+	if (ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo) == 0) {
+		return 0;
+	}
+	if (ipfs_repo_fsrepo_open(fs_repo) == 0) {
+		return 0;
+	}
+	// open cursor
+	void* crsr;
+	if (!repo_journalstore_cursor_open(fs_repo->config->datastore, &crsr)) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		return 0;
+	}
+	// grab records
+	struct JournalRecord* record = NULL;
+	enum DatastoreCursorOp op = CURSOR_FIRST;
+	do {
+		if (repo_journalstore_cursor_get(fs_repo->config->datastore, crsr, op, &record) == 0) {
+			journal_record_free(record);
+			record = NULL;
+		}
+		// display record
+		libp2p_logger_debug("test_datastore", "Timestamp: %llu.\n", record->timestamp);
+		libp2p_logger_debug("test_datastore", "Pin: %s.\n", record->pin == 1 ? "Y" : "N");
+		// free record
+		journal_record_free(record);
+		record = NULL;
+		op = CURSOR_NEXT;
+	} while (record != NULL);
 	return 1;
 }

@@ -238,9 +238,6 @@ int ipfs_blockstore_put_unixfs(const struct UnixFS* unix_fs, const struct FSRepo
 		return 0;
 	}
 
-	// send to Put with key (this is now done separately)
-	//fs_repo->config->datastore->datastore_put(key, key_length, block->data, block->data_length, fs_repo->config->datastore);
-
 	free(key);
 	free(filename);
 	return 1;

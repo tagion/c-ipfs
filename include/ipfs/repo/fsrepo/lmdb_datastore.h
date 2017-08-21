@@ -1,7 +1,15 @@
-#ifndef __FS_REPO_LMDB_DATASTORE_H__
-#define __FS_REPO_LMDB_DATASTORE_H__
+#pragma once
 
+#include "lmdb.h"
 #include "libp2p/db/datastore.h"
+
+static const char* DATASTORE_DB = "DATASTORE";
+static const char* JOURNAL_DB = "JOURNAL";
+
+struct lmdb_trans_cursor {
+	MDB_txn* transaction;
+	MDB_cursor* cursor;
+};
 
 /***
  * Places the LMDB methods into the datastore's function pointers
@@ -33,5 +41,3 @@ int repo_fsrepo_lmdb_close(struct Datastore* datastore);
  * @returns true(1) on success
  */
 int repo_fsrepo_lmdb_create_directory(struct Datastore* datastore);
-
-#endif
