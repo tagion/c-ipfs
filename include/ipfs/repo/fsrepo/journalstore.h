@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "lmdb.h"
 #include "libp2p/db/datastore.h"
 
 struct JournalRecord {
@@ -31,3 +32,5 @@ int repo_journalstore_cursor_get(struct Datastore* datastore, void* cursor, enum
 int repo_cournalstore_cursor_close(struct Datastore* datastore, void* cursor);
 
 int journal_record_free(struct JournalRecord* rec);
+
+int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, unsigned long long timestamp, const uint8_t *hash, size_t hash_size);

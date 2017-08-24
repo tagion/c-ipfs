@@ -3,6 +3,7 @@
 #include "exchange/test_bitswap.h"
 #include "exchange/test_bitswap_request_queue.h"
 #include "flatfs/test_flatfs.h"
+#include "journal/test_journal.h"
 #include "merkledag/test_merkledag.h"
 #include "node/test_node.h"
 #include "node/test_importer.h"
@@ -46,6 +47,7 @@ const char* names[] = {
 		"test_cid_protobuf_encode_decode",
 		"test_daemon_startup_shutdown",
 		"test_datastore_list_journal",
+		"test_journal_encode_decode",
 		"test_repo_config_new",
 		"test_repo_config_init",
 		"test_repo_config_write",
@@ -103,6 +105,7 @@ int (*funcs[])(void) = {
 		test_cid_protobuf_encode_decode,
 		test_daemon_startup_shutdown,
 		test_datastore_list_journal,
+		test_journal_encode_decode,
 		test_repo_config_new,
 		test_repo_config_init,
 		test_repo_config_write,

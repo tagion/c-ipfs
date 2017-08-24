@@ -15,6 +15,49 @@ int journal_record_free(struct JournalRecord* rec) {
 	return 1;
 }
 
+/***
+ * Write a journal record
+ * @param mbd_txn the transaction
+ * @param timestamp the timestamp
+ * @param hash the hash
+ * @param hash_size the size of the hash
+ * @returns true(1) on success, false(0) otherwise
+ */
+int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, unsigned long long timestamp, const uint8_t *hash, size_t hash_size) {
+	MDB_dbi mdb_dbi;
+	struct MDB_val db_key;
+	struct MDB_val db_value;
+
+	// build the record, which is a timestamp as a key, a byte that is the pin flag, and the hash as the value
+	uint8_t time_varint[8];
+	size_t time_varint_size = 0;
+	varint_encode(timestamp, &time_varint[0], 8, &time_varint_size);
+
+	size_t record_size = hash_size + 1;
+	uint8_t record[record_size];
+	record[0] = 1;
+	memcpy(&record[1], hash, hash_size);
+
+	// open the journal table
+
+	if (mdb_dbi_open(mdb_txn, JOURNAL_DB, MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
+		return 0;
+	}
+
+	// write the record
+	db_key.mv_size = time_varint_size;
+	db_key.mv_data = time_varint;
+
+	db_value.mv_size = record_size;
+	db_value.mv_data = record;
+
+	if (mdb_put(mdb_txn, mdb_dbi, &db_key, &db_value, 0) == 0) {
+		return 0;
+	}
+
+	return 1;
+}
+
 /**
  * Open a cursor to the journalstore table
  * @param datastore the data connection

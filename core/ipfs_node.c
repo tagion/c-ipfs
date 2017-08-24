@@ -5,14 +5,15 @@
 #include "libp2p/routing/dht_protocol.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
+#include "ipfs/journal/journal.h"
 
 struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* node) {
 	struct Libp2pVector* retVal = libp2p_utils_vector_new(1);
 	if (retVal != NULL) {
 		// secio
 		libp2p_utils_vector_add(retVal, libp2p_secio_build_protocol_handler(&node->identity->private_key, node->peerstore));
-		// nodeio
-		//libp2p_utils_vector_add(retVal, libp2p_nodeio_build_protocol_handler());
+		// journal
+		libp2p_utils_vector_add(retVal, ipfs_journal_build_protocol_handler(node));
 		// kademlia
 		libp2p_utils_vector_add(retVal, libp2p_routing_dht_build_protocol_handler(node->peerstore, node->providerstore));
 		// bitswap
