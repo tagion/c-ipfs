@@ -100,10 +100,16 @@ int repo_journalstore_cursor_get(struct Datastore* datastore, void* crsr, enum D
 		MDB_val mdb_key;
 		MDB_val mdb_value;
 		MDB_cursor_op co = MDB_FIRST;
+
 		if (op == CURSOR_FIRST)
 			co = MDB_FIRST;
 		else if (op == CURSOR_NEXT)
 			co = MDB_NEXT;
+		else if (op == CURSOR_LAST)
+			co = MDB_LAST;
+		else if (op == CURSOR_PREVIOUS)
+			co = MDB_PREV;
+
 		if (mdb_cursor_get(tc->cursor, &mdb_key, &mdb_value, co) != 0) {
 			return 0;
 		}
@@ -126,7 +132,7 @@ int repo_journalstore_cursor_get(struct Datastore* datastore, void* crsr, enum D
 /**
  * Close the cursor
  */
-int repo_cournalstore_cursor_close(struct Datastore* datastore, void* crsr) {
+int repo_journalstore_cursor_close(struct Datastore* datastore, void* crsr) {
 	if (crsr != NULL) {
 		struct lmdb_trans_cursor* cursor = (struct lmdb_trans_cursor*)crsr;
 		if (cursor->cursor != NULL) {

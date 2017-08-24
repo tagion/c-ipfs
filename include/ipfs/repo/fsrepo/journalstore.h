@@ -29,7 +29,7 @@ int repo_journalstore_cursor_get(struct Datastore* datastore, void* cursor, enum
 /**
  * Close the cursor
  */
-int repo_cournalstore_cursor_close(struct Datastore* datastore, void* cursor);
+int repo_journalstore_cursor_close(struct Datastore* datastore, void* cursor);
 
 int journal_record_free(struct JournalRecord* rec);
 

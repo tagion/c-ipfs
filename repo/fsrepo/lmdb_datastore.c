@@ -12,6 +12,7 @@
 
 #include "lmdb.h"
 #include "libp2p/utils/logger.h"
+#include "libp2p/os/utils.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
 #include "ipfs/repo/fsrepo/journalstore.h"
 #include "varint.h"
@@ -122,17 +123,6 @@ int repo_fsrepo_lmdb_get(const char* key, size_t key_size, unsigned char* data, 
 	return 1;
 }
 
-
-/**
- * Get the current time UTC
- * @returns number of seconds since epoch in UTC
- */
-unsigned long long lmdb_datastore_gmt_time() {
-	time_t local = time(NULL);
-	struct tm *gmt = gmtime(&local);
-	return (unsigned long long)mktime(gmt);
-}
-
 /**
  * Write data to the datastore with the specified key
  * @param key the key
@@ -162,7 +152,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 		return 0;
 
 	// add the timestamp
-	unsigned long long timestamp = lmdb_datastore_gmt_time();
+	unsigned long long timestamp = os_utils_gmtime();
 	uint8_t *record;
 	size_t record_size;
 	repo_fsrepo_lmdb_build_record(timestamp, data, data_size, &record, &record_size);

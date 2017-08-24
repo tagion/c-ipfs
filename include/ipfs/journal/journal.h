@@ -44,7 +44,8 @@ struct Libp2pProtocolHandler* ipfs_journal_build_protocol_handler(const struct I
 
 /***
  * Send a journal message to a remote peer
+ * @param local_node the local node
  * @param peer the peer to send it to
  * @returns true(1) on success, false(0) otherwise.
  */
-int ipfs_journal_sync(struct Libp2pPeer* peer);
+int ipfs_journal_sync(struct IpfsNode* local_node, struct Libp2pPeer* peer);
