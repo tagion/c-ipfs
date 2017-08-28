@@ -6,11 +6,6 @@
 #include "../test_helper.h"
 #include "libp2p/utils/logger.h"
 
-void* test_daemon_start(void* arg) {
-	ipfs_daemon_start((char*)arg);
-	return NULL;
-}
-
 int test_daemon_startup_shutdown() {
 	int retVal = 0;
 	pthread_t daemon_thread;

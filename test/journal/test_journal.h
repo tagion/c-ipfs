@@ -67,3 +67,75 @@ int test_journal_encode_decode() {
 	//ipfs_journal_entry_free(result_entry);
 	return retVal;
 }
+
+/***
+ * Starts a server with a file in it with a specific set of files.
+ * It also has a specific address, with a config file of another
+ * known peer to replicate between
+ */
+int test_journal_server_1() {
+	int retVal = 0;
+	pthread_t daemon_thread;
+	int thread_started = 0;
+	char* ipfs_path = "/tmp/ipfs_1";
+	char* config_file = "config.test1";
+	struct FSRepo* fs_repo = NULL;
+
+	libp2p_logger_add_class("test_journal");
+
+	if (!drop_build_open_repo(ipfs_path, &fs_repo, config_file)) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		libp2p_logger_error("test_journal", "Unable to drop and build repository at %s\n", ipfs_path);
+		goto exit;
+	}
+
+	libp2p_logger_debug("test_journal", "Changed the server id to %s.\n", fs_repo->config->identity->peer->id);
+
+	ipfs_repo_fsrepo_free(fs_repo);
+
+	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
+	thread_started = 1;
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (thread_started)
+		pthread_join(daemon_thread, NULL);
+	return retVal;
+}
+
+/***
+ * Starts a server with a specific set of files.
+ * It also has a specific address, with a config file of another
+ * known peer to replicate between
+ */
+int test_journal_server_2() {
+	int retVal = 0;
+	pthread_t daemon_thread;
+	int thread_started = 0;
+	char* ipfs_path = "/tmp/ipfs_2";
+	char* config_file = "config.test2";
+	struct FSRepo* fs_repo = NULL;
+
+	libp2p_logger_add_class("test_journal");
+
+	if (!drop_build_open_repo(ipfs_path, &fs_repo, config_file)) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		libp2p_logger_error("test_journal", "Unable to drop and build repository at %s\n", ipfs_path);
+		goto exit;
+	}
+
+	libp2p_logger_debug("test_journal", "Changed the server id to %s.\n", fs_repo->config->identity->peer->id);
+
+	ipfs_repo_fsrepo_free(fs_repo);
+
+	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
+	thread_started = 1;
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (thread_started)
+		pthread_join(daemon_thread, NULL);
+	return retVal;
+}

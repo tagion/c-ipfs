@@ -1,10 +1,73 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "ipfs/repo/init.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
+#include "ipfs/core/daemon.h"
 #include "libp2p/os/utils.h"
+
+int cp(const char *to, const char *from)
+{
+    int fd_to, fd_from;
+    char buf[4096];
+    ssize_t nread;
+    int saved_errno;
+
+    fd_from = open(from, O_RDONLY);
+    if (fd_from < 0)
+        return -1;
+
+    fd_to = open(to, O_WRONLY | O_CREAT | O_EXCL, 0666);
+    if (fd_to < 0)
+        goto out_error;
+
+    while (nread = read(fd_from, buf, sizeof buf), nread > 0)
+    {
+        char *out_ptr = buf;
+        ssize_t nwritten;
+
+        do {
+            nwritten = write(fd_to, out_ptr, nread);
+
+            if (nwritten >= 0)
+            {
+                nread -= nwritten;
+                out_ptr += nwritten;
+            }
+            else if (errno != EINTR)
+            {
+                goto out_error;
+            }
+        } while (nread > 0);
+    }
+
+    if (nread == 0)
+    {
+        if (close(fd_to) < 0)
+        {
+            fd_to = -1;
+            goto out_error;
+        }
+        close(fd_from);
+
+        /* Success! */
+        return 0;
+    }
+
+  out_error:
+    saved_errno = errno;
+
+    close(fd_from);
+    if (fd_to >= 0)
+        close(fd_to);
+
+    errno = saved_errno;
+    return -1;
+}
 
 /***
  * Helper to create a test file in the OS
@@ -104,26 +167,6 @@ int drop_repository(const char* path) {
 
 	if (os_utils_file_exists(path)) {
 		return remove_directory(path);
-		/*
-		// the config file
-		if (!os_utils_filepath_join(path, "config", currDirectory, 1024))
-			return 0;
-		unlink(currDirectory);
-
-		// the datastore directory
-		if (!os_utils_filepath_join(path, "datastore", currDirectory, 1024))
-			return 0;
-		if (!remove_directory(currDirectory))
-			return 0;
-
-		// the blockstore directory
-		if (!os_utils_filepath_join(path, "blockstore", currDirectory, 1024))
-			return 0;
-		if (!remove_directory(currDirectory))
-			return 0;
-
-		return remove_directory(path);
-		*/
 	}
 
 	return 1;
@@ -149,11 +192,32 @@ int drop_and_build_repository(const char* path, int swarm_port, struct Libp2pVec
 	return make_ipfs_repository(path, swarm_port, bootstrap_peers, peer_id);
 }
 
-
-int drop_build_and_open_repo(const char* path, struct FSRepo** fs_repo) {
-
+/***
+ * Drop a repository and build a new one with the specified config file
+ * @param path where to create it
+ * @param fs_repo the results
+ * @param config_file_to_copy where to find the config file to copy
+ * @returns true(1) on success, otherwise false(0)
+ */
+int drop_build_open_repo(const char* path, struct FSRepo** fs_repo, const char* config_filename_to_copy) {
 	if (!drop_and_build_repository(path, 4001, NULL, NULL))
 		return 0;
+
+	if (config_filename_to_copy != NULL) {
+		// attach config filename to path
+		char config[strlen(path) + 7];
+		strcpy(config, path);
+		// erase slash if there is one
+		if (config[strlen(path)-1] == '/')
+			config[strlen(path)-1] = 0;
+		strcat(config, "/config");
+		// delete the old
+		if (unlink(config) != 0)
+			return 0;
+		// copy pre-built config file into directory
+		if (cp(config, config_filename_to_copy) < 0)
+			return 0;
+	}
 
 	if (!ipfs_repo_fsrepo_new(path, NULL, fs_repo))
 		return 0;
@@ -166,3 +230,22 @@ int drop_build_and_open_repo(const char* path, struct FSRepo** fs_repo) {
 	return 1;
 }
 
+/***
+ * Drop a repository and build a new one
+ * @param path where to create it
+ * @param fs_repo the results
+ * @returns true(1) on success, otherwise false(0)
+ */
+int drop_build_and_open_repo(const char* path, struct FSRepo** fs_repo) {
+	return drop_build_open_repo(path, fs_repo, NULL);
+}
+
+/***
+ * Start a daemon (usefull in a separate thread)
+ * @param arg a char string of the repo path
+ * @returns NULL
+ */
+void* test_daemon_start(void* arg) {
+	ipfs_daemon_start((char*)arg);
+	return NULL;
+}

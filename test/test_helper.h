@@ -15,7 +15,22 @@ int drop_repository(const char* path);
  */
 int drop_and_build_repository(const char* dir, int swarm_port, struct Libp2pVector* bootstrap_peers, char** peer_id);
 
+/***
+ * Drop a repository and build a new one
+ * @param path where to create it
+ * @param fs_repo the results
+ * @returns true(1) on success, otherwise false(0)
+ */
 int drop_build_and_open_repo(const char* path, struct FSRepo** fs_repo);
+
+/***
+ * Drop a repository and build a new one with the specified config file
+ * @param path where to create it
+ * @param fs_repo the results
+ * @param config_file_to_copy where to find the config file to copy
+ * @returns true(1) on success, otherwise false(0)
+ */
+int drop_build_open_repo(const char* path, struct FSRepo** fs_repo, const char* config_file_to_copy);
 
 /***
  * Helper to create a test file in the OS
@@ -31,3 +46,10 @@ int create_file(const char* fileName, unsigned char* bytes, size_t num_bytes);
  * @param num_bytes how much to fill of the buffer
  */
 int create_bytes(unsigned char* buffer, size_t num_bytes);
+
+/***
+ * Start a daemon (usefull in a separate thread)
+ * @param arg a char string of the repo path
+ * @returns NULL
+ */
+void* test_daemon_start(void* arg);
