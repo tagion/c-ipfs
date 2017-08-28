@@ -12,17 +12,19 @@
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/net/protocol.h"
 #include "libp2p/nodeio/nodeio.h"
+#include "libp2p/os/utils.h"
 #include "libp2p/record/message.h"
 #include "libp2p/routing/dht_protocol.h"
 #include "libp2p/secio/secio.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/daemon.h"
-#include "ipfs/routing/routing.h"
 #include "ipfs/core/ipfs_node.h"
+#include "ipfs/exchange/bitswap/network.h"
+#include "ipfs/journal/journal.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/merkledag/node.h"
+#include "ipfs/routing/routing.h"
 #include "ipfs/util/thread_pool.h"
-#include "ipfs/exchange/bitswap/network.h"
 
 #define BUF_SIZE 4096
 
@@ -127,6 +129,38 @@ void ipfs_null_connection (void *ptr) {
     return;
 }
 
+int ipfs_null_do_maintenance(struct IpfsNode* local_node, struct Libp2pPeer* peer) {
+	if (peer == NULL)
+		return 0;
+	if (peer->is_local)
+		return 1;
+	// Is this peer one of our backup partners?
+	struct ReplicationPeer* replication_peer = repo_config_get_replication_peer(local_node->repo->config->replication, peer);
+	long long announce_secs = local_node->repo->config->replication->announce_minutes * 60;
+	// If so, has there been enough time since the last attempt a backup?
+	if (replication_peer != NULL) {
+		announce_secs -= os_utils_gmtime() - repo_config_replication_last_attempt(local_node->repo->config->replication, peer);
+	}
+	// should we attempt to connect if we're not already?
+	if (replication_peer != NULL && announce_secs < 0) {
+		// try to connect if we aren't already
+		if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
+			if (!libp2p_peer_connect(&local_node->identity->private_key, peer, local_node->peerstore, 10)) {
+				return 0;
+			}
+		}
+		// attempt a backup, don't forget to reset timer
+		ipfs_journal_sync(local_node, replication_peer);
+	} else {
+		// try a ping, but only if we're connected
+		if (peer->connection_type == CONNECTION_TYPE_CONNECTED && !local_node->routing->Ping(local_node->routing, peer)) {
+			peer->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
+		}
+	}
+	return 1;
+}
+
+
 /***
  * Called by the daemon to listen for connections
  * @param ptr a pointer to an IpfsNodeListenParams struct
@@ -187,12 +221,7 @@ void* ipfs_null_listen (void *ptr)
     		} else {
     			// timeout... do maintenance
     			struct PeerEntry* entry = current_peer_entry->item;
-    			if (current_peer_entry != NULL && !entry->peer->is_local && entry->peer->connection_type == CONNECTION_TYPE_CONNECTED) {
-    				libp2p_logger_debug("null", "Attempting to ping %s.\n", entry->peer->id);
-    				if (!listen_param->local_node->routing->Ping(listen_param->local_node->routing, entry->peer)) {
-    					entry->peer->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
-    				}
-    			}
+    			ipfs_null_do_maintenance(listen_param->local_node, entry->peer);
     			if (current_peer_entry != NULL)
     				current_peer_entry = current_peer_entry->next;
     			if (current_peer_entry == NULL)

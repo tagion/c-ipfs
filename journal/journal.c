@@ -6,6 +6,7 @@
 #include "ipfs/journal/journal_message.h"
 #include "ipfs/journal/journal_entry.h"
 #include "ipfs/repo/fsrepo/journalstore.h"
+#include "ipfs/repo/config/replication.h"
 
 /***
  * See if we can handle this message
@@ -124,14 +125,14 @@ int ipfs_journal_send_message(struct IpfsNode* node, struct Libp2pPeer* peer, st
 
 /***
  * Send a journal message to a remote peer
- * @param peer the peer to send it to
+ * @param replication_peer the peer to send it to
  * @returns true(1) on success, false(0) otherwise.
  */
-int ipfs_journal_sync(struct IpfsNode* local_node, struct Libp2pPeer* peer) {
+int ipfs_journal_sync(struct IpfsNode* local_node, struct ReplicationPeer* replication_peer) {
 	// make sure we're connected securely
-	if (peer->is_local)
+	if (replication_peer->peer->is_local)
 		return 0;
-	if (peer->sessionContext->secure_stream == NULL)
+	if (replication_peer->peer->sessionContext->secure_stream == NULL)
 		return 0;
 
 	// grab the last 10? files
@@ -164,7 +165,11 @@ int ipfs_journal_sync(struct IpfsNode* local_node, struct Libp2pPeer* peer) {
 	}
 	// send the message
 	message->current_epoch = os_utils_gmtime();
-	int retVal = ipfs_journal_send_message(local_node, peer, message);
+	int retVal = ipfs_journal_send_message(local_node, replication_peer->peer, message);
+	if (retVal) {
+		replication_peer->lastConnect = message->current_epoch;
+		replication_peer->lastJournalTime = message->end_epoch;
+	}
 	// clean up
 	ipfs_journal_message_free(message);
 	ipfs_journal_free_records(journal_records);

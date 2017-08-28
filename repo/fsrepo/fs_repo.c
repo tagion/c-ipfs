@@ -484,11 +484,11 @@ int fs_repo_open_config(struct FSRepo* repo) {
 		curr_pos++;
 		_get_json_int_value(data, tokens, num_tokens, curr_pos, "AnnounceMinutes", &repo->config->replication->announce_minutes);
 		// nodes list
-		int nodes_pos = _find_token(data, tokens, num_tokens, curr_pos, "Nodes");
+		int nodes_pos = _find_token(data, tokens, num_tokens, curr_pos, "Peers");
 		if (nodes_pos >= 0) {
 			if (tokens[nodes_pos].type == JSMN_ARRAY) {
 				int nodes_size = tokens[nodes_pos].size;
-				repo->config->replication->nodes = libp2p_utils_vector_new(nodes_size);
+				repo->config->replication->replication_peers = libp2p_utils_vector_new(nodes_size);
 				nodes_pos++;
 				for(int i = 0; i < nodes_size; i++) {
 					char* val = NULL;
@@ -497,7 +497,11 @@ int fs_repo_open_config(struct FSRepo* repo) {
 					struct MultiAddress* cur = multiaddress_new_from_string(val);
 					if (cur == NULL)
 						continue;
-					libp2p_utils_vector_add(repo->config->replication->nodes, cur);
+					// make multiaddress a peer
+					struct Libp2pPeer* peer = libp2p_peer_new_from_multiaddress(cur);
+					struct ReplicationPeer* rp = repo_config_replication_peer_new();
+					rp->peer = peer;
+					libp2p_utils_vector_add(repo->config->replication->replication_peers, rp);
 					free(val);
 				}
 			}
