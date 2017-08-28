@@ -13,64 +13,81 @@
 #include "lmdb.h"
 #include "libp2p/utils/logger.h"
 #include "libp2p/os/utils.h"
+#include "libp2p/db/datastore.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
 #include "ipfs/repo/fsrepo/journalstore.h"
+#include "libp2p/db/datastore.h"
 #include "varint.h"
 
 /**
  * Build a "value" section for a datastore record
- * @param timestamp the timestamp
- * @param data the data (usually a base32 of the cid hash)
- * @param data_length the length of data
- * @param result the resultant data object
+ * @param record the data
+ * @param result the data (usually a base32 of the cid hash) + the timestamp as varint
  * @param result_size the size of the result
  * @returns true(1) on success, otherwise 0
  */
-int repo_fsrepo_lmdb_build_record(const unsigned long long timestamp, const uint8_t *data, size_t data_length, uint8_t **result, size_t *result_size) {
+int repo_fsrepo_lmdb_encode_record(struct DatastoreRecord* record, uint8_t **result, size_t *result_size) {
 	// turn timestamp into varint
 	uint8_t ts_varint[8];
 	size_t num_bytes;
-	if (varint_encode(timestamp, &ts_varint[0], 8, &num_bytes) == NULL) {
+	if (varint_encode(record->timestamp, &ts_varint[0], 8, &num_bytes) == NULL) {
 		return 0;
 	}
 	// make new structure
-	*result = (uint8_t *) malloc(num_bytes + data_length);
+	*result = (uint8_t *) malloc(num_bytes + record->value_size);
 	if (*result == NULL) {
 		return 0;
 	}
 	memcpy(*result, ts_varint, num_bytes);
-	memcpy(&(*result)[num_bytes], data, data_length);
-	*result_size = data_length + num_bytes;
+	memcpy(&(*result)[num_bytes], record->value, record->value_size);
+	*result_size = record->value_size + num_bytes;
 	return 1;
 }
 
 /**
- * read a "value" section from a datastore record.
- * @param data what we read from the datastore
- * @param data_length the length of what we read from the datastore
- * @param timestamp the timestamp that was read from the datastore
- * @param record_pos where the data starts (without the timestamp)
- * @param record_size the size of the data section of the record
+ * turn lmdb components into a DatastoreRecord structure
+ * @param key the key that we searched for in the database
+ * @param value the result of the search
+ * @param record the complete structure
  * @returns true(1) on success, false(0) otherwise
  */
-int repo_fsrepo_lmdb_parse_record(uint8_t *data, size_t data_length, unsigned long long *timestamp, uint8_t *record_pos, size_t *record_size) {
-	size_t varint_size = 0;
-	*timestamp = varint_decode(data, data_length, &varint_size);
-	record_pos = &data[varint_size];
-	return 1;
+int repo_fsrepo_lmdb_build_record(MDB_val *key, MDB_val *value, struct DatastoreRecord** record) {
+	*record = libp2p_datastore_record_new();
+	if (*record != NULL) {
+		size_t varint_size = 0;
+		struct DatastoreRecord *rec = *record;
+		// set key
+		rec->key_size = key->mv_size;
+		rec->key = (uint8_t *) malloc(rec->key_size);
+		if (rec->key == NULL) {
+			libp2p_datastore_record_free(*record);
+			*record = NULL;
+			return 0;
+		}
+		memcpy(rec->key, key->mv_data, key->mv_size);
+		// set value
+		rec->timestamp = varint_decode(value->mv_data, value->mv_size, &varint_size);
+		rec->value_size = value->mv_size - varint_size;
+		rec->value = (uint8_t *) malloc(rec->value_size);
+		if (rec->value == NULL) {
+			libp2p_datastore_record_free(*record);
+			*record = NULL;
+			return 0;
+		}
+		memcpy(rec->value, &value->mv_data[varint_size], rec->value_size);
+	}
+	return 0;
 }
 
 /***
  * retrieve a record from the database and put in a pre-sized buffer
  * @param key the key to look for
  * @param key_size the length of the key
- * @param data the data that is retrieved
- * @param max_data_size the length of the data buffer
- * @param data_size the length of the data that was found in the database
+ * @param record where to put the results
  * @param datastore where to look for the data
  * @returns true(1) on success
  */
-int repo_fsrepo_lmdb_get(const char* key, size_t key_size, unsigned char* data, size_t max_data_size, size_t* data_size, const struct Datastore* datastore) {
+int repo_fsrepo_lmdb_get(const unsigned char* key, size_t key_size, struct DatastoreRecord **record, const struct Datastore* datastore) {
 	MDB_txn* mdb_txn;
 	MDB_dbi mdb_dbi;
 	struct MDB_val db_key;
@@ -98,24 +115,10 @@ int repo_fsrepo_lmdb_get(const char* key, size_t key_size, unsigned char* data, 
 		return 0;
 	}
 
-	// the data from the database includes a timestamp. We'll need to strip it off.
-	unsigned long long timestamp;
-	uint8_t *pos = NULL;
-	size_t size = 0;
-	if (!repo_fsrepo_lmdb_parse_record(db_key.mv_data, db_key.mv_size, &timestamp, pos, &size)) {
+	if (!repo_fsrepo_lmdb_build_record(&db_key, &db_value, record)) {
 		mdb_txn_commit(mdb_txn);
 		return 0;
 	}
-
-	// Was it too big to fit in the buffer they sent?
-	if (size > max_data_size) {
-		mdb_txn_commit(mdb_txn);
-		return 0;
-	}
-
-	// set return values
-	memcpy(data, pos, size);
-	(*data_size) = size;
 
 	// clean up
 	mdb_txn_commit(mdb_txn);
@@ -153,9 +156,10 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 
 	// add the timestamp
 	unsigned long long timestamp = os_utils_gmtime();
+	struct DatastoreRecord *datastore_record = libp2p_datastore_record_new();
+	size_t record_size = 0;
 	uint8_t *record;
-	size_t record_size;
-	repo_fsrepo_lmdb_build_record(timestamp, data, data_size, &record, &record_size);
+	repo_fsrepo_lmdb_encode_record(datastore_record, &record, &record_size);
 
 	// prepare data
 	db_key.mv_size = key_size;

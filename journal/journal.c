@@ -2,6 +2,7 @@
  * The journal protocol attempts to keep a journal in sync with other (approved) nodes
  */
 #include "libp2p/os/utils.h"
+#include "libp2p/utils/logger.h"
 #include "ipfs/journal/journal.h"
 #include "ipfs/journal/journal_message.h"
 #include "ipfs/journal/journal_entry.h"
@@ -30,20 +31,6 @@ int ipfs_journal_can_handle(const uint8_t* incoming, size_t incoming_size) {
  */
 int ipfs_journal_shutdown_handler(void* context) {
 	return 1;
-}
-
-/***
- * Handles a message
- * @param incoming the message
- * @param incoming_size the size of the message
- * @param session_context details of the remote peer
- * @param protocol_context in this case, an IpfsNode
- * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
- */
-int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, struct SessionContext* session_context, void* protocol_context) {
-	//struct IpfsNode* local_node = (struct IpfsNode*)protocol_context;
-	//TODO: handle the message
-	return -1;
 }
 
 /***
@@ -175,5 +162,106 @@ int ipfs_journal_sync(struct IpfsNode* local_node, struct ReplicationPeer* repli
 	ipfs_journal_free_records(journal_records);
 
 	return retVal;
+}
+
+enum JournalAction { JOURNAL_ENTRY_NEEDED, JOURNAL_TIME_ADJUST, JOURNAL_REMOTE_NEEDS };
+
+struct JournalToDo {
+	enum JournalAction action; // what needs to be done
+	unsigned long long local_timestamp; // what we have in our journal
+	unsigned long long remote_timestamp; // what they have in their journal
+	uint8_t* hash; // the hash
+	size_t hash_size; // the size of the hash
+};
+
+struct JournalToDo* ipfs_journal_todo_new() {
+	struct JournalToDo* j = (struct JournalToDo*) malloc(sizeof(struct JournalToDo));
+	if (j != NULL) {
+		j->action = JOURNAL_ENTRY_NEEDED;
+		j->hash = NULL;
+		j->hash_size = 0;
+		j->local_timestamp = 0;
+		j->remote_timestamp = 0;
+	}
+	return j;
+}
+
+int ipfs_journal_todo_free(struct JournalToDo *in) {
+	if (in != NULL) {
+		free(in);
+	}
+	return 1;
+}
+
+int ipfs_journal_build_todo(struct IpfsNode* local_node, struct JournalMessage* incoming, struct Libp2pVector** todo_vector) {
+	*todo_vector = libp2p_utils_vector_new(1);
+	if (*todo_vector == NULL)
+		return -1;
+	struct Libp2pVector *todos = *todo_vector;
+	// for every file in message
+	for(int i = 0; i < incoming->journal_entries->total; i++) {
+		struct JournalEntry* entry = (struct JournalEntry*) libp2p_utils_vector_get(incoming->journal_entries, i);
+		// do we have the file?
+		struct DatastoreRecord *datastore_record = NULL;
+		if (!local_node->repo->config->datastore->datastore_get(entry->hash, entry->hash_size, &datastore_record, local_node->repo->config->datastore)) {
+			struct JournalToDo* td = ipfs_journal_todo_new();
+			td->action = JOURNAL_ENTRY_NEEDED;
+			td->hash = entry->hash;
+			td->hash_size = entry->hash_size;
+			td->remote_timestamp = entry->timestamp;
+			libp2p_utils_vector_add(todos, td);
+		} else {
+			// do we need to adjust the time?
+			if (datastore_record->timestamp != entry->timestamp) {
+				struct JournalToDo* td = ipfs_journal_todo_new();
+				td->action = JOURNAL_TIME_ADJUST;
+				td->hash = entry->hash;
+				td->hash_size = entry->hash_size;
+				td->local_timestamp = datastore_record->timestamp;
+				td->remote_timestamp = entry->timestamp;
+				libp2p_utils_vector_add(todos, td);
+			}
+		}
+		libp2p_datastore_record_free(datastore_record);
+	}
+	// TODO: get all files of same second
+	// are they perhaps missing something?
+	//struct Libp2pVector* local_records_for_second;
+	return 0;
+}
+
+/***
+ * Handles a message
+ * @param incoming the message
+ * @param incoming_size the size of the message
+ * @param session_context details of the remote peer
+ * @param protocol_context in this case, an IpfsNode
+ * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
+ */
+int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, struct SessionContext* session_context, void* protocol_context) {
+	struct IpfsNode* local_node = (struct IpfsNode*)protocol_context;
+	// un-protobuf the message
+	struct JournalMessage* message = NULL;
+	if (!ipfs_journal_message_decode(incoming, incoming_size, &message))
+		return -1;
+	// see if the remote's time is within 5 minutes of now
+	unsigned long long start_time = os_utils_gmtime();
+	long long our_time_diff = start_time - message->current_epoch;
+	// NOTE: If our_time_diff is negative, the remote's clock is faster than ours.
+	// if it is positive, our clock is faster than theirs.
+	if ( llabs(our_time_diff) > 300) {
+		libp2p_logger_error("journal", "The clock of peer %s is out of 5 minute range. Seconds difference: %llu", session_context->remote_peer_id, our_time_diff);
+		return -1;
+	}
+	// TODO: get our records for the same period
+	// TODO: compare the two sets of records
+	// we will build a list of todo items:
+	// ask for files
+	// adjust time on files
+	// notify remote that we have files that they probably do not have
+	struct Libp2pVector* todo_vector = NULL;
+	ipfs_journal_build_todo(local_node, message, &todo_vector);
+	// set new values in their ReplicationPeer struct
+	return 1;
 }
 

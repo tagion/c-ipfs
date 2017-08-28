@@ -104,7 +104,7 @@ int ipfs_journal_message_encode(struct JournalMessage* message, uint8_t *buffer,
  * @param results where to put the new JournalMessage
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_journal_message_decode(uint8_t *incoming, size_t incoming_size, struct JournalMessage **out) {
+int ipfs_journal_message_decode(const uint8_t *incoming, size_t incoming_size, struct JournalMessage **out) {
 	size_t pos = 0;
 	int retVal = 0, got_something = 0;;
 

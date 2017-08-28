@@ -61,20 +61,19 @@ int ipfs_merkledag_add(struct HashtableNode* node, struct FSRepo* fs_repo, size_
  */
 int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct HashtableNode** node, const struct FSRepo* fs_repo) {
 	int retVal = 1;
-	size_t key_length = 100;
-	unsigned char key[key_length];
+	struct DatastoreRecord* datastore_record = NULL;
 
 	// look for the node in the datastore. If it is not there, it is not a node.
 	// If it exists, it is only a block.
-	retVal = fs_repo->config->datastore->datastore_get((char*)hash, hash_size, key, key_length, &key_length, fs_repo->config->datastore);
+	retVal = fs_repo->config->datastore->datastore_get(hash, hash_size, &datastore_record, fs_repo->config->datastore);
 	if (retVal == 0)
 		return 0;
 
+	libp2p_datastore_record_free(datastore_record);
+
 	// we have the record from the db. Go get the node from the blockstore
-	retVal = ipfs_repo_fsrepo_node_read(hash, hash_size, node, fs_repo);
-	if (retVal == 0) {
+	if (!ipfs_repo_fsrepo_node_read(hash, hash_size, node, fs_repo))
 		return 0;
-	}
 
 	// set the hash
 	ipfs_hashtable_node_set_hash(*node, hash, hash_size);
