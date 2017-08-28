@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 
+#include <fcntl.h>
+
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/api.h"
@@ -56,23 +58,25 @@ int find_chunk(char *buf, const size_t buf_size, size_t *pos, size_t *size)
 int read_chunked(int fd, struct s_request *req, char *already, size_t already_size)
 {
 	char buf[MAX_READ], *p;
-	size_t pos, nsize;
+	size_t pos, nsize, buf_size = 0, r;
 
-	while (already_size > 0) {
-		if (already_size < 10 &&
-		   (already < buf || already > (buf + already_size))) {
+	if (already_size > 0) {
+		if (already_size <= sizeof(buf)) {
 			memcpy(buf, already, already_size);
-			already = buf;
-			if (socket_read_select4(fd, 5) <= 0) {
-				libp2p_logger_error("api", "socket timeout.\n");
-				break;
-			}
-			nsize = read(fd, buf+already_size, sizeof(buf) - already_size);
-			if (nsize > 0) {
-				already_size += nsize;
-			}
+			buf_size += already_size;
+			already_size = 0;
+		} else {
+			memcpy(buf, already, sizeof(buf));
+			already += sizeof(buf);
+			buf_size += sizeof(buf);
+			already_size -= sizeof(buf);
 		}
-		if (!find_chunk(already, already_size, &pos, &nsize)) {
+	}
+
+	while(buf_size) {
+		if (!find_chunk(buf, buf_size, &pos, &nsize)) {
+			libp2p_logger_error("api", "fail find_chunk.\n");
+			libp2p_logger_error("api", "nsize = %d.\n", nsize);
 			return 0;
 		}
 		if (nsize == 0) {
@@ -80,37 +84,61 @@ int read_chunked(int fd, struct s_request *req, char *already, size_t already_si
 		}
 		p = realloc(req->buf, req->size + nsize);
 		if (!p) {
+			libp2p_logger_error("api", "fail realloc.\n");
 			return 0;
 		}
 		req->buf = p;
 		req->size += nsize;
-		already += pos;
-		already_size -= pos;
-		while (nsize > already_size) {
-			memcpy(req->buf + req->body + req->body_size, already, already_size);
-			req->body_size += already_size;
-			nsize -= already_size;
-			already = buf;
-			if (socket_read_select4(fd, 5) <= 0) {
-				libp2p_logger_error("api", "socket timeout.\n");
+
+CPCHUNK:
+		r = nsize;
+		buf_size -= pos;
+		if (r > buf_size) {
+			r = buf_size;
+		}
+		memcpy(req->buf + req->body + req->body_size, buf + pos, r);
+		req->body_size += r;
+		nsize -= r;
+		buf_size -= r;
+		if (buf_size > 0) {
+			memmove(buf, buf + pos + r, buf_size);
+		}
+		pos = 0;
+		if (already_size > 0) {
+			r = sizeof(buf) - buf_size;
+			if (already_size <= r) {
+				memcpy(buf, already, already_size);
+				buf_size += already_size;
+				already_size = 0;
+			} else {
+				memcpy(buf, already, r);
+				already += r;
+				buf_size += r;
+				already_size -= r;
+			}
+		}
+
+		if (socket_read_select4(fd, 5) > 0) {
+			r = sizeof(buf) - buf_size;
+			r = read(fd, buf+buf_size, r);
+			buf_size += r;
+			if (r == 0 && nsize == 0) {
 				break;
 			}
-			already_size = read(fd, buf, sizeof buf);
-			if (nsize <= 0) {
+
+			if (r <= 0) {
 				libp2p_logger_error("api", "read fail.\n");
-				break;
+				return 0;
 			}
 		}
-		if (nsize) {
-			memcpy(req->buf + req->body + req->body_size, already, nsize);
-			req->body_size += nsize;
-			already += nsize;
-		}
-		if (memcmp (already, "\r\n", 2)!=0) {
+
+		if (nsize > 0)
+			goto CPCHUNK; // still have data to transfer on current chunk.
+
+		if (memcmp (buf, "\r\n", 2)!=0) {
+			libp2p_logger_error("api", "fail CRLF.\n");
 			return 0;
 		}
-		already += 2;
-		already_size -= 2;
 	}
 	return 1;
 }
@@ -159,7 +187,7 @@ void *api_connection_thread (void *ptr)
 {
 	int timeout, s, r;
 	const INT_TYPE i = (INT_TYPE) ptr;
-	char buf[MAX_READ+1], *p, *body;
+	char resp[MAX_READ+1], buf[MAX_READ+1], *p, *body;
 	char client[INET_ADDRSTRLEN];
 	struct s_request req;
 	int (*read_func)(int, struct s_request*, char*, size_t) = read_all;
@@ -201,6 +229,7 @@ void *api_connection_thread (void *ptr)
 		req.method = 0;
 		p = strchr(req.buf + req.method, ' ');
 		if (!p) {
+			libp2p_logger_error("api", "fail looking for space on method '%s'.\n", req.buf + req.method);
 			write_cstr (s, HTTP_400);
 			goto quit;
 		}
@@ -208,6 +237,7 @@ void *api_connection_thread (void *ptr)
 		req.path = p - req.buf;
 		p = strchr(p, ' ');
 		if (!p) {
+			libp2p_logger_error("api", "fail looking for space on path '%s'.\n", req.buf + req.path);
 			write_cstr (s, HTTP_400);
 			goto quit;
 		}
@@ -215,6 +245,7 @@ void *api_connection_thread (void *ptr)
 		req.http_ver = p - req.buf;
 		p = strchr(req.buf + req.http_ver, '\r');
 		if (!p) {
+			libp2p_logger_error("api", "fail looking for CR on http_ver '%s'.\n", req.buf + req.http_ver);
 			write_cstr (s, HTTP_400);
 			goto quit;
 		}
@@ -234,10 +265,12 @@ void *api_connection_thread (void *ptr)
 		}
 
 		if (!read_func(s, &req, body, r - (body - buf))) {
+			libp2p_logger_error("api", "fail read_func.\n");
 			write_cstr (s, HTTP_500);
 			goto quit;
 		}
 
+		p = strstr(req.buf + req.header, "Accept-Encoding:");
 		libp2p_logger_error("api", "method = '%s'\n"
 					   "path = '%s'\n"
 					   "http_ver = '%s'\n"
@@ -246,6 +279,15 @@ void *api_connection_thread (void *ptr)
 		req.buf+req.method, req.buf+req.path, req.buf+req.http_ver,
 		req.buf+req.header, req.body_size);
 
+		snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
+		"Content-Type: application/json\r\n"
+		"Server: c-ipfs/0.0.0-dev\r\n"
+		"X-Chunked-Output: 1\r\n"
+		"Connection: close\r\n"
+		"Transfer-Encoding: chunked\r\n\r\n", req.buf + req.http_ver);
+		write_str (s, resp);
+		libp2p_logger_error("api", "resp = {\n%s\n}\n", resp);
+
 		if (strcmp(req.buf + req.method, "GET")==0) {
 			// just an error message, because it's not used.
 			write_dual (s, req.buf + req.http_ver, strchr (HTTP_404, ' '));
@@ -253,6 +295,7 @@ void *api_connection_thread (void *ptr)
 			// TODO: Handle chunked/gzip/form-data/json POST requests.
 		}
 	} else {
+		libp2p_logger_error("api", "fail looking for body.\n");
 		write_cstr (s, HTTP_400);
 	}
 
