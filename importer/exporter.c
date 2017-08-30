@@ -26,7 +26,7 @@ int ipfs_exporter_get_node(struct IpfsNode* local_node, const unsigned char* has
 	unsigned char *buffer = NULL;
 	size_t buffer_size = 0;
 	int retVal = 0;
-	struct Libp2pMessage* msg = NULL;
+	struct KademliaMessage* msg = NULL;
 
 	if (local_node->routing->GetValue(local_node->routing, hash, hash_size, (void**)&buffer, &buffer_size)) {
 		libp2p_logger_debug("exporter", "get_node got a value. Converting it to a HashtableNode\n");

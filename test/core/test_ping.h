@@ -19,7 +19,7 @@
 int test_ping() {
 	int retVal = 0;
 	struct FSRepo* fs_repo = NULL;
-    struct Libp2pMessage* message = NULL;
+    struct KademliaMessage* message = NULL;
     //struct IpfsNode local_node;
     struct Libp2pPeer* remote_peer = NULL;
     struct Dialer* dialer = NULL;

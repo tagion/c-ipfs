@@ -82,6 +82,16 @@ int test_journal_server_1() {
 	struct FSRepo* fs_repo = NULL;
 
 	libp2p_logger_add_class("test_journal");
+	libp2p_logger_add_class("journal");
+	libp2p_logger_add_class("daemon");
+	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("peer");
+	//libp2p_logger_add_class("null");
+	libp2p_logger_add_class("replication");
+	libp2p_logger_add_class("fs_repo");
+	libp2p_logger_add_class("lmdb_journalstore");
+	libp2p_logger_add_class("secio");
+	libp2p_logger_add_class("socket");
 
 	if (!drop_build_open_repo(ipfs_path, &fs_repo, config_file)) {
 		ipfs_repo_fsrepo_free(fs_repo);
@@ -93,8 +103,23 @@ int test_journal_server_1() {
 
 	ipfs_repo_fsrepo_free(fs_repo);
 
+	// add some files to the datastore
+	uint8_t *bytes = (unsigned char*)"hello, world!\n";
+	char* filename = "test1.txt";
+	create_file(filename, bytes, strlen((char*)bytes));
+	struct HashtableNode* node;
+	size_t bytes_written;
+	struct IpfsNode *local_node = NULL;
+	ipfs_node_offline_new(ipfs_path, &local_node);
+	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
+	ipfs_node_free(local_node);
+
+	libp2p_logger_debug("test_journal", "*** Firing up daemon for server 2 ***\n");
+
 	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
 	thread_started = 1;
+
+	sleep(45);
 
 	retVal = 1;
 	exit:
@@ -118,6 +143,15 @@ int test_journal_server_2() {
 	struct FSRepo* fs_repo = NULL;
 
 	libp2p_logger_add_class("test_journal");
+	libp2p_logger_add_class("journal");
+	libp2p_logger_add_class("daemon");
+	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("peer");
+	//libp2p_logger_add_class("null");
+	libp2p_logger_add_class("replication");
+	libp2p_logger_add_class("fs_repo");
+	libp2p_logger_add_class("lmdb_journalstore");
+	libp2p_logger_add_class("secio");
 
 	if (!drop_build_open_repo(ipfs_path, &fs_repo, config_file)) {
 		ipfs_repo_fsrepo_free(fs_repo);
@@ -129,8 +163,12 @@ int test_journal_server_2() {
 
 	ipfs_repo_fsrepo_free(fs_repo);
 
+	libp2p_logger_debug("test_journal", "*** Firing up daemon for server 2 ***\n");
+
 	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
 	thread_started = 1;
+
+	sleep(30);
 
 	retVal = 1;
 	exit:

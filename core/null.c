@@ -130,30 +130,39 @@ void ipfs_null_connection (void *ptr) {
 }
 
 int ipfs_null_do_maintenance(struct IpfsNode* local_node, struct Libp2pPeer* peer) {
-	if (peer == NULL)
+	libp2p_logger_debug("null", "Attempting maintenance on peer %s.\n", libp2p_peer_id_to_string(peer));
+	if (peer == NULL) {
+		libp2p_logger_debug("null", "No maintenance ran on NULL node.\n");
 		return 0;
-	if (peer->is_local)
+	}
+	if (peer->is_local) {
+		libp2p_logger_debug("null", "No maintenance ran on local node.\n");
 		return 1;
+	}
 	// Is this peer one of our backup partners?
 	struct ReplicationPeer* replication_peer = repo_config_get_replication_peer(local_node->repo->config->replication, peer);
 	long long announce_secs = local_node->repo->config->replication->announce_minutes * 60;
 	// If so, has there been enough time since the last attempt a backup?
 	if (replication_peer != NULL) {
-		announce_secs -= os_utils_gmtime() - repo_config_replication_last_attempt(local_node->repo->config->replication, peer);
+		announce_secs -= os_utils_gmtime() - replication_peer->lastConnect;
+		libp2p_logger_debug("null", "Found replication peer. Announce secs are %lld.\n", announce_secs);
 	}
 	// should we attempt to connect if we're not already?
 	if (replication_peer != NULL && announce_secs < 0) {
 		// try to connect if we aren't already
 		if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
-			if (!libp2p_peer_connect(&local_node->identity->private_key, peer, local_node->peerstore, 10)) {
+			if (!libp2p_peer_connect(&local_node->identity->private_key, peer, local_node->peerstore, 2)) {
 				return 0;
 			}
 		}
 		// attempt a backup, don't forget to reset timer
+		libp2p_logger_debug("null", "Attempting a sync of node %s.\n", peer->id);
 		ipfs_journal_sync(local_node, replication_peer);
 	} else {
 		// try a ping, but only if we're connected
+		libp2p_logger_debug("null", "Not replicating, attempt ping of %s.\n", peer->id);
 		if (peer->connection_type == CONNECTION_TYPE_CONNECTED && !local_node->routing->Ping(local_node->routing, peer)) {
+			libp2p_logger_debug("null", "Attempted ping of %s failed.\n", peer->id);
 			peer->connection_type = CONNECTION_TYPE_NOT_CONNECTED;
 		}
 	}

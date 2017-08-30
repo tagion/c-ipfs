@@ -3,9 +3,6 @@
 #include "lmdb.h"
 #include "libp2p/db/datastore.h"
 
-static const char* DATASTORE_DB = "DATASTORE";
-static const char* JOURNAL_DB = "JOURNAL";
-
 struct lmdb_trans_cursor {
 	MDB_txn* transaction;
 	MDB_cursor* cursor;

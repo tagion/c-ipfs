@@ -39,6 +39,7 @@
   "ResolveCacheSize": 128
  },
  "Bootstrap": [
+  "/ip4/127.0.0.1/tcp/4002/ipfs/QmcDW1t4QQBGAs2HSig8xkUhPxFZzmewAeFdsmp6q6nyY5"
  ],
  "Tour": {
   "Last": ""
@@ -68,9 +69,9 @@
   "AddrFilters": null
  },
  "Replication": {
-  "AnnounceMinutes": "60",
-  "Nodes": [
-	"/ip4/127.0.0.1/tcp/4002/ipfs/QmcDW1t4QQBGAs2HSig8xkUhPxFZzmewAeFdsmp6q6nyY5"
+  "AnnounceMinutes": 60,
+  "Peers": [
+		"/ip4/127.0.0.1/tcp/4002/ipfs/QmcDW1t4QQBGAs2HSig8xkUhPxFZzmewAeFdsmp6q6nyY5"
   ]
  }
 }

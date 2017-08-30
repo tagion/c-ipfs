@@ -2,6 +2,7 @@
 
 #include "multiaddr/multiaddr.h"
 #include "libp2p/utils/linked_list.h"
+#include "libp2p/utils/logger.h"
 #include "ipfs/repo/config/replication.h"
 
 /**
@@ -79,8 +80,9 @@ struct ReplicationPeer* repo_config_get_replication_peer(struct Replication* rep
 		if (replication->replication_peers != NULL) {
 			for(int i = 0; i < replication->replication_peers->total; i++) {
 				struct ReplicationPeer* confAddr = (struct ReplicationPeer*) libp2p_utils_vector_get(replication->replication_peers, i);
-				if (libp2p_peer_compare(confAddr->peer, key) == 0)
+				if (libp2p_peer_matches_id(confAddr->peer, (unsigned char*)key->id, key->id_size)) {
 					return confAddr;
+				}
 			}
 		}
 	}
@@ -108,6 +110,7 @@ int repo_config_replication_approved_node(struct Replication* replication, struc
  * @param peer the peer to examine
  * @returns the time since the last replication, or the announce time if we have no record
  */
+/*
 unsigned long long repo_config_replication_last_attempt(struct Replication* replication, struct Libp2pPeer* peer) {
 	struct ReplicationPeer* rp = repo_config_get_replication_peer(replication, peer);
 	if (rp != NULL) {
@@ -115,6 +118,7 @@ unsigned long long repo_config_replication_last_attempt(struct Replication* repl
 	}
 	return 0;
 }
+*/
 
 /***
  * Determine the last journal record time that was sent to this peer

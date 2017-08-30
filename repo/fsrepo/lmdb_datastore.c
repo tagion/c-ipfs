@@ -101,7 +101,7 @@ int repo_fsrepo_lmdb_get(const unsigned char* key, size_t key_size, struct Datas
 	if (mdb_txn_begin(mdb_env, NULL, 0, &mdb_txn) != 0)
 		return 0;
 
-	if (mdb_dbi_open(mdb_txn, DATASTORE_DB, MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
+	if (mdb_dbi_open(mdb_txn, "DATASTORE", MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
 		mdb_txn_commit(mdb_txn);
 		return 0;
 	}
@@ -150,7 +150,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	retVal = mdb_txn_begin(mdb_env, NULL, 0, &mdb_txn);
 	if (retVal != 0)
 		return 0;
-	retVal = mdb_dbi_open(mdb_txn, DATASTORE_DB, MDB_DUPSORT | MDB_CREATE, &mdb_dbi);
+	retVal = mdb_dbi_open(mdb_txn, "DATASTORE", MDB_DUPSORT | MDB_CREATE, &mdb_dbi);
 	if (retVal != 0)
 		return 0;
 
@@ -247,7 +247,7 @@ int repo_fsrepo_lmdb_cursor_open(struct Datastore* datastore) {
 			if (mdb_txn_begin(mdb_env, NULL, 0, &cursor->transaction) != 0)
 				return 0;
 			MDB_txn* mdb_txn = (MDB_txn*)cursor->transaction;
-			if (mdb_dbi_open(mdb_txn, DATASTORE_DB, MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
+			if (mdb_dbi_open(mdb_txn, "DATASTORE", MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
 				mdb_txn_commit(mdb_txn);
 				return 0;
 			}

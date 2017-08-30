@@ -32,6 +32,15 @@ struct IpfsNode {
  * @returns true(1) on success
  */
 int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node);
+
+/***
+ * build an offline IpfsNode
+ * @param repo_path where the IPFS repository directory is
+ * @param node the completed IpfsNode struct
+ * @returns true(1) on success
+ */
+int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node);
+
 /***
  * Free resources from the creation of an IpfsNode
  * @param node the node to free

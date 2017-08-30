@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 
 #include "ipfs/routing/routing.h"
 #include "ipfs/core/null.h"
@@ -20,10 +21,11 @@
  * @param message what to send
  * @returns what was received
  */
-struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct SessionContext* sessionContext, struct Libp2pMessage* message) {
+struct KademliaMessage* ipfs_routing_online_send_receive_message(struct SessionContext* sessionContext, struct KademliaMessage* message) {
 	size_t protobuf_size = 0, results_size = 0;
 	unsigned char* protobuf = NULL, *results = NULL;
-	struct Libp2pMessage* return_message = NULL;
+	struct KademliaMessage* return_message = NULL;
+	//unsigned char* protocol = (unsigned char*)"/ipfs/kad/1.0.0\n";
 
 	protobuf_size = libp2p_message_protobuf_encode_size(message);
 	protobuf = (unsigned char*)malloc(protobuf_size);
@@ -35,6 +37,10 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct SessionCon
 		goto exit;
 	}
 
+	//if (!sessionContext->default_stream->write(sessionContext, protocol, strlen( (char*)protocol))) {
+	//	libp2p_logger_error("online", "Unable to switch to kademlia protocol.\n");
+	//}
+
 	// send the message, and expect the same back
 	if (!sessionContext->default_stream->write(sessionContext, protobuf, protobuf_size)) {
 		libp2p_logger_error("online", "Attempted to write to Kademlia stream, but could not.\n");
@@ -45,8 +51,28 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct SessionCon
 	}
 
 	if (results_size == 0) {
-		libp2p_logger_error("online", "reading kademlia response returned nothing.\n");
+		libp2p_logger_error("online", "reading kademlia header response returned nothing.\n");
 		goto exit;
+	}
+
+	// remove protocol
+	uint8_t *pos = &results[0];
+	size_t pos_length = results_size;
+	int results_max = fmin(results_size, 30);
+	for (int i = 0; i < results_max; i++) {
+		if (results[i] == '\n') {
+			if (i < results_size - 1) {
+				// there's more left
+				pos = &results[i];
+				pos_length = results_size - i;
+			} else {
+				// we've run out of buffer. See if we have more on the network.
+				if (!sessionContext->default_stream->read(sessionContext, &results, &results_size, 5)) {
+					// we don't have more. This is a problem.
+					libp2p_logger_error("online", "Reading kademlia response returned nothing.\n");
+				}
+			}
+		}
 	}
 
 	// see if we can unprotobuf
@@ -75,7 +101,7 @@ struct Libp2pMessage* ipfs_routing_online_send_receive_message(struct SessionCon
 int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const unsigned char* key, size_t key_size, struct Libp2pVector** peers) {
 	int found = 0;
 	// build the message to be transmitted
-	struct Libp2pMessage* message = libp2p_message_new();
+	struct KademliaMessage* message = libp2p_message_new();
 	message->message_type = MESSAGE_TYPE_GET_PROVIDERS;
 	message->key_size = key_size;
 	message->key = malloc(message->key_size);
@@ -87,7 +113,7 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const
 		if (peer->connection_type == CONNECTION_TYPE_CONNECTED) {
 			// Ask for hash, if it has it, break out of the loop and stop looking
 			libp2p_logger_debug("online", "FindRemoteProviders: Asking for who can provide\n");
-			struct Libp2pMessage* return_message = ipfs_routing_online_send_receive_message(peer->sessionContext, message);
+			struct KademliaMessage* return_message = ipfs_routing_online_send_receive_message(peer->sessionContext, message);
 			if (return_message != NULL && return_message->provider_peer_head != NULL) {
 				libp2p_logger_debug("online", "FindRemoteProviders: Return value is not null\n");
 				found = 1;
@@ -163,7 +189,7 @@ int ipfs_routing_online_find_providers(struct IpfsRouting* routing, const unsign
  */
 int ipfs_routing_online_ask_peer_for_peer(struct Libp2pPeer* whoToAsk, const unsigned char* peer_id, size_t peer_id_size, struct Libp2pPeer **result) {
 	int retVal = 0;
-	struct Libp2pMessage *message = NULL, *return_message = NULL;
+	struct KademliaMessage *message = NULL, *return_message = NULL;
 
 	if (whoToAsk->connection_type == CONNECTION_TYPE_CONNECTED) {
 		message = libp2p_message_new();
@@ -261,7 +287,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, const unsigned char
 	struct Libp2pPeer* local_peer = ipfs_routing_online_build_local_peer(routing);
 
 	// create the message
-	struct Libp2pMessage* msg = libp2p_message_new();
+	struct KademliaMessage* msg = libp2p_message_new();
 	msg->key_size = key_size;
 	msg->key = malloc(msg->key_size);
 	memcpy(msg->key, key, msg->key_size);
@@ -280,7 +306,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, const unsigned char
 			// notify everyone we're connected to
 			if (current_peer->connection_type == CONNECTION_TYPE_CONNECTED) {
 				// ignoring results is okay this time
-				struct Libp2pMessage* rslt = ipfs_routing_online_send_receive_message(current_peer->sessionContext, msg);
+				struct KademliaMessage* rslt = ipfs_routing_online_send_receive_message(current_peer->sessionContext, msg);
 				if (rslt != NULL)
 					libp2p_message_free(rslt);
 			}
@@ -301,7 +327,7 @@ int ipfs_routing_online_provide(struct IpfsRouting* routing, const unsigned char
  * @returns true(1) on success, otherwise false(0)
  */
 int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* peer) {
-	struct Libp2pMessage *outMsg = NULL, *inMsg = NULL;
+	struct KademliaMessage *outMsg = NULL, *inMsg = NULL;
 	int retVal = 0;
 
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
@@ -348,14 +374,14 @@ int ipfs_routing_online_ping(struct IpfsRouting* routing, struct Libp2pPeer* pee
  */
 int ipfs_routing_online_get_peer_value(ipfs_routing* routing, const struct Libp2pPeer* peer, const unsigned char* key, size_t key_size, void** buffer, size_t *buffer_size) {
 	// build message
-	struct Libp2pMessage* msg = libp2p_message_new();
+	struct KademliaMessage* msg = libp2p_message_new();
 	msg->key_size = key_size;
 	msg->key = malloc(msg->key_size);
 	memcpy(msg->key, key, msg->key_size);
 	msg->message_type = MESSAGE_TYPE_GET_VALUE;
 
 	// send message and receive results
-	struct Libp2pMessage* ret_msg = ipfs_routing_online_send_receive_message(peer->sessionContext, msg);
+	struct KademliaMessage* ret_msg = ipfs_routing_online_send_receive_message(peer->sessionContext, msg);
 	libp2p_message_free(msg);
 
 	if (ret_msg == NULL)
@@ -500,7 +526,9 @@ int ipfs_routing_online_bootstrap(struct IpfsRouting* routing) {
 				return -1; // this should never happen
 			}
 			if (peer->sessionContext == NULL) { // should always be true unless we added it twice (TODO: we should prevent that earlier)
-				libp2p_peer_connect(&routing->local_node->identity->private_key, peer, routing->local_node->peerstore, 5);
+				if (!libp2p_peer_connect(&routing->local_node->identity->private_key, peer, routing->local_node->peerstore, 2)) {
+					libp2p_logger_debug("online", "Attempted to bootstrap and connect to %s but failed. Continuing.\n", libp2p_peer_id_to_string(peer));
+				}
 			}
 		}
 	}

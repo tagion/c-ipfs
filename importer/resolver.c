@@ -137,7 +137,7 @@ struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct Hashtabl
 	struct Stream* stream = libp2p_net_multistream_connect(ip, port);
 	free(ip);
 	// build the request
-	struct Libp2pMessage* message = libp2p_message_new();
+	struct KademliaMessage* message = libp2p_message_new();
 	message->message_type = MESSAGE_TYPE_GET_VALUE;
 	message->key = key;
 	message->key_size = strlen(key);

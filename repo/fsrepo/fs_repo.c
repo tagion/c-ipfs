@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#include "libp2p/utils/logger.h"
 #include "libp2p/crypto/encoding/base64.h"
 #include "libp2p/crypto/key.h"
 #include "libp2p/peer/peer.h"
@@ -486,13 +487,14 @@ int fs_repo_open_config(struct FSRepo* repo) {
 		// nodes list
 		int nodes_pos = _find_token(data, tokens, num_tokens, curr_pos, "Peers");
 		if (nodes_pos >= 0) {
+			nodes_pos++;
 			if (tokens[nodes_pos].type == JSMN_ARRAY) {
 				int nodes_size = tokens[nodes_pos].size;
 				repo->config->replication->replication_peers = libp2p_utils_vector_new(nodes_size);
 				nodes_pos++;
 				for(int i = 0; i < nodes_size; i++) {
 					char* val = NULL;
-					if (!_get_json_string_value(data, tokens, num_tokens, nodes_pos + i, NULL, &val))
+					if (!_get_json_string_value(data, tokens, num_tokens, nodes_pos, NULL, &val))
 						break;
 					struct MultiAddress* cur = multiaddress_new_from_string(val);
 					if (cur == NULL)
@@ -501,10 +503,15 @@ int fs_repo_open_config(struct FSRepo* repo) {
 					struct Libp2pPeer* peer = libp2p_peer_new_from_multiaddress(cur);
 					struct ReplicationPeer* rp = repo_config_replication_peer_new();
 					rp->peer = peer;
+					libp2p_logger_debug("fs_repo", "Adding %s to replication_peers.\n", libp2p_peer_id_to_string(rp->peer));
 					libp2p_utils_vector_add(repo->config->replication->replication_peers, rp);
 					free(val);
 				}
+			} else {
+				libp2p_logger_debug("fs_repo", "Replication|Peers is not an array.\n");
 			}
+		} else {
+			libp2p_logger_debug("fs_repo", "No replication peers found.\n");
 		}
 	}
 	// free the memory used reading the json file

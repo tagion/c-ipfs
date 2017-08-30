@@ -1,9 +1,11 @@
+#include <string.h>
+
+#include "varint.h"
+#include "lmdb.h"
+#include "libp2p/utils/logger.h"
 #include "ipfs/repo/fsrepo/journalstore.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
 
-#include "lmdb.h"
-#include "varint.h"
-#include <string.h>
 
 int journal_record_free(struct JournalRecord* rec) {
 	if (rec != NULL) {
@@ -40,7 +42,7 @@ int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, unsigned long long timestamp
 
 	// open the journal table
 
-	if (mdb_dbi_open(mdb_txn, JOURNAL_DB, MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
+	if (mdb_dbi_open(mdb_txn, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
 		return 0;
 	}
 
@@ -72,10 +74,13 @@ int repo_journalstore_cursor_open(struct Datastore* datastore, void** crsr) {
 			*crsr = malloc(sizeof(struct lmdb_trans_cursor));
 			struct lmdb_trans_cursor* cursor = (struct lmdb_trans_cursor*)*crsr;
 			// open transaction
-			if (mdb_txn_begin(mdb_env, NULL, 0, &cursor->transaction) != 0)
+			if (mdb_txn_begin(mdb_env, NULL, 0, &cursor->transaction) != 0) {
+				libp2p_logger_error("lmdb_journalstore", "Unable to start a transaction.\n");
 				return 0;
+			}
 			MDB_txn* mdb_txn = (MDB_txn*)cursor->transaction;
-			if (mdb_dbi_open(mdb_txn, JOURNAL_DB, MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
+			if (mdb_dbi_open(mdb_txn, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
+				libp2p_logger_error("lmdb_journalstore", "Unable to open the dbi to the journalstore");
 				mdb_txn_commit(mdb_txn);
 				return 0;
 			}
@@ -85,7 +90,11 @@ int repo_journalstore_cursor_open(struct Datastore* datastore, void** crsr) {
 				return 0;
 			}
 			return 1;
+		} else {
+			libp2p_logger_error("lmdb_journalstore", "Attempted to open a new cursor but there is something already there.\n");
 		}
+	} else {
+		libp2p_logger_error("lmdb_journalstore", "Unable to open cursor on null db handle.\n");
 	}
 	return 0;
 
