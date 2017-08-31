@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "ipfs/importer/resolver.h"
+#include "libp2p/utils/logger.h"
 #include "libp2p/crypto/encoding/base58.h"
 #include "libp2p/conn/session.h"
 #include "libp2p/routing/dht_protocol.h"
@@ -141,6 +142,11 @@ struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct Hashtabl
 	message->message_type = MESSAGE_TYPE_GET_VALUE;
 	message->key = key;
 	message->key_size = strlen(key);
+	size_t b58size = 100;
+	uint8_t *b58key = (uint8_t *) malloc(b58size);
+	libp2p_crypto_encoding_base58_encode((unsigned char*)message->key, message->key_size, (unsigned char**) &b58key, &b58size);
+	libp2p_logger_debug("resolver", "Attempting to use kademlia to get key %s.\n", b58key);
+	free(b58key);
 	size_t message_protobuf_size = libp2p_message_protobuf_encode_size(message);
 	unsigned char message_protobuf[message_protobuf_size];
 	libp2p_message_protobuf_encode(message, message_protobuf, message_protobuf_size, &message_protobuf_size);

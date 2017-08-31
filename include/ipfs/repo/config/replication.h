@@ -10,6 +10,7 @@ struct ReplicationPeer {
 };
 
 struct Replication {
+	int announce;
 	int announce_minutes;
 	struct Libp2pVector* replication_peers;
 };

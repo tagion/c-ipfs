@@ -6,7 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "libp2p/crypto/encoding/base58.h"
 #include "libp2p/crypto/sha256.h"
+#include "libp2p/utils/logger.h"
 #include "ipfs/unixfs/unixfs.h"
 #include "protobuf.h"
 #include "varint.h"
@@ -135,6 +137,13 @@ int ipfs_unixfs_add_data(unsigned char* data, size_t data_length, struct UnixFS*
 		free(unix_fs->hash);
 		return 0;
 	}
+
+	// debug: display hash
+	size_t b58size = 100;
+	uint8_t *b58key = (uint8_t *) malloc(b58size);
+	libp2p_crypto_encoding_base58_encode(unix_fs->hash, unix_fs->hash_length, &b58key, &b58size);
+	libp2p_logger_debug("unixfs", "Saving hash of %s to unixfs object.\n", b58key);
+	free(b58key);
 
 	return 1;
 

@@ -484,6 +484,7 @@ int fs_repo_open_config(struct FSRepo* repo) {
 		// announce minutes
 		curr_pos++;
 		_get_json_int_value(data, tokens, num_tokens, curr_pos, "AnnounceMinutes", &repo->config->replication->announce_minutes);
+		_get_json_int_value(data, tokens, num_tokens, curr_pos, "Announce", &repo->config->replication->announce);
 		// nodes list
 		int nodes_pos = _find_token(data, tokens, num_tokens, curr_pos, "Peers");
 		if (nodes_pos >= 0) {

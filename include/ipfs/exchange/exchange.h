@@ -30,6 +30,16 @@ struct Exchange {
 	int (*GetBlock)(struct Exchange* exchange, struct Cid* cid, struct Block** block);
 
 	/**
+	 * Retrieve a block from peers asynchronously
+	 *
+	 * @param context the context
+	 * @param cid the hash of the block to retrieve
+	 * @param queue_entry the queue entry to watch
+	 * @returns true(1) on success, false(0) otherwise
+	 */
+	int (*GetBlockAsync)(struct Exchange* exchange, struct Cid* cid, struct Block** block);
+
+	/**
 	 * Retrieve several blocks
 	 * @param context the context
 	 * @param Cids a vector of hashes for the blocks to be retrieved

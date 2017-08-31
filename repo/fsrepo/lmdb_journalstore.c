@@ -3,6 +3,7 @@
 #include "varint.h"
 #include "lmdb.h"
 #include "libp2p/utils/logger.h"
+#include "libp2p/crypto/encoding/base58.h"
 #include "ipfs/repo/fsrepo/journalstore.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
 
@@ -39,6 +40,13 @@ int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, unsigned long long timestamp
 	uint8_t record[record_size];
 	record[0] = 1;
 	memcpy(&record[1], hash, hash_size);
+
+	// debug
+	size_t b58size = 100;
+	uint8_t *b58key = (uint8_t *) malloc(b58size);
+	libp2p_crypto_encoding_base58_encode(hash, hash_size, &b58key, &b58size);
+	libp2p_logger_debug("lmdb_journalstore", "Adding hash %s to journalstore.\n", b58key);
+	free(b58key);
 
 	// open the journal table
 

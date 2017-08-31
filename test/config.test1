@@ -5,7 +5,7 @@
  },
  "Datastore": {
   "Type": "lmdb",
-  "Path": "/Users/JohnJones/.ipfs/datastore",
+  "Path": "/tmp/ipfs_1/datastore",
   "StorageMax": "10GB",
   "StorageGCWatermark": 90,
   "GCPeriod": "1h",
@@ -69,6 +69,7 @@
   "AddrFilters": null
  },
  "Replication": {
+  "Announce": 1,
   "AnnounceMinutes": 60,
   "Peers": [
 		"/ip4/127.0.0.1/tcp/4002/ipfs/QmcDW1t4QQBGAs2HSig8xkUhPxFZzmewAeFdsmp6q6nyY5"

@@ -10,6 +10,7 @@
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/exchange/bitswap/engine.h"
+#include "ipfs/exchange/bitswap/wantlist_queue.h"
 
 struct Libp2pProtocolHandler* ipfs_bitswap_build_protocol_handler(const struct IpfsNode* local_node);
 
@@ -65,6 +66,16 @@ int ipfs_bitswap_has_block(struct Exchange* exchange, struct Block* block);
  * @returns true(1) on success, false(0) otherwise.
  */
 int ipfs_bitswap_get_block(struct Exchange* exchange, struct Cid* cid, struct Block** block);
+
+/**
+ * Retrieve a block from the BitswapNetwork
+ *
+ * @param exchangeContext a pointer to a BitswapContext
+ * @param cid the Cid of the block we're looking for
+ * @param queue a pointer to the queue that will change if the block arrives
+ * @returns true(1) on success, false(0) otherwise.
+ */
+int ipfs_bitswap_get_block_async(struct Exchange* exchange, struct Cid* cid, struct Block** block);
 
 /***
  * Retrieve a collection of blocks from the BitswapNetwork

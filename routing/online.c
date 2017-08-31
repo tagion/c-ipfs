@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "libp2p/crypto/encoding/base58.h"
 #include "ipfs/routing/routing.h"
 #include "ipfs/core/null.h"
 #include "libp2p/record/message.h"
@@ -106,6 +107,11 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const
 	message->key_size = key_size;
 	message->key = malloc(message->key_size);
 	memcpy(message->key, key, message->key_size);
+	size_t b58size = 100;
+	uint8_t *b58key = (uint8_t *) malloc(b58size);
+	libp2p_crypto_encoding_base58_encode((unsigned char*)message->key, message->key_size, (unsigned char**) &b58key, &b58size);
+	libp2p_logger_debug("online", "find_remote_providers looking for key %s.\n", b58key);
+	free(b58key);
 	// loop through the connected peers, asking for the hash
 	struct Libp2pLinkedList* current_entry = routing->local_node->peerstore->head_entry;
 	while (current_entry != NULL) {

@@ -92,6 +92,12 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_find(struct WantListQueue
 int ipfs_bitswap_wantlist_session_compare(const struct WantListSession* a, const struct WantListSession* b);
 
 /**
+ * Create a new WantListSession
+ * @returns the newly allocated WantListSession
+ */
+struct WantListSession* ipfs_bitswap_wantlist_session_new();
+
+/**
  * Called by the Bitswap engine, this processes an item on the WantListQueue
  * @param context the context
  * @param entry the WantListQueueEntry

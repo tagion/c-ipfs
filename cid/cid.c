@@ -227,6 +227,25 @@ int ipfs_cid_hash_to_base58(const unsigned char* hash, size_t hash_length, unsig
 }
 
 /***
+ * Turn the hash of this CID into a c string
+ * @param cid the cid
+ * @param result a place to allocate and store the string
+ * @returns a pointer to the string (*result) or NULL if there was a problem
+ */
+char* ipfs_cid_to_string(const struct Cid* cid, char **result) {
+	size_t str_len = libp2p_crypto_encoding_base58_encode_size(cid->hash_length) + 1;
+	char *str = (char*) malloc(str_len);
+	*result = str;
+	if (str != NULL) {
+		if (!libp2p_crypto_encoding_base58_encode(cid->hash, cid->hash_length, (unsigned char**)&str, &str_len)) {
+			free(str);
+			str = NULL;
+		}
+	}
+	return str;
+}
+
+/***
  * Turn a multibase decoded string of bytes into a Cid struct
  * @param incoming the multibase decoded array
  * @param incoming_size the size of the array

@@ -86,12 +86,19 @@ int test_journal_server_1() {
 	libp2p_logger_add_class("daemon");
 	libp2p_logger_add_class("online");
 	libp2p_logger_add_class("peer");
-	//libp2p_logger_add_class("null");
+	libp2p_logger_add_class("null");
 	libp2p_logger_add_class("replication");
 	libp2p_logger_add_class("fs_repo");
 	libp2p_logger_add_class("lmdb_journalstore");
+	libp2p_logger_add_class("lmdb_datastore");
 	libp2p_logger_add_class("secio");
 	libp2p_logger_add_class("socket");
+	libp2p_logger_add_class("protocol");
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("resolver");
+	libp2p_logger_add_class("unixfs");
+	libp2p_logger_add_class("bitswap_engine");
+	libp2p_logger_add_class("bitswap_network");
 
 	if (!drop_build_open_repo(ipfs_path, &fs_repo, config_file)) {
 		ipfs_repo_fsrepo_free(fs_repo);
@@ -147,11 +154,18 @@ int test_journal_server_2() {
 	libp2p_logger_add_class("daemon");
 	libp2p_logger_add_class("online");
 	libp2p_logger_add_class("peer");
-	//libp2p_logger_add_class("null");
+	libp2p_logger_add_class("null");
 	libp2p_logger_add_class("replication");
 	libp2p_logger_add_class("fs_repo");
 	libp2p_logger_add_class("lmdb_journalstore");
+	libp2p_logger_add_class("lmdb_datastore");
 	libp2p_logger_add_class("secio");
+	libp2p_logger_add_class("protocol");
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("resolver");
+	libp2p_logger_add_class("unixfs");
+	libp2p_logger_add_class("bitswap_engine");
+	libp2p_logger_add_class("bitswap_network");
 
 	if (!drop_build_open_repo(ipfs_path, &fs_repo, config_file)) {
 		ipfs_repo_fsrepo_free(fs_repo);

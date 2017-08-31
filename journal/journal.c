@@ -1,6 +1,7 @@
 /**
  * The journal protocol attempts to keep a journal in sync with other (approved) nodes
  */
+#include "libp2p/crypto/encoding/base58.h"
 #include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/journal/journal.h"
@@ -168,6 +169,12 @@ int ipfs_journal_sync(struct IpfsNode* local_node, struct ReplicationPeer* repli
 			return 0;
 		}
 		memcpy(entry->hash, rec->hash, entry->hash_size);
+		// debugging
+		size_t b58size = 100;
+		uint8_t *b58key = (uint8_t*) malloc(b58size);
+		libp2p_crypto_encoding_base58_encode(entry->hash, entry->hash_size, &b58key, &b58size);
+		free(b58key);
+		libp2p_logger_debug("journal", "Adding hash %s to JournalMessage.\n", b58key);
 		libp2p_utils_vector_add(message->journal_entries, entry);
 	}
 	// send the message
@@ -313,7 +320,13 @@ int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, s
 				// go get a file
 				struct Block* block = NULL;
 				struct Cid* cid = ipfs_cid_new(0, curr->hash, curr->hash_size, CID_PROTOBUF);
-				if (local_node->exchange->GetBlock(local_node->exchange, cid, &block)) {
+				// debugging
+				char* str = NULL;
+				libp2p_logger_debug("journal", "Looking for block %s.\n", ipfs_cid_to_string(cid, &str));
+				if (str != NULL)
+					free(str);
+
+				if (local_node->exchange->GetBlockAsync(local_node->exchange, cid, &block)) {
 					// set timestamp
 				}
 				ipfs_cid_free(cid);

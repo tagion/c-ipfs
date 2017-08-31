@@ -78,6 +78,7 @@ struct WantListQueueEntry* ipfs_bitswap_wantlist_queue_add(struct WantListQueue*
 			entry = ipfs_bitswap_wantlist_queue_entry_new();
 			entry->cid = ipfs_cid_copy(cid);
 			entry->priority = 1;
+			libp2p_utils_vector_add(entry->sessionsRequesting, session);
 			libp2p_utils_vector_add(wantlist->queue, entry);
 		}
 		libp2p_utils_vector_add(entry->sessionsRequesting, session);
@@ -213,6 +214,20 @@ int ipfs_bitswap_wantlist_session_compare(const struct WantListSession* a, const
 		return libp2p_peer_compare(contextA, contextB);
 	}
 }
+
+/**
+ * Create a new WantListSession
+ * @returns the newly allocated WantListSession
+ */
+struct WantListSession* ipfs_bitswap_wantlist_session_new() {
+	struct WantListSession* ret = (struct WantListSession*) malloc(sizeof(struct WantListSession));
+	if (ret != NULL) {
+		ret->context = NULL;
+		ret->type = WANTLIST_SESSION_TYPE_LOCAL;
+	}
+	return ret;
+}
+
 
 /**
  * determine if any of the sessions are referring to the local node

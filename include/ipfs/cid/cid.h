@@ -106,6 +106,14 @@ int ipfs_cid_decode_hash_from_base58(const unsigned char* incoming, size_t incom
 int ipfs_cid_hash_to_base58(const unsigned char* hash, size_t hash_length, unsigned char* buffer, size_t max_buffer_length);
 
 /***
+ * Turn the hash of this CID into a c string
+ * @param cid the cid
+ * @param result a place to allocate and store the string
+ * @returns a pointer to the string (*result) or NULL if there was a problem
+ */
+char* ipfs_cid_to_string(const struct Cid* cid, char **result);
+
+/***
  * Turn a multibase decoded string of bytes into a Cid struct
  * @param incoming the multibase decoded array
  * @param incoming_size the size of the array

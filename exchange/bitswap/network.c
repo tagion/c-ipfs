@@ -16,6 +16,7 @@
  * @param message the message to send
  */
 int ipfs_bitswap_network_send_message(const struct BitswapContext* context, struct Libp2pPeer* peer, const struct BitswapMessage* message) {
+	libp2p_logger_debug("bitswap_network", "Sending bitswap message to %s.\n", libp2p_peer_id_to_string(peer));
 	// get a connection to the peer
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
 		libp2p_peer_connect(&context->ipfsNode->identity->private_key, peer, context->ipfsNode->peerstore, 10);

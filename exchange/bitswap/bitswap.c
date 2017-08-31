@@ -25,9 +25,20 @@ int ipfs_bitswap_shutdown_handler(void* context) {
 	return 1;
 }
 
+/***
+ * Handles the message
+ * @param incoming the incoming data buffer
+ * @param incoming_size the size of the incoming data buffer
+ * @param session_context the information about the incoming connection
+ * @param protocol_context the protocol-dependent context
+ * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
+ */
 int ipfs_bitswap_handle_message(const uint8_t* incoming, size_t incoming_size, struct SessionContext* session_context, void* protocol_context) {
 	struct IpfsNode* local_node = (struct IpfsNode*)protocol_context;
-	return ipfs_bitswap_network_handle_message(local_node, session_context, incoming, incoming_size);
+	int retVal = ipfs_bitswap_network_handle_message(local_node, session_context, incoming, incoming_size);
+	if (retVal == 0)
+		return -1;
+	return retVal;
 }
 
 struct Libp2pProtocolHandler* ipfs_bitswap_build_protocol_handler(const struct IpfsNode* local_node) {
@@ -69,6 +80,7 @@ struct Exchange* ipfs_bitswap_new(struct IpfsNode* ipfs_node) {
 		exchange->Close = ipfs_bitswap_close;
 		exchange->HasBlock = ipfs_bitswap_has_block;
 		exchange->GetBlock = ipfs_bitswap_get_block;
+		exchange->GetBlockAsync = ipfs_bitswap_get_block_async;
 		exchange->GetBlocks = ipfs_bitswap_get_blocks;
 
 		// Start the threads for the network
@@ -130,6 +142,7 @@ int ipfs_bitswap_has_block(struct Exchange* exchange, struct Block* block) {
 	// add the block to the blockstore
 	struct BitswapContext* context = exchange->exchangeContext;
 	context->ipfsNode->blockstore->Put(context->ipfsNode->blockstore->blockstoreContext, block);
+	context->ipfsNode->repo->config->datastore->datastore_put(block->cid->hash, block->cid->hash_length, block->data, block->data_length, context->ipfsNode->repo->config->datastore);
 	// update requests
 	struct WantListQueueEntry* queueEntry = ipfs_bitswap_wantlist_queue_find(context->localWantlist, block->cid);
 	if (queueEntry != NULL) {
@@ -159,10 +172,10 @@ int ipfs_bitswap_get_block(struct Exchange* exchange, struct Cid* cid, struct Bl
 		int timeout = 60;
 		int waitSecs = 1;
 		int timeTaken = 0;
-		struct WantListSession wantlist_session;
-		wantlist_session.type = WANTLIST_SESSION_TYPE_LOCAL;
-		wantlist_session.context = (void*)bitswapContext->ipfsNode;
-		struct WantListQueueEntry* want_entry = ipfs_bitswap_want_manager_add(bitswapContext, cid, &wantlist_session);
+		struct WantListSession *wantlist_session = ipfs_bitswap_wantlist_session_new();
+		wantlist_session->type = WANTLIST_SESSION_TYPE_LOCAL;
+		wantlist_session->context = (void*)bitswapContext->ipfsNode;
+		struct WantListQueueEntry* want_entry = ipfs_bitswap_want_manager_add(bitswapContext, cid, wantlist_session);
 		if (want_entry != NULL) {
 			// loop waiting for it to fill
 			while(1) {
@@ -185,6 +198,34 @@ int ipfs_bitswap_get_block(struct Exchange* exchange, struct Cid* cid, struct Bl
 				sleep(waitSecs);
 			}
 		}
+	}
+	return 0;
+}
+
+/**
+ * Implements the Exchange->GetBlock method
+ * We're asking for this method to get the block from peers. Perhaps this should be
+ * taking in a pointer to a callback, as this could take a while (or fail).
+ * @param exchangeContext a BitswapContext
+ * @param cid the Cid to look for
+ * @param block a pointer to where to put the result
+ * @returns true(1) if found, false(0) if not
+ */
+int ipfs_bitswap_get_block_async(struct Exchange* exchange, struct Cid* cid, struct Block** block) {
+	struct BitswapContext* bitswapContext = (struct BitswapContext*)exchange->exchangeContext;
+	if (bitswapContext != NULL) {
+		// check locally first
+		struct Block* block;
+		if (bitswapContext->ipfsNode->blockstore->Get(bitswapContext->ipfsNode->blockstore->blockstoreContext, cid, &block)) {
+			return 1;
+		}
+		// now ask the network
+		struct WantListSession* wantlist_session = ipfs_bitswap_wantlist_session_new();
+		wantlist_session->type = WANTLIST_SESSION_TYPE_LOCAL;
+		wantlist_session->context = (void*)bitswapContext->ipfsNode;
+		ipfs_bitswap_want_manager_add(bitswapContext, cid, wantlist_session);
+		// TODO: return something that they can watch
+		return 1;
 	}
 	return 0;
 }

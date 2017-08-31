@@ -12,6 +12,7 @@
 
 #include "lmdb.h"
 #include "libp2p/utils/logger.h"
+#include "libp2p/crypto/encoding/base58.h"
 #include "libp2p/os/utils.h"
 #include "libp2p/db/datastore.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
@@ -76,7 +77,7 @@ int repo_fsrepo_lmdb_build_record(MDB_val *key, MDB_val *value, struct Datastore
 		}
 		memcpy(rec->value, &value->mv_data[varint_size], rec->value_size);
 	}
-	return 0;
+	return 1;
 }
 
 /***
@@ -96,6 +97,13 @@ int repo_fsrepo_lmdb_get(const unsigned char* key, size_t key_size, struct Datas
 	MDB_env* mdb_env = (MDB_env*)datastore->handle;
 	if (mdb_env == NULL)
 		return 0;
+
+	// debug
+	size_t b58size = 100;
+	uint8_t *b58key = (uint8_t *) malloc(b58size);
+	libp2p_crypto_encoding_base58_encode(key, key_size, &b58key, &b58size);
+	libp2p_logger_debug("lmdb_datastore", "Looking for key %s in datastore.\n", b58key);
+	free(b58key);
 
 	// open transaction
 	if (mdb_txn_begin(mdb_env, NULL, 0, &mdb_txn) != 0)
@@ -177,8 +185,10 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	} else {
 		if (retVal == MDB_KEYEXIST) // We tried to add a key that already exists. Skip.
 			retVal = 1;
-		else
+		else {
+			libp2p_logger_error("lmdb_datastore", "mdb_put returned %d.\n", retVal);
 			retVal = 0;
+		}
 	}
 
 	// cleanup
