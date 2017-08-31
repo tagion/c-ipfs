@@ -56,26 +56,6 @@ struct KademliaMessage* ipfs_routing_online_send_receive_message(struct SessionC
 		goto exit;
 	}
 
-	// remove protocol
-	uint8_t *pos = &results[0];
-	size_t pos_length = results_size;
-	int results_max = fmin(results_size, 30);
-	for (int i = 0; i < results_max; i++) {
-		if (results[i] == '\n') {
-			if (i < results_size - 1) {
-				// there's more left
-				pos = &results[i];
-				pos_length = results_size - i;
-			} else {
-				// we've run out of buffer. See if we have more on the network.
-				if (!sessionContext->default_stream->read(sessionContext, &results, &results_size, 5)) {
-					// we don't have more. This is a problem.
-					libp2p_logger_error("online", "Reading kademlia response returned nothing.\n");
-				}
-			}
-		}
-	}
-
 	// see if we can unprotobuf
 	if (!libp2p_message_protobuf_decode(results, results_size, &return_message)) {
 		libp2p_logger_error("online", "Received kademlia response, but cannot decode it.\n");
