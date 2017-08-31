@@ -269,7 +269,7 @@ int test_bitswap_retrieve_file_known_remote() {
 	 */
 	int remote_port = 4001;
 	// mac
-	char* remote_peer_id = "QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4";
+	char* remote_peer_id = "QmPTDqsHMn3GkLBUHBofB5M6wBGzLwHAxqZpLvcda6hF6Q";
 	char* remote_ip = "10.211.55.2";
 	// linux
 	//char* remote_peer_id = "QmRKm1d9kSCRpMFtLYpfhhCQ3DKuSSPJa3qn9wWXfwnWnY";
@@ -288,6 +288,9 @@ int test_bitswap_retrieve_file_known_remote() {
 	libp2p_logger_add_class("online");
 	libp2p_logger_add_class("multistream");
 	libp2p_logger_add_class("secio");
+	libp2p_logger_add_class("bitswap");
+	libp2p_logger_add_class("bitswap_engine");
+	libp2p_logger_add_class("bitswap_network");
 
 	char* ipfs_path = "/tmp/test1";
 	char* peer_id_1 = NULL, *peer_id_2 = NULL;
@@ -313,6 +316,8 @@ int test_bitswap_retrieve_file_known_remote() {
 
     if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hello_world_hash, strlen(hello_world_hash), &cid))
     		goto exit;
+
+    sleep(300);
 
     // this does the heavy lifting...
     if (!ipfs_node2->exchange->GetBlock(ipfs_node2->exchange, cid, &result)) {

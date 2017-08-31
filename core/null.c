@@ -159,7 +159,7 @@ int ipfs_null_do_maintenance(struct IpfsNode* local_node, struct Libp2pPeer* pee
 	} else {
 		if (peer->sessionContext != NULL && os_utils_gmtime() - peer->sessionContext->last_comm_epoch > 180) {
 			// try a ping, but only if we're connected
-			libp2p_logger_debug("null", "Attempting ping of %s.\n", peer->id);
+			libp2p_logger_debug("null", "Attempting ping of %s.\n", libp2p_peer_id_to_string(peer));
 			if (peer->connection_type == CONNECTION_TYPE_CONNECTED && !local_node->routing->Ping(local_node->routing, peer)) {
 				libp2p_logger_debug("null", "Attempted ping of %s failed.\n", peer->id);
 				peer->connection_type = CONNECTION_TYPE_NOT_CONNECTED;

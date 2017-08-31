@@ -75,7 +75,8 @@ int repo_fsrepo_lmdb_build_record(MDB_val *key, MDB_val *value, struct Datastore
 			*record = NULL;
 			return 0;
 		}
-		memcpy(rec->value, &value->mv_data[varint_size], rec->value_size);
+		uint8_t *val = (uint8_t*) value->mv_data;
+		memcpy(rec->value, &val[varint_size], rec->value_size);
 	}
 	return 1;
 }

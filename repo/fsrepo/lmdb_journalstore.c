@@ -140,7 +140,8 @@ int repo_journalstore_cursor_get(struct Datastore* datastore, void* crsr, enum D
 		rec->pin = ((uint8_t*)mdb_value.mv_data)[0];
 		rec->hash_size = mdb_value.mv_size - 1;
 		rec->hash = malloc(rec->hash_size);
-		memcpy(rec->hash, &mdb_value.mv_data[1], rec->hash_size);
+		uint8_t *val = (uint8_t*)mdb_value.mv_data;
+		memcpy(rec->hash, &val[1], rec->hash_size);
 		return 1;
 	}
 	return 0;
