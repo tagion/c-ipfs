@@ -174,7 +174,7 @@ int ipfs_cid_decode_hash_from_base58(const unsigned char* incoming, size_t incom
 		if (retVal == 0)
 			return 0;
 		// now we have the hash, build the object
-		*cid = ipfs_cid_new(0, &hash[2], hash_length - 2, CID_PROTOBUF);
+		*cid = ipfs_cid_new(0, &hash[2], hash_length - 2, CID_DAG_PROTOBUF);
 		return *cid != NULL;
 	}
 
@@ -255,7 +255,7 @@ int ipfs_cid_cast(const unsigned char* incoming, size_t incoming_size, struct Ci
 	if (incoming_size == 34 && incoming[0] == 18 && incoming[1] == 32) {
 		// this is a multihash
 		cid->hash_length = mh_multihash_length(incoming, incoming_size);
-		cid->codec = CID_PROTOBUF;
+		cid->codec = CID_DAG_PROTOBUF;
 		cid->version = 0;
 
 		mh_multihash_digest(incoming, incoming_size, &cid->hash, &cid->hash_length);

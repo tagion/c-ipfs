@@ -818,7 +818,7 @@ int ipfs_repo_fsrepo_block_read(const unsigned char* hash, size_t hash_length, s
 	libp2p_datastore_record_free(datastore_record);
 
 	// now get the block from the blockstore
-	struct Cid* cid = ipfs_cid_new(0, hash, hash_length, CID_PROTOBUF);
+	struct Cid* cid = ipfs_cid_new(0, hash, hash_length, CID_DAG_PROTOBUF);
 	if (cid == NULL)
 		return 0;
 	struct Blockstore* blockstore = ipfs_blockstore_new(fs_repo);

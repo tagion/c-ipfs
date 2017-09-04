@@ -94,14 +94,14 @@ int test_datastore_list_journal() {
 	enum DatastoreCursorOp op = CURSOR_FIRST;
 	do {
 		if (repo_journalstore_cursor_get(fs_repo->config->datastore, crsr, op, &record) == 0) {
-			journal_record_free(record);
+			lmdb_journal_record_free(record);
 			record = NULL;
 		}
 		// display record
 		libp2p_logger_debug("test_datastore", "Timestamp: %llu.\n", record->timestamp);
 		libp2p_logger_debug("test_datastore", "Pin: %s.\n", record->pin == 1 ? "Y" : "N");
 		// free record
-		journal_record_free(record);
+		lmdb_journal_record_free(record);
 		record = NULL;
 		op = CURSOR_NEXT;
 	} while (record != NULL);

@@ -7,8 +7,19 @@
 #include "ipfs/repo/fsrepo/journalstore.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
 
+struct JournalRecord* lmdb_journal_record_new() {
+	struct JournalRecord* rec = (struct JournalRecord*) malloc(sizeof(struct JournalRecord));
+	if (rec != NULL) {
+		rec->hash = NULL;
+		rec->hash_size = 0;
+		rec->pending = 0;
+		rec->pin = 0;
+		rec->timestamp = 0;
+	}
+	return rec;
+}
 
-int journal_record_free(struct JournalRecord* rec) {
+int lmdb_journal_record_free(struct JournalRecord* rec) {
 	if (rec != NULL) {
 		if (rec->hash != NULL)
 			free(rec->hash);
@@ -26,30 +37,26 @@ int journal_record_free(struct JournalRecord* rec) {
  * @param hash_size the size of the hash
  * @returns true(1) on success, false(0) otherwise
  */
-int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, unsigned long long timestamp, const uint8_t *hash, size_t hash_size) {
+int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, struct JournalRecord* journal_record) {
 	MDB_dbi mdb_dbi;
 	struct MDB_val db_key;
 	struct MDB_val db_value;
 
-	// build the record, which is a timestamp as a key, a byte that is the pin flag, and the hash as the value
+	// build the record, which is a timestamp as a key
 	uint8_t time_varint[8];
 	size_t time_varint_size = 0;
-	varint_encode(timestamp, &time_varint[0], 8, &time_varint_size);
+	varint_encode(journal_record->timestamp, &time_varint[0], 8, &time_varint_size);
 
-	size_t record_size = hash_size + 1;
+	size_t record_size = journal_record->hash_size + 2;
 	uint8_t record[record_size];
-	record[0] = 1;
-	memcpy(&record[1], hash, hash_size);
-
-	// debug
-	size_t b58size = 100;
-	uint8_t *b58key = (uint8_t *) malloc(b58size);
-	libp2p_crypto_encoding_base58_encode(hash, hash_size, &b58key, &b58size);
-	libp2p_logger_debug("lmdb_journalstore", "Adding hash %s to journalstore.\n", b58key);
-	free(b58key);
+	// Field 1: pin flag
+	record[0] = journal_record->pin;
+	// Field 2: pending flag
+	record[1] = journal_record->pending;
+	// field 3: hash
+	memcpy(&record[2], journal_record->hash, journal_record->hash_size);
 
 	// open the journal table
-
 	if (mdb_dbi_open(mdb_txn, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
 		return 0;
 	}
@@ -138,10 +145,13 @@ int repo_journalstore_cursor_get(struct Datastore* datastore, void* crsr, enum D
 		rec->timestamp = varint_decode(mdb_key.mv_data, mdb_key.mv_size, &varint_size);
 		// pin flag
 		rec->pin = ((uint8_t*)mdb_value.mv_data)[0];
-		rec->hash_size = mdb_value.mv_size - 1;
+		// pending flag
+		rec->pending = ((uint8_t*)mdb_value.mv_data)[1];
+		// hash
+		rec->hash_size = mdb_value.mv_size - 2;
 		rec->hash = malloc(rec->hash_size);
 		uint8_t *val = (uint8_t*)mdb_value.mv_data;
-		memcpy(rec->hash, &val[1], rec->hash_size);
+		memcpy(rec->hash, &val[2], rec->hash_size);
 		return 1;
 	}
 	return 0;

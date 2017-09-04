@@ -24,7 +24,7 @@ int test_blocks_new() {
 		return 0;
 	}
 
-	if (block->cid->codec != CID_PROTOBUF) {
+	if (block->cid->codec != CID_DAG_PROTOBUF) {
 		ipfs_block_free(block);
 		return 0;
 	}

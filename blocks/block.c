@@ -134,7 +134,7 @@ int ipfs_blocks_block_add_data(const unsigned char* data, size_t data_size, stru
 		return 0;
 	}
 
-	block->cid = ipfs_cid_new(0, hash, 32, CID_PROTOBUF);
+	block->cid = ipfs_cid_new(0, hash, 32, CID_DAG_PROTOBUF);
 	if (block->cid == NULL) {
 		return 0;
 	}

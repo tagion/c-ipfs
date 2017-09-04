@@ -181,7 +181,15 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	retVal = mdb_put(mdb_txn, mdb_dbi, &db_key, &db_value, MDB_NODUPDATA | MDB_NOOVERWRITE);
 	if (retVal == 0) {
 		// the normal case
-		lmdb_journalstore_journal_add(mdb_txn, timestamp, key, key_size);
+		// add it to the journalstore
+		struct JournalRecord* rec = lmdb_journal_record_new();
+		rec->hash = (uint8_t*)key;
+		rec->hash_size = key_size;
+		rec->timestamp = timestamp;
+		rec->pending = 1;
+		rec->pin = 1;
+		lmdb_journalstore_journal_add(mdb_txn, rec);
+		lmdb_journal_record_free(rec);
 		retVal = 1;
 	} else {
 		if (retVal == MDB_KEYEXIST) // We tried to add a key that already exists. Skip.

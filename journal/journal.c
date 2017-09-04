@@ -94,7 +94,7 @@ int ipfs_journal_free_records(struct Libp2pVector* records) {
 	if (records != NULL) {
 		for (int i = 0; i < records->total; i++) {
 			struct JournalRecord* rec = (struct JournalRecord*)libp2p_utils_vector_get(records, i);
-			journal_record_free(rec);
+			lmdb_journal_record_free(rec);
 		}
 		libp2p_utils_vector_free(records);
 	}
@@ -319,7 +319,7 @@ int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, s
 			case (JOURNAL_ENTRY_NEEDED): {
 				// go get a file
 				struct Block* block = NULL;
-				struct Cid* cid = ipfs_cid_new(0, curr->hash, curr->hash_size, CID_PROTOBUF);
+				struct Cid* cid = ipfs_cid_new(0, curr->hash, curr->hash_size, CID_DAG_PROTOBUF);
 				// debugging
 				char* str = NULL;
 				libp2p_logger_debug("journal", "Looking for block %s.\n", ipfs_cid_to_string(cid, &str));

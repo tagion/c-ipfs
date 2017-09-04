@@ -12,7 +12,7 @@ int test_cid_new_free() {
 
 	unsigned char* hash = (unsigned char*)"ABC123";
 
-	struct Cid* cid = ipfs_cid_new(0, hash, strlen((char*)hash), CID_PROTOBUF);
+	struct Cid* cid = ipfs_cid_new(0, hash, strlen((char*)hash), CID_DAG_PROTOBUF);
 
 	if (cid == NULL)
 		return 0;
@@ -20,7 +20,7 @@ int test_cid_new_free() {
 	if (cid->version != 0)
 		return 0;
 
-	if (cid->codec != CID_PROTOBUF)
+	if (cid->codec != CID_DAG_PROTOBUF)
 		return 0;
 
 	if (cid->hash_length != strlen((char*)hash))
@@ -62,7 +62,7 @@ int test_cid_cast_multihash() {
 		return 0;
 	if (cid.hash_length != 32)
 		return 0;
-	if (cid.codec != CID_PROTOBUF)
+	if (cid.codec != CID_DAG_PROTOBUF)
 		return 0;
 	if (strncmp((char*)hashed, (char*)cid.hash, 32) != 0)
 		return 0;
@@ -85,7 +85,7 @@ int test_cid_cast_non_multihash() {
 	// first the version
 	array[0] = 0;
 	// then the codec
-	array[1] = CID_PROTOBUF;
+	array[1] = CID_DAG_PROTOBUF;
 	// then the hash
 	memcpy(&array[2], hashed, 32);
 
@@ -99,7 +99,7 @@ int test_cid_cast_non_multihash() {
 		return 0;
 	if (cid.hash_length != 32)
 		return 0;
-	if (cid.codec != CID_PROTOBUF)
+	if (cid.codec != CID_DAG_PROTOBUF)
 		return 0;
 	if (strncmp((char*)hashed, (char*)cid.hash, 32) != 0)
 		return 0;

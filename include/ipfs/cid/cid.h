@@ -8,12 +8,22 @@
 #include <stddef.h>
 #include "protobuf.h"
 
-#define CID_PROTOBUF 0x70
-#define CID_CBOR 0x71
-#define CID_RAW 0x72
-#define CID_JSON 0x73
+// these are multicodec packed content types. They should match
+// the codes described in the authoratative document:
+// https://github.com/multiformats/multicodec/blob/master/table.csv
+#define CID_RAW 0x55
+#define CID_DAG_PROTOBUF 0x70
+#define CID_DAG_CBOR 0x71
+#define CID_GIT_RAW 0x78
 #define CID_ETHEREUM_BLOCK 0x90
-#define CID_ETHEREUM_TX 0x91
+#define CID_ETHEREUM_BLOCKLIST 0x91
+#define CID_ETHEREUM_TRIE 0x92
+#define CID_ETHEREUM_TX 0x93
+#define CID_ETHEREUM_TX_RECEIPT_TRIE 0x94
+#define CID_ETHEREUM_TX_RECEIPT 0x95
+#define CID_ETHEREUM_STATE_TRIE 0x96
+#define CID_ETHEREUM_ACCOUNT_SNAPSHOT 0x97
+#define CID_ETHEREUM_STORAGE_TRIE 0x98
 #define CID_BITCOIN_BLOCK 0xb0
 #define CID_BITCOIN_TX 0xb1
 #define CID_ZCASH_BLOCK 0xc0
@@ -27,10 +37,10 @@
  */
 
 struct Cid {
-	int version;
-	char codec;
-	unsigned char* hash; // a multihash
-	size_t hash_length;
+	int version; // CID version
+	int codec; // codec used (i.e. CID_RAW, CID_PROTOBUF
+	unsigned char* hash; // the multihash
+	size_t hash_length; // the length of hash
 };
 
 struct CidSet {
