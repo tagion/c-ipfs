@@ -103,7 +103,7 @@ int ipfs_journal_free_records(struct Libp2pVector* records) {
 
 int ipfs_journal_send_message(struct IpfsNode* node, struct Libp2pPeer* peer, struct JournalMessage* message) {
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED)
-		libp2p_peer_connect(&node->identity->private_key, peer, node->peerstore, 10);
+		libp2p_peer_connect(&node->identity->private_key, peer, node->peerstore, node->repo->config->datastore, 10);
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED)
 		return 0;
 	// protobuf the message

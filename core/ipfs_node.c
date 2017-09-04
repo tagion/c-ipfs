@@ -20,7 +20,7 @@ struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* n
 		// bitswap
 		libp2p_utils_vector_add(retVal, ipfs_bitswap_build_protocol_handler(node));
 		// multistream
-		libp2p_utils_vector_add(retVal, libp2p_net_multistream_build_protocol_handler(node));
+		libp2p_utils_vector_add(retVal, libp2p_net_multistream_build_protocol_handler(retVal));
 	}
 	return retVal;
 }

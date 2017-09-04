@@ -55,77 +55,30 @@ void ipfs_null_connection (void *ptr) {
 
     libp2p_logger_info("null", "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
-	if (libp2p_net_multistream_negotiate(session)) {
-		// Someone has connected and successfully negotiated multistream. Now talk to them...
-		int unsuccessful_max = 30;
-		int unsuccessful_counter = 0;
-		for(;;) {
-			// Wait for them to ask something...
-			unsigned char* results = NULL;
-			size_t bytes_read = 0;
-			if (null_shutting_down) {
-				libp2p_logger_debug("null", "%s null shutting down before read.\n", connection_param->local_node->identity->peer->id);
-				// this service is shutting down. Ignore the request and exit the loop
-				break;
-			}
-			// see if we have something to read
-			retVal = session->default_stream->peek(session);
-			if (retVal < 0) { // error
-				libp2p_logger_debug("null", "Peer returned %d. Exiting loop\n", retVal);
-				retVal = -1;
-				break;
-			}
-			if (retVal == 0) { // nothing to read
-				sleep(1);
-				unsuccessful_counter++;
-				if (unsuccessful_counter >= unsuccessful_max) {
-					libp2p_logger_debug("null", "We've tried %d times in the daemon loop. Exiting.\n", unsuccessful_counter);
-					retVal = -1;
-					break;
-				}
-				continue;
-			}
-			if (retVal > 0 && !session->default_stream->read(session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT) ) {
-				// it said it was ready, but something happened
-				libp2p_logger_debug("null", "Peek said there was something there, but there was not. Exiting.\n");
-				retVal = -1;
-				break;
-			}
-			if (null_shutting_down) {
-				libp2p_logger_debug("null", "%s null shutting down after read.\n", connection_param->local_node->identity->peer->id);
-				// this service is shutting down. Ignore the request and exit the loop
-				retVal = -1;
-				break;
-			}
-
-			// We actually got something. Process the request...
-			unsuccessful_counter = 0;
-			libp2p_logger_debug("null", "Read %lu bytes from a stream tranaction\n", bytes_read);
-			retVal = libp2p_protocol_marshal(results, bytes_read, session, connection_param->local_node->protocol_handlers);
-			free(results);
-			if (retVal == -1) {
-				libp2p_logger_debug("null", "protocol_marshal returned error.\n");
-				break;
-			} else if (retVal == 0) {
-				// clean up, but let someone else handle this from now on
-				libp2p_logger_debug("null", "protocol_marshal returned 0. The daemon will no longer handle this.\n");
-				break;
-			} else {
-				libp2p_logger_debug("null", "protocol_marshal returned 1. Looping again.\n");
-			}
-		}
-   	} else {
-   		libp2p_logger_log("null", LOGLEVEL_DEBUG, "Multistream negotiation failed\n");
+    // try to read from the network
+    uint8_t *results = 0;
+    size_t bytes_read = 0;
+    // handle the call
+   	for(;;) {
+   		// immediately attempt to negotiate multistream
+   		if (!libp2p_net_multistream_send_protocol(session))
+   			break;
+   	    if (!session->default_stream->read(session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT)) {
+   	    	// problem reading;
+   	    	break;
+   	    }
+   		retVal = libp2p_protocol_marshal(results, bytes_read, session, connection_param->local_node->protocol_handlers);
+   		if (results != NULL)
+   			free(results);
+   		// exit the loop on error (or if they ask us to no longer loop by returning 0)
+   		if (retVal <= 0)
+   			break;
    	}
 
 	(*(connection_param->count))--; // update counter.
 	if (connection_param->ip != NULL)
 		free(connection_param->ip);
 	free (connection_param);
-	if (retVal != 0) {
-		libp2p_logger_debug("null", "%s Freeing session context.\n", connection_param->local_node->identity->peer->id);
-		//libp2p_session_context_free(session);
-	}
     return;
 }
 
@@ -148,7 +101,7 @@ int ipfs_null_do_maintenance(struct IpfsNode* local_node, struct Libp2pPeer* pee
 	if (replication_peer != NULL && local_node->repo->config->replication->announce && announce_secs < 0) {
 		// try to connect if we aren't already
 		if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
-			if (!libp2p_peer_connect(&local_node->identity->private_key, peer, local_node->peerstore, 2)) {
+			if (!libp2p_peer_connect(&local_node->identity->private_key, peer, local_node->peerstore, local_node->repo->config->datastore, 2)) {
 				return 0;
 			}
 		}

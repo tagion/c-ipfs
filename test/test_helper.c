@@ -205,18 +205,24 @@ int drop_build_open_repo(const char* path, struct FSRepo** fs_repo, const char* 
 
 	if (config_filename_to_copy != NULL) {
 		// attach config filename to path
-		char config[strlen(path) + 7];
+		char *config = (char*) malloc(strlen(path) + 7);
 		strcpy(config, path);
 		// erase slash if there is one
 		if (config[strlen(path)-1] == '/')
 			config[strlen(path)-1] = 0;
 		strcat(config, "/config");
 		// delete the old
-		if (unlink(config) != 0)
+		if (unlink(config) != 0) {
+			free(config);
 			return 0;
+		}
 		// copy pre-built config file into directory
-		if (cp(config, config_filename_to_copy) < 0)
+		if (cp(config, config_filename_to_copy) < 0) {
+			fprintf(stderr, "Unable to copy %s to %s. Error number %d.\n", config_filename_to_copy, config, errno);
+			free(config);
 			return 0;
+		}
+		free(config);
 	}
 
 	if (!ipfs_repo_fsrepo_new(path, NULL, fs_repo))

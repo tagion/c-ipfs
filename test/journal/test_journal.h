@@ -121,7 +121,7 @@ int test_journal_server_1() {
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
 	ipfs_node_free(local_node);
 
-	libp2p_logger_debug("test_journal", "*** Firing up daemon for server 2 ***\n");
+	libp2p_logger_debug("test_journal", "*** Firing up daemon for server 1 ***\n");
 
 	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
 	thread_started = 1;
@@ -182,7 +182,7 @@ int test_journal_server_2() {
 	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
 	thread_started = 1;
 
-	sleep(30);
+	sleep(120);
 
 	retVal = 1;
 	exit:
