@@ -3,11 +3,6 @@
 #include "lmdb.h"
 #include "libp2p/db/datastore.h"
 
-struct lmdb_trans_cursor {
-	MDB_txn* transaction;
-	MDB_cursor* cursor;
-};
-
 /***
  * Places the LMDB methods into the datastore's function pointers
  * @param datastore the datastore to fill

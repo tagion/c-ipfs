@@ -60,16 +60,16 @@ struct Libp2pProtocolHandler* ipfs_journal_build_protocol_handler(const struct I
 struct Libp2pVector* ipfs_journal_get_last(struct Datastore* database, int n) {
 	struct Libp2pVector* vector = libp2p_utils_vector_new(1);
 	if (vector != NULL) {
-		void* cursor = NULL;
-		if (!repo_journalstore_cursor_open(database, &cursor)) {
+		struct lmdb_trans_cursor *cursor = NULL;
+		if (!lmdb_journalstore_cursor_open(database->handle, &cursor)) {
 			libp2p_logger_error("journal", "Unable to open a cursor for the journalstore.\n");
 			return NULL;
 		}
 		struct JournalRecord* rec = NULL;
-		if (!repo_journalstore_cursor_get(database, cursor, CURSOR_LAST, &rec)) {
+		if (!lmdb_journalstore_cursor_get(cursor, CURSOR_LAST, &rec)) {
 			libp2p_logger_error("journal", "Unable to find last record from the journalstore.\n");
 			libp2p_utils_vector_free(vector);
-			repo_journalstore_cursor_close(database, cursor);
+			lmdb_journalstore_cursor_close(cursor);
 			return NULL;
 		}
 		// we've got one, now start the loop
@@ -77,13 +77,13 @@ struct Libp2pVector* ipfs_journal_get_last(struct Datastore* database, int n) {
 		do {
 			libp2p_logger_debug("journal", "Adding record to the vector.\n");
 			libp2p_utils_vector_add(vector, rec);
-			if (!repo_journalstore_cursor_get(database, cursor, CURSOR_PREVIOUS, &rec)) {
+			if (!lmdb_journalstore_cursor_get(cursor, CURSOR_PREVIOUS, &rec)) {
 				break;
 			}
 			i++;
 		} while(i < n);
 		libp2p_logger_debug("journal", "Closing journalstore cursor.\n");
-		repo_journalstore_cursor_close(database, cursor);
+		lmdb_journalstore_cursor_close(cursor);
 	} else {
 		libp2p_logger_error("journal", "Unable to allocate vector for ipfs_journal_get_last.\n");
 	}

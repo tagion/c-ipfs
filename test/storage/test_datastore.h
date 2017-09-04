@@ -84,8 +84,8 @@ int test_datastore_list_journal() {
 		return 0;
 	}
 	// open cursor
-	void* crsr;
-	if (!repo_journalstore_cursor_open(fs_repo->config->datastore, &crsr)) {
+	struct lmdb_trans_cursor *crsr = NULL;
+	if (!lmdb_journalstore_cursor_open(fs_repo->config->datastore->handle, &crsr)) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
@@ -93,7 +93,7 @@ int test_datastore_list_journal() {
 	struct JournalRecord* record = NULL;
 	enum DatastoreCursorOp op = CURSOR_FIRST;
 	do {
-		if (repo_journalstore_cursor_get(fs_repo->config->datastore, crsr, op, &record) == 0) {
+		if (lmdb_journalstore_cursor_get(crsr, op, &record) == 0) {
 			lmdb_journal_record_free(record);
 			record = NULL;
 		}

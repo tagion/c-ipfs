@@ -150,6 +150,10 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	MDB_dbi mdb_dbi;
 	struct MDB_val db_key;
 	struct MDB_val db_value;
+	unsigned long long old_timestamp = 0;
+	struct DatastoreRecord *datastore_record = NULL;
+	struct JournalRecord *journalstore_record = NULL;
+	struct lmdb_trans_cursor *journalstore_cursor = NULL;
 
 	MDB_env* mdb_env = (MDB_env*)datastore->handle;
 	if (mdb_env == NULL)
@@ -163,9 +167,42 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	if (retVal != 0)
 		return 0;
 
-	// add the timestamp
-	unsigned long long timestamp = os_utils_gmtime();
-	struct DatastoreRecord *datastore_record = libp2p_datastore_record_new();
+	// check the datastore to see if it is already there. If it is there, use its timestamp if it is older.
+	repo_fsrepo_lmdb_get(key, key_size, &datastore_record, datastore);
+	if (datastore_record != NULL) {
+		// build the journalstore_record with the search criteria
+		journalstore_record = lmdb_journal_record_new();
+		journalstore_record->hash_size = key_size;
+		journalstore_record->hash = malloc(key_size);
+		memcpy(journalstore_record->hash, key, key_size);
+		journalstore_record->timestamp = datastore_record->timestamp;
+		// look up the corresponding journalstore record for possible updating
+		journalstore_cursor = lmdb_trans_cursor_new();
+		journalstore_cursor->transaction = mdb_txn;
+		lmdb_journalstore_get_record((void*)mdb_env, journalstore_cursor, &journalstore_record);
+	} else { // it wasn't previously in the database
+		datastore_record = libp2p_datastore_record_new();
+		if (datastore_record == NULL) {
+			libp2p_logger_error("lmdb_datastore", "put: Unable to allocate memory for DatastoreRecord.\n");
+			return 0;
+		}
+	}
+
+	// Put in the timestamp if it isn't there already (or is newer)
+	unsigned long long now = os_utils_gmtime();
+	if (datastore_record->timestamp == 0 || datastore_record->timestamp > now) {
+		//we need to update the timestamp. Be sure to update the journal too. (done further down)
+		old_timestamp = datastore_record->timestamp;
+		datastore_record->timestamp = now;
+	}
+	// fill in the other fields
+	datastore_record->key_size = key_size;
+	datastore_record->key = (uint8_t*)key;
+	datastore_record->value_size = data_size;
+	datastore_record->value = data;
+
+	// convert it into a byte array
+
 	size_t record_size = 0;
 	uint8_t *record;
 	repo_fsrepo_lmdb_encode_record(datastore_record, &record, &record_size);
@@ -178,26 +215,35 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	db_value.mv_size = record_size;
 	db_value.mv_data = record;
 
-	retVal = mdb_put(mdb_txn, mdb_dbi, &db_key, &db_value, MDB_NODUPDATA | MDB_NOOVERWRITE);
+	retVal = mdb_put(mdb_txn, mdb_dbi, &db_key, &db_value, MDB_NODUPDATA);
+
 	if (retVal == 0) {
-		// the normal case
-		// add it to the journalstore
-		struct JournalRecord* rec = lmdb_journal_record_new();
-		rec->hash = (uint8_t*)key;
-		rec->hash_size = key_size;
-		rec->timestamp = timestamp;
-		rec->pending = 1;
-		rec->pin = 1;
-		lmdb_journalstore_journal_add(mdb_txn, rec);
-		lmdb_journal_record_free(rec);
-		retVal = 1;
-	} else {
-		if (retVal == MDB_KEYEXIST) // We tried to add a key that already exists. Skip.
+		// added the datastore record, now work with the journalstore
+		if (journalstore_record != NULL) {
+			if (journalstore_record->timestamp != datastore_record->timestamp) {
+				// we need to update
+				journalstore_record->timestamp = datastore_record->timestamp;
+				lmdb_journalstore_cursor_put(journalstore_cursor, journalstore_record);
+				lmdb_journal_record_free(journalstore_record);
+			}
+		} else {
+			// add it to the journalstore
+			journalstore_record = lmdb_journal_record_new();
+			journalstore_record->hash = (uint8_t*)key;
+			journalstore_record->hash_size = key_size;
+			journalstore_record->timestamp = datastore_record->timestamp;
+			journalstore_record->pending = 1; // TODO: Calculate this correctly
+			journalstore_record->pin = 1;
+			if (!lmdb_journalstore_journal_add(mdb_txn, journalstore_record)) {
+				libp2p_logger_error("lmdb_datastore", "Datastore record was added, but problem adding Journalstore record. Continuing.\n");
+			}
+			lmdb_journal_record_free(journalstore_record);
 			retVal = 1;
-		else {
-			libp2p_logger_error("lmdb_datastore", "mdb_put returned %d.\n", retVal);
-			retVal = 0;
 		}
+	} else {
+		// datastore record was unable to be added.
+		libp2p_logger_error("lmdb_datastore", "mdb_put returned %d.\n", retVal);
+		retVal = 0;
 	}
 
 	// cleanup
