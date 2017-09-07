@@ -118,6 +118,7 @@ int lmdb_journalstore_journal_add(struct lmdb_trans_cursor *journalstore_cursor,
 
 	MDB_val journalstore_key;
 	MDB_val journalstore_value;
+	int createdTransaction = 0;
 
 	if (!lmdb_journalstore_build_key_value_pair(journalstore_record, &journalstore_key, &journalstore_value)) {
 		libp2p_logger_error("lmdbd_journalstore", "add: Unable to convert journalstore record to key/value.\n");
@@ -127,6 +128,7 @@ int lmdb_journalstore_journal_add(struct lmdb_trans_cursor *journalstore_cursor,
 	// create transaction if necessary
 	if (journalstore_cursor->transaction == NULL) {
 		mdb_txn_begin(journalstore_cursor->environment, journalstore_cursor->parent_transaction, 0, &journalstore_cursor->transaction);
+		createdTransaction = 1;
 	}
 
 	if (journalstore_cursor->database == NULL) {
@@ -138,9 +140,19 @@ int lmdb_journalstore_journal_add(struct lmdb_trans_cursor *journalstore_cursor,
 		}
 	}
 
+	// for debuggin
+	MDB_txn *tx = journalstore_cursor->transaction;
+	MDB_dbi dbi = *journalstore_cursor->database;
 	if (mdb_put(journalstore_cursor->transaction, *journalstore_cursor->database, &journalstore_key, &journalstore_value, 0) != 0) {
 		libp2p_logger_error("lmdb_journalstore", "Unable to add to JOURNALSTORE database.\n");
 		return 0;
+	}
+
+	if (createdTransaction) {
+		if (mdb_txn_commit(journalstore_cursor->transaction) != 0) {
+			libp2p_logger_error("lmdb_journalstore", "Unable to commit JOURNALSTORE transaction.\n");
+			return 0;
+		}
 	}
 
 	return 1;
@@ -164,7 +176,7 @@ int lmdb_journalstore_get_record(void* handle, struct lmdb_trans_cursor *journal
 
 	// create a new transaction if necessary
 	if (journalstore_cursor->transaction == NULL) {
-		if (mdb_txn_begin(mdb_env, NULL, 0, &journalstore_cursor->transaction) != 0) {
+		if (mdb_txn_begin(mdb_env, journalstore_cursor->parent_transaction, 0, &journalstore_cursor->transaction) != 0) {
 			libp2p_logger_error("lmdb_journanstore", "get_record: Attempt to begin transaction failed.\n");
 			return 0;
 		}
@@ -373,12 +385,12 @@ int lmdb_journalstore_cursor_close(struct lmdb_trans_cursor *cursor) {
 	if (cursor != NULL) {
 		if (cursor->cursor != NULL) {
 			mdb_cursor_close(cursor->cursor);
-			cursor->cursor = NULL;
 		}
 		if (cursor->transaction != NULL) {
 			mdb_txn_commit(cursor->transaction);
-			cursor->transaction = NULL;
 		}
+		cursor->cursor = NULL;
+		cursor->transaction = NULL;
 	}
 	return 1;
 }

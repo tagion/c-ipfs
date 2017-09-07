@@ -158,12 +158,28 @@ int repo_fsrepo_lmdb_get(const unsigned char* key, size_t key_size, struct Datas
  * @param mdb_txn the transaction to be created
  * @returns true(1) on success, false(0) otherwise
  */
-int lmdb_datastore_create_transaction(MDB_env *mdb_env, MDB_dbi *mdb_dbi, MDB_txn **mdb_txn) {
+int lmdb_datastore_create_transaction(MDB_env *mdb_env, MDB_txn **mdb_txn) {
 	// open transaction
 	if (mdb_txn_begin(mdb_env, NULL, 0, mdb_txn) != 0)
 		return 0;
-	if (mdb_dbi_open(*mdb_txn, "DATASTORE", MDB_DUPSORT | MDB_CREATE, mdb_dbi) != 0) {
-		mdb_txn_commit(*mdb_txn);
+	return 1;
+}
+
+int lmdb_datastore_open_databases(MDB_env *mdb_env, MDB_txn *mdb_txn, MDB_dbi *datastore_table, MDB_dbi* journalstore_table) {
+	if (mdb_env == NULL) {
+		libp2p_logger_error("lmdb_datastore", "open_databases: environment not set.\n");
+		return 0;
+	}
+	if (mdb_txn == NULL) {
+		libp2p_logger_error("lmdb_datastore", "open_database: transaction does not exist.\n");
+		return 0;
+	}
+	if (mdb_dbi_open(mdb_txn, "DATASTORE", MDB_DUPSORT | MDB_CREATE, datastore_table) != 0) {
+		libp2p_logger_error("lmdb_datastore", "open_database: Unable to open datastore.\n");
+		return 0;
+	}
+	if (mdb_dbi_open(mdb_txn, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, journalstore_table) != 0) {
+		libp2p_logger_error("lmdb_datastore", "open_database: Unable to open journalstore.\n");
 		return 0;
 	}
 	return 1;
@@ -182,6 +198,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	int retVal;
 	MDB_txn *datastore_txn;
 	MDB_dbi datastore_table;
+	MDB_dbi journalstore_table;
 	struct MDB_val datastore_key;
 	struct MDB_val datastore_value;
 	struct DatastoreRecord *datastore_record = NULL;
@@ -195,7 +212,13 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	}
 
 	// open a transaction to the databases
-	if (!lmdb_datastore_create_transaction(mdb_env, &datastore_table, &datastore_txn)) {
+	if (!lmdb_datastore_create_transaction(mdb_env, &datastore_txn)) {
+		libp2p_logger_error("lmdb_datastore", "put: Unable to create db transaction.\n");
+		return 0;
+	}
+
+	if (!lmdb_datastore_open_databases(mdb_env, datastore_txn, &datastore_table, &journalstore_table)) {
+		libp2p_logger_error("lmdb_datastore", "put: Unable to open database tables.\n");
 		return 0;
 	}
 
@@ -207,6 +230,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	}
 	journalstore_cursor->environment = mdb_env;
 	journalstore_cursor->parent_transaction = datastore_txn;
+	journalstore_cursor->database = &journalstore_table;
 
 	// see if what we want is already in the datastore
 	repo_fsrepo_lmdb_get_with_transaction(key, key_size, &datastore_record, datastore_txn, &datastore_table);
@@ -283,7 +307,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 			if (!lmdb_journalstore_journal_add(journalstore_cursor, journalstore_record)) {
 				libp2p_logger_error("lmdb_datastore", "Datastore record was added, but problem adding Journalstore record. Continuing.\n");
 			}
-			lmdb_journalstore_cursor_close(journalstore_cursor);
+			//lmdb_journalstore_cursor_close(journalstore_cursor);
 			lmdb_journal_record_free(journalstore_record);
 			retVal = 1;
 		}

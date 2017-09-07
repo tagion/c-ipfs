@@ -25,9 +25,6 @@ struct lmdb_trans_cursor* lmdb_trans_cursor_new() {
  */
 int lmdb_trans_cursor_free(struct lmdb_trans_cursor* in) {
 	if (in != NULL) {
-		if (in->database != NULL) {
-			free(in->database);
-		}
 		free(in);
 	}
 	return 1;

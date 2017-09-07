@@ -502,6 +502,7 @@ int fs_repo_open_config(struct FSRepo* repo) {
 						continue;
 					// make multiaddress a peer
 					struct Libp2pPeer* peer = libp2p_peer_new_from_multiaddress(cur);
+					multiaddress_free(cur);
 					struct ReplicationPeer* rp = repo_config_replication_peer_new();
 					rp->peer = peer;
 					libp2p_logger_debug("fs_repo", "Adding %s to replication_peers.\n", libp2p_peer_id_to_string(rp->peer));
