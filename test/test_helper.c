@@ -205,7 +205,7 @@ int drop_build_open_repo(const char* path, struct FSRepo** fs_repo, const char* 
 
 	if (config_filename_to_copy != NULL) {
 		// attach config filename to path
-		char *config = (char*) malloc(strlen(path) + 7);
+		char *config = (char*) malloc(strlen(path) + 8);
 		strcpy(config, path);
 		// erase slash if there is one
 		if (config[strlen(path)-1] == '/')

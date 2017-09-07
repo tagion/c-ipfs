@@ -61,7 +61,7 @@ struct Libp2pVector* ipfs_journal_get_last(struct Datastore* database, int n) {
 	struct Libp2pVector* vector = libp2p_utils_vector_new(1);
 	if (vector != NULL) {
 		struct lmdb_trans_cursor *cursor = NULL;
-		if (!lmdb_journalstore_cursor_open(database->handle, &cursor)) {
+		if (!lmdb_journalstore_cursor_open(database->datastore_handle, &cursor)) {
 			libp2p_logger_error("journal", "Unable to open a cursor for the journalstore.\n");
 			return NULL;
 		}

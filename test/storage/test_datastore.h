@@ -85,7 +85,7 @@ int test_datastore_list_journal() {
 	}
 	// open cursor
 	struct lmdb_trans_cursor *crsr = NULL;
-	if (!lmdb_journalstore_cursor_open(fs_repo->config->datastore->handle, &crsr)) {
+	if (!lmdb_journalstore_cursor_open(fs_repo->config->datastore->datastore_handle, &crsr)) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}

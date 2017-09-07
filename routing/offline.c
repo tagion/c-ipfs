@@ -115,3 +115,8 @@ struct IpfsRouting* ipfs_routing_new_offline (struct IpfsNode* local_node, struc
 
     return offlineRouting;
 }
+
+int ipfs_routing_offline_free(ipfs_routing* incoming) {
+	free(incoming);
+	return 1;
+}

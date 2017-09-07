@@ -9,7 +9,9 @@
 struct lmdb_trans_cursor* lmdb_trans_cursor_new() {
 	struct lmdb_trans_cursor* out = (struct lmdb_trans_cursor*) malloc(sizeof(struct lmdb_trans_cursor));
 	if (out != NULL) {
+		out->environment = NULL;
 		out->cursor = NULL;
+		out->parent_transaction = NULL;
 		out->transaction = NULL;
 		out->database = NULL;
 	}
@@ -22,6 +24,11 @@ struct lmdb_trans_cursor* lmdb_trans_cursor_new() {
  * @returns true(1)
  */
 int lmdb_trans_cursor_free(struct lmdb_trans_cursor* in) {
-	free(in);
+	if (in != NULL) {
+		if (in->database != NULL) {
+			free(in->database);
+		}
+		free(in);
+	}
 	return 1;
 }

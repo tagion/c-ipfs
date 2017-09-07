@@ -3,6 +3,8 @@
 #include "lmdb.h"
 
 struct lmdb_trans_cursor {
+	MDB_env* environment;
+	MDB_txn* parent_transaction;
 	MDB_txn* transaction;
 	MDB_dbi* database;
 	MDB_cursor* cursor;

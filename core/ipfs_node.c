@@ -152,6 +152,9 @@ int ipfs_node_free(struct IpfsNode* node) {
 		if (node->mode == MODE_ONLINE) {
 			ipfs_routing_online_free(node->routing);
 		}
+		if (node->mode == MODE_OFFLINE) {
+			ipfs_routing_offline_free(node->routing);
+		}
 		if (node->blockstore != NULL) {
 			ipfs_blockstore_free(node->blockstore);
 		}

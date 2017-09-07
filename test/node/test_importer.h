@@ -152,7 +152,8 @@ int test_import_small_file() {
 
 	// get the repo
 	drop_and_build_repository(repo_path, 4001, NULL, NULL);
-	ipfs_node_online_new(repo_path, &local_node);
+
+	ipfs_node_offline_new(repo_path, &local_node);
 
 	// write to ipfs
 	struct HashtableNode* write_node;
