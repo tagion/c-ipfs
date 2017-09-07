@@ -3,6 +3,7 @@
  */
 #include <stdlib.h>
 #include <unistd.h> // for sleep()
+#include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/exchange.h"
@@ -13,9 +14,7 @@
 #include "ipfs/exchange/bitswap/want_manager.h"
 
 int ipfs_bitswap_can_handle(const uint8_t* incoming, size_t incoming_size) {
-	if (incoming_size < 8)
-		return 0;
-	char* result = strstr((char*)incoming, "/ipfs/bitswap");
+	char* result = strnstr((char*)incoming, "/ipfs/bitswap", incoming_size);
 	if(result == NULL || result != (char*)incoming)
 		return 0;
 	return 1;

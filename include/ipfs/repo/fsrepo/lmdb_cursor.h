@@ -2,6 +2,13 @@
 
 #include "lmdb.h"
 
+struct lmdb_context {
+	MDB_env *db_environment;
+	MDB_txn *current_transaction;
+	MDB_dbi *datastore_db;
+	MDB_dbi *journal_db;
+};
+
 struct lmdb_trans_cursor {
 	MDB_env* environment;
 	MDB_txn* parent_transaction;

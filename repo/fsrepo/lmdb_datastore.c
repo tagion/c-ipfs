@@ -129,22 +129,22 @@ int repo_fsrepo_lmdb_get_with_transaction(const unsigned char* key, size_t key_s
  */
 int repo_fsrepo_lmdb_get(const unsigned char* key, size_t key_size, struct DatastoreRecord **record, const struct Datastore* datastore) {
 	MDB_txn* mdb_txn;
-	MDB_dbi mdb_dbi;
 
-	MDB_env* mdb_env = (MDB_env*)datastore->datastore_handle;
-	if (mdb_env == NULL)
+	if (datastore == NULL || datastore->datastore_context == NULL) {
+		libp2p_logger_error("lmdb_datastore", "get: datastore not initialized.\n");
 		return 0;
-
-	// open transaction
-	if (mdb_txn_begin(mdb_env, NULL, 0, &mdb_txn) != 0)
-		return 0;
-
-	if (mdb_dbi_open(mdb_txn, "DATASTORE", MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
-		mdb_txn_commit(mdb_txn);
+	}
+	struct lmdb_context *db_context = (struct lmdb_context*) datastore->datastore_context;
+	if (db_context->db_environment == NULL) {
+		libp2p_logger_error("lmdb_datastore", "get: datastore environment not initialized.\n");
 		return 0;
 	}
 
-	int retVal = repo_fsrepo_lmdb_get_with_transaction(key, key_size, record, mdb_txn, &mdb_dbi);
+	// open transaction
+	if (mdb_txn_begin(db_context->db_environment, db_context->current_transaction, 0, &mdb_txn) != 0)
+		return 0;
+
+	int retVal = repo_fsrepo_lmdb_get_with_transaction(key, key_size, record, mdb_txn, db_context->datastore_db);
 
 	mdb_txn_commit(mdb_txn);
 
@@ -158,30 +158,10 @@ int repo_fsrepo_lmdb_get(const unsigned char* key, size_t key_size, struct Datas
  * @param mdb_txn the transaction to be created
  * @returns true(1) on success, false(0) otherwise
  */
-int lmdb_datastore_create_transaction(MDB_env *mdb_env, MDB_txn **mdb_txn) {
+int lmdb_datastore_create_transaction(struct lmdb_context *db_context, MDB_txn **mdb_txn) {
 	// open transaction
-	if (mdb_txn_begin(mdb_env, NULL, 0, mdb_txn) != 0)
+	if (mdb_txn_begin(db_context->db_environment, db_context->current_transaction, 0, mdb_txn) != 0)
 		return 0;
-	return 1;
-}
-
-int lmdb_datastore_open_databases(MDB_env *mdb_env, MDB_txn *mdb_txn, MDB_dbi *datastore_table, MDB_dbi* journalstore_table) {
-	if (mdb_env == NULL) {
-		libp2p_logger_error("lmdb_datastore", "open_databases: environment not set.\n");
-		return 0;
-	}
-	if (mdb_txn == NULL) {
-		libp2p_logger_error("lmdb_datastore", "open_database: transaction does not exist.\n");
-		return 0;
-	}
-	if (mdb_dbi_open(mdb_txn, "DATASTORE", MDB_DUPSORT | MDB_CREATE, datastore_table) != 0) {
-		libp2p_logger_error("lmdb_datastore", "open_database: Unable to open datastore.\n");
-		return 0;
-	}
-	if (mdb_dbi_open(mdb_txn, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, journalstore_table) != 0) {
-		libp2p_logger_error("lmdb_datastore", "open_database: Unable to open journalstore.\n");
-		return 0;
-	}
 	return 1;
 }
 
@@ -196,44 +176,38 @@ int lmdb_datastore_open_databases(MDB_env *mdb_env, MDB_txn *mdb_txn, MDB_dbi *d
  */
 int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned char* data, size_t data_size, const struct Datastore* datastore) {
 	int retVal;
-	MDB_txn *datastore_txn;
-	MDB_dbi datastore_table;
-	MDB_dbi journalstore_table;
+	struct MDB_txn *child_transaction;
 	struct MDB_val datastore_key;
 	struct MDB_val datastore_value;
 	struct DatastoreRecord *datastore_record = NULL;
 	struct JournalRecord *journalstore_record = NULL;
 	struct lmdb_trans_cursor *journalstore_cursor = NULL;
 
-	MDB_env* mdb_env = (MDB_env*)datastore->datastore_handle;
-	if (mdb_env == NULL) {
+	if (datastore == NULL || datastore->datastore_context == NULL)
+		return 0;
+
+	struct lmdb_context *db_context = (struct lmdb_context*)datastore->datastore_context;
+
+	if (db_context->db_environment == NULL) {
 		libp2p_logger_error("lmdb_datastore", "put: invalid datastore handle.\n");
 		return 0;
 	}
 
 	// open a transaction to the databases
-	if (!lmdb_datastore_create_transaction(mdb_env, &datastore_txn)) {
+	if (!lmdb_datastore_create_transaction(db_context, &child_transaction)) {
 		libp2p_logger_error("lmdb_datastore", "put: Unable to create db transaction.\n");
 		return 0;
 	}
 
-	if (!lmdb_datastore_open_databases(mdb_env, datastore_txn, &datastore_table, &journalstore_table)) {
-		libp2p_logger_error("lmdb_datastore", "put: Unable to open database tables.\n");
-		return 0;
-	}
-
 	// build the journalstore connectivity stuff
-	journalstore_cursor = lmdb_trans_cursor_new();
+	lmdb_journalstore_cursor_open(datastore->datastore_context, &journalstore_cursor, child_transaction);
 	if (journalstore_cursor == NULL) {
 		libp2p_logger_error("lmdb_datastore", "put: Unable to allocate memory for journalstore cursor.\n");
 		return 0;
 	}
-	journalstore_cursor->environment = mdb_env;
-	journalstore_cursor->parent_transaction = datastore_txn;
-	journalstore_cursor->database = &journalstore_table;
 
 	// see if what we want is already in the datastore
-	repo_fsrepo_lmdb_get_with_transaction(key, key_size, &datastore_record, datastore_txn, &datastore_table);
+	repo_fsrepo_lmdb_get_with_transaction(key, key_size, &datastore_record, child_transaction, db_context->datastore_db);
 	if (datastore_record != NULL) {
 		// build the journalstore_record with the search criteria
 		journalstore_record = lmdb_journal_record_new();
@@ -242,14 +216,13 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 		memcpy(journalstore_record->hash, key, key_size);
 		journalstore_record->timestamp = datastore_record->timestamp;
 		// look up the corresponding journalstore record for possible updating
-		lmdb_journalstore_get_record(datastore->datastore_handle, journalstore_cursor, &journalstore_record);
-		lmdb_journalstore_cursor_close(journalstore_cursor);
+		lmdb_journalstore_get_record(db_context, journalstore_cursor, &journalstore_record);
 	} else { // it wasn't previously in the database
 		datastore_record = libp2p_datastore_record_new();
 		if (datastore_record == NULL) {
 			libp2p_logger_error("lmdb_datastore", "put: Unable to allocate memory for DatastoreRecord.\n");
 			lmdb_trans_cursor_free(journalstore_cursor);
-			mdb_txn_commit(datastore_txn);
+			mdb_txn_commit(child_transaction);
 			return 0;
 		}
 	}
@@ -283,7 +256,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	datastore_value.mv_size = record_size;
 	datastore_value.mv_data = record;
 
-	retVal = mdb_put(datastore_txn, datastore_table, &datastore_key, &datastore_value, MDB_NODUPDATA);
+	retVal = mdb_put(child_transaction, *db_context->datastore_db, &datastore_key, &datastore_value, MDB_NODUPDATA);
 
 	if (retVal == 0) {
 		// Successfully added the datastore record. Now work with the journalstore.
@@ -292,7 +265,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 				// we need to update
 				journalstore_record->timestamp = datastore_record->timestamp;
 				lmdb_journalstore_cursor_put(journalstore_cursor, journalstore_record);
-				lmdb_journalstore_cursor_close(journalstore_cursor);
+				lmdb_journalstore_cursor_close(journalstore_cursor, 0);
 				lmdb_journal_record_free(journalstore_record);
 			}
 		} else {
@@ -307,7 +280,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 			if (!lmdb_journalstore_journal_add(journalstore_cursor, journalstore_record)) {
 				libp2p_logger_error("lmdb_datastore", "Datastore record was added, but problem adding Journalstore record. Continuing.\n");
 			}
-			//lmdb_journalstore_cursor_close(journalstore_cursor);
+			lmdb_journalstore_cursor_close(journalstore_cursor, 0);
 			lmdb_journal_record_free(journalstore_record);
 			retVal = 1;
 		}
@@ -318,9 +291,10 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	}
 
 	// cleanup
-	mdb_txn_commit(datastore_txn);
+	if (mdb_txn_commit(child_transaction) != 0) {
+		libp2p_logger_error("lmdb_datastore", "lmdb_put: transaction commit failed.\n");
+	}
 	free(record);
-	lmdb_trans_cursor_free(journalstore_cursor);
 	libp2p_datastore_record_free(datastore_record);
 	return retVal;
 }
@@ -330,6 +304,8 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
  * Note: for now, the parameters are not used
  * @param argc number of parameters in the following array
  * @param argv an array of parameters
+ * @param datastore the datastore struct
+ * @returns true(1) on success, false(0) otherwise
  */
 int repo_fsrepro_lmdb_open(int argc, char** argv, struct Datastore* datastore) {
 	// create environment
@@ -352,20 +328,55 @@ int repo_fsrepro_lmdb_open(int argc, char** argv, struct Datastore* datastore) {
 		return 0;
 	}
 
-	datastore->datastore_handle = (void*)mdb_env;
+	struct lmdb_context *db_context = (struct lmdb_context *) malloc(sizeof(struct lmdb_context));
+	datastore->datastore_context = (void*) db_context;
+	db_context->db_environment = (void*)mdb_env;
+	db_context->datastore_db = (MDB_dbi*) malloc(sizeof(MDB_dbi));
+	db_context->journal_db = (MDB_dbi*) malloc(sizeof(MDB_dbi));
+
+	// open the 2 databases
+	if (mdb_txn_begin(mdb_env, NULL, 0, &db_context->current_transaction) != 0) {
+		mdb_env_close(mdb_env);
+		db_context->db_environment = NULL;
+		return 0;
+	}
+	if (mdb_dbi_open(db_context->current_transaction, "DATASTORE", MDB_DUPSORT | MDB_CREATE, db_context->datastore_db ) != 0) {
+		mdb_txn_abort(db_context->current_transaction);
+		mdb_env_close(mdb_env);
+		db_context->db_environment = NULL;
+		return 0;
+	}
+	if (mdb_dbi_open(db_context->current_transaction, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, db_context->journal_db) != 0) {
+		mdb_txn_abort(db_context->current_transaction);
+		mdb_env_close(mdb_env);
+		db_context->db_environment = NULL;
+		return 0;
+	}
 	return 1;
 }
 
 /***
  * Close an LMDB database
- * NOTE: for now, argc and argv are not used
- * @param argc number of parameters in the argv array
- * @param argv parameters to be passed in
  * @param datastore the datastore struct that contains information about the opened database
+ * @returns true(1) on success, otherwise false(0)
  */
 int repo_fsrepo_lmdb_close(struct Datastore* datastore) {
-	struct MDB_env* mdb_env = (struct MDB_env*)datastore->datastore_handle;
-	mdb_env_close(mdb_env);
+	// check parameters
+	if (datastore == NULL || datastore->datastore_context == NULL)
+		return 0;
+
+	// close the db environment
+	struct lmdb_context *db_context = (struct lmdb_context*) datastore->datastore_context;
+	if (db_context->current_transaction != NULL) {
+		mdb_txn_commit(db_context->current_transaction);
+	}
+	mdb_env_close(db_context->db_environment);
+
+	free(db_context->datastore_db);
+	free(db_context->journal_db);
+
+	free(db_context);
+
 	return 1;
 }
 

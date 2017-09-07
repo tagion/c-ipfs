@@ -73,11 +73,15 @@ int test_ipfs_datastore_put() {
  * List what is in the journal
  */
 int test_datastore_list_journal() {
+	int recCount = 0;
 	libp2p_logger_add_class("test_datastore");
 	libp2p_logger_add_class("lmdb_datastore");
+
+	// need to run test_import_small_file first
+
 	// open database
 	struct FSRepo* fs_repo;
-	if (ipfs_repo_fsrepo_new(NULL, NULL, &fs_repo) == 0) {
+	if (ipfs_repo_fsrepo_new("/tmp/.ipfs", NULL, &fs_repo) == 0) {
 		return 0;
 	}
 	if (ipfs_repo_fsrepo_open(fs_repo) == 0) {
@@ -85,7 +89,7 @@ int test_datastore_list_journal() {
 	}
 	// open cursor
 	struct lmdb_trans_cursor *crsr = NULL;
-	if (!lmdb_journalstore_cursor_open(fs_repo->config->datastore->datastore_handle, &crsr)) {
+	if (!lmdb_journalstore_cursor_open(fs_repo->config->datastore->datastore_context, &crsr, NULL)) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		return 0;
 	}
@@ -96,7 +100,9 @@ int test_datastore_list_journal() {
 		if (lmdb_journalstore_cursor_get(crsr, op, &record) == 0) {
 			lmdb_journal_record_free(record);
 			record = NULL;
+			break;
 		}
+		recCount++;
 		// display record
 		libp2p_logger_debug("test_datastore", "Timestamp: %llu.\n", record->timestamp);
 		libp2p_logger_debug("test_datastore", "Pin: %s.\n", record->pin == 1 ? "Y" : "N");
@@ -105,5 +111,6 @@ int test_datastore_list_journal() {
 		record = NULL;
 		op = CURSOR_NEXT;
 	} while (record != NULL);
+	libp2p_logger_error("test_datastore", "Found %d records.\n", recCount);
 	return 1;
 }

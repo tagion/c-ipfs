@@ -8,6 +8,7 @@
 #include "mh/multihash.h"
 #include "libp2p/crypto/encoding/base58.h"
 #include "ipfs/core/ipfs_node.h"
+#include "ipfs/repo/fsrepo/lmdb_cursor.h"
 
 int test_import_large_file() {
 	size_t bytes_size = 1000000; //1mb
@@ -166,11 +167,6 @@ int test_import_small_file() {
 	// cid should be the same each time
 	unsigned char cid_test[10] = { 0x1e, 0xcf, 0x04, 0xce, 0x6a, 0xe8, 0xbf, 0xc0, 0xeb, 0xe4 };
 
-	/*
-	for (int i = 0; i < 10; i++) {
-		printf("%02x\n", write_node->hash[i]);
-	}
-	*/
 
 	for(int i = 0; i < 10; i++) {
 		if (write_node->hash[i] != cid_test[i]) {
@@ -206,6 +202,19 @@ int test_import_small_file() {
 			ipfs_hashtable_node_free(read_node);
 			return 0;
 		}
+	}
+
+	// attempt to look in the journal for the entry
+	struct lmdb_context *context = (struct lmdb_context*)local_node->repo->config->datastore->datastore_context;
+	struct JournalRecord* record = NULL;
+	struct lmdb_trans_cursor *cursor = lmdb_trans_cursor_new();
+	cursor->environment = context->db_environment;
+	cursor->database = context->journal_db;
+	cursor->parent_transaction = context->current_transaction;
+	if (mdb_cursor_open(context->current_transaction, *cursor->database, &cursor->cursor) != 0) {
+		fprintf(stderr, "Unable to open cursor.\n");
+	} else if (!lmdb_journalstore_cursor_get(cursor, CURSOR_FIRST, &record)) {
+		fprintf(stderr, "Unable to find any records in the database.\n");
 	}
 
 	ipfs_node_free(local_node);

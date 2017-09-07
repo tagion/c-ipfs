@@ -2,6 +2,7 @@
 
 #include "ipfs/journal/journal_entry.h"
 #include "ipfs/journal/journal_message.h"
+#include "ipfs/repo/fsrepo/journalstore.h"
 
 int test_journal_encode_decode() {
 	int retVal = 0;
@@ -129,6 +130,8 @@ int test_journal_server_1() {
 
 	sleep(45);
 
+	libp2p_logger_error("test_journal", "Sleep is over. Shutting down.\n");
+
 	retVal = 1;
 	exit:
 	ipfs_daemon_stop();
@@ -183,7 +186,9 @@ int test_journal_server_2() {
 	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
 	thread_started = 1;
 
-	sleep(120);
+	sleep(45);
+
+	libp2p_logger_error("test_journal", "Sleep is over. Shutting down.\n");
 
 	retVal = 1;
 	exit:
@@ -272,6 +277,7 @@ int test_journal_db() {
 	// close everything up
 	if (mdb_txn_commit(mdb_txn) != 0)
 		return 0;
+
 	mdb_env_close(mdb_env);
 
 	return 1;
