@@ -32,6 +32,8 @@ struct s_request {
 	int header;
 	int body;
 	size_t body_size;
+	int boundary;
+	size_t boundary_size;
 };
 
 #define HTTP_400	"HTTP/1.1 400 Bad Request\r\n" \
