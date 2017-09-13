@@ -1,4 +1,5 @@
 #include <string.h>
+#include <errno.h>
 
 #include "varint.h"
 #include "lmdb.h"
@@ -39,6 +40,7 @@ int lmdb_journalstore_generate_key(const struct JournalRecord* journal_record, s
 	db_key->mv_data = time_varint;
 	return 1;
 }
+
 /***
  * Convert the JournalRec struct into a lmdb key and lmdb value
  * @param journal_record the record to convert
@@ -113,25 +115,33 @@ int lmdb_journalstore_build_record(const struct MDB_val* db_key, const struct MD
  * @param hash_size the size of the hash
  * @returns true(1) on success, false(0) otherwise
  */
-int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, struct JournalRecord* journal_record) {
-	MDB_dbi mdb_dbi;
-	struct MDB_val db_key;
-	struct MDB_val db_value;
+int lmdb_journalstore_journal_add(struct lmdb_trans_cursor *journalstore_cursor, struct JournalRecord *journalstore_record) {
 
-	if (!lmdb_journalstore_build_key_value_pair(journal_record, &db_key, &db_value)) {
-		libp2p_logger_error("lmdb_journalstore", "Unable to generate key value pair for journal_add.\n");
+	MDB_val journalstore_key;
+	MDB_val journalstore_value;
+	int createdTransaction = 0;
+
+	if (!lmdb_journalstore_build_key_value_pair(journalstore_record, &journalstore_key, &journalstore_value)) {
+		libp2p_logger_error("lmdbd_journalstore", "add: Unable to convert journalstore record to key/value.\n");
 		return 0;
 	}
 
-	// open the journal table
-	if (mdb_dbi_open(mdb_txn, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, &mdb_dbi) != 0) {
-		libp2p_logger_error("lmdb_journalstore", "Unable to open JOURNALSTORE database.\n");
-		return 0;
+	// create transaction if necessary
+	if (journalstore_cursor->transaction == NULL) {
+		mdb_txn_begin(journalstore_cursor->environment, journalstore_cursor->parent_transaction, 0, &journalstore_cursor->transaction);
+		createdTransaction = 1;
 	}
 
-	if (mdb_put(mdb_txn, mdb_dbi, &db_key, &db_value, 0) == 0) {
+	if (mdb_put(journalstore_cursor->transaction, *journalstore_cursor->database, &journalstore_key, &journalstore_value, 0) != 0) {
 		libp2p_logger_error("lmdb_journalstore", "Unable to add to JOURNALSTORE database.\n");
 		return 0;
+	}
+
+	if (createdTransaction) {
+		if (mdb_txn_commit(journalstore_cursor->transaction) != 0) {
+			libp2p_logger_error("lmdb_journalstore", "Unable to commit JOURNALSTORE transaction.\n");
+			return 0;
+		}
 	}
 
 	return 1;
@@ -146,24 +156,34 @@ int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, struct JournalRecord* journa
  */
 int lmdb_journalstore_get_record(void* handle, struct lmdb_trans_cursor *journalstore_cursor, struct JournalRecord **journalstore_record)
 {
-	if (journalstore_cursor == NULL || journalstore_cursor->transaction == NULL) {
-		libp2p_logger_error("lmdb_journalstore", "get_record: journalstore cursor not initialized properly.\n");
+
+	if (handle == NULL) {
+		libp2p_logger_error("lmdb_journalstore", "get_record: database environment not set up.\n");
 		return 0;
 	}
+	struct lmdb_context *db_context = (struct lmdb_context*)handle;
+
+	// create a new transaction if necessary
+	if (journalstore_cursor->transaction == NULL) {
+		if (mdb_txn_begin(db_context->db_environment, journalstore_cursor->parent_transaction, 0, &journalstore_cursor->transaction) != 0) {
+			libp2p_logger_error("lmdb_journanstore", "get_record: Attempt to begin transaction failed.\n");
+			return 0;
+		}
+	}
+
 	if (journalstore_cursor->cursor == NULL) {
-		if (!lmdb_journalstore_cursor_open(handle, &journalstore_cursor)) {
+		if (!lmdb_journalstore_cursor_open(handle, &journalstore_cursor, NULL)) {
 			libp2p_logger_error("lmdb_journalstore", "Unable to open cursor in get_record.\n");
 			return 0;
 		}
 	}
 	// search for the timestamp
 	if (!lmdb_journalstore_cursor_get(journalstore_cursor, CURSOR_FIRST, journalstore_record)) {
-		libp2p_logger_error("lmdb_journalstore", "Unable to find any records in table.\n");
+		libp2p_logger_debug("lmdb_journalstore", "Unable to find any records in table.\n");
 		return 0;
 	}
-	// now look for the hash key
 
-	return 0;
+	return 1;
 }
 
 /**
@@ -172,9 +192,9 @@ int lmdb_journalstore_get_record(void* handle, struct lmdb_trans_cursor *journal
  * @param cursor where to place the results
  * @returns true(1) on success, false(0) otherwise
  */
-int lmdb_journalstore_cursor_open(void *handle, struct lmdb_trans_cursor **crsr) {
+int lmdb_journalstore_cursor_open(void *handle, struct lmdb_trans_cursor **crsr, struct MDB_txn* trans_to_use) {
 	if (handle != NULL) {
-		MDB_env* mdb_env = (MDB_env*)handle;
+		struct lmdb_context *db_context = (struct lmdb_context*)handle;
 		struct lmdb_trans_cursor *cursor = *crsr;
 		if (cursor == NULL ) {
 			cursor = lmdb_trans_cursor_new();
@@ -182,18 +202,19 @@ int lmdb_journalstore_cursor_open(void *handle, struct lmdb_trans_cursor **crsr)
 				return 0;
 			*crsr = cursor;
 		}
+		cursor->database = db_context->journal_db;
+		cursor->environment = db_context->db_environment;
+		cursor->parent_transaction = db_context->current_transaction;
+
 		if (cursor->transaction == NULL) {
-			// open transaction
-			if (mdb_txn_begin(mdb_env, NULL, 0, &cursor->transaction) != 0) {
-				libp2p_logger_error("lmdb_journalstore", "cursor_open: Unable to begin a transaction.\n");
-				return 0;
-			}
-		}
-		if (cursor->database == NULL) {
-			if (mdb_dbi_open(cursor->transaction, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, cursor->database) != 0) {
-				libp2p_logger_error("lmdb_journalstore", "cursor_open: Unable to open the dbi to the journalstore");
-				mdb_txn_commit(cursor->transaction);
-				return 0;
+			if (trans_to_use != NULL)
+				cursor->transaction = trans_to_use;
+			else {
+				// open transaction
+				if (mdb_txn_begin(db_context->db_environment, db_context->current_transaction, 0, &cursor->transaction) != 0) {
+					libp2p_logger_error("lmdb_journalstore", "cursor_open: Unable to begin a transaction.\n");
+					return 0;
+				}
 			}
 		}
 		if (cursor->cursor == NULL) {
@@ -266,8 +287,21 @@ int lmdb_journalstore_cursor_get(struct lmdb_trans_cursor *tc, enum DatastoreCur
 			lmdb_journalstore_generate_key(*record, &mdb_key);
 		}
 
-		if (mdb_cursor_get(tc->cursor, &mdb_key, &mdb_value, co) != 0) {
+		int retVal = mdb_cursor_get(tc->cursor, &mdb_key, &mdb_value, co);
+		if (retVal != 0) {
+			if (retVal == MDB_NOTFOUND) {
+				libp2p_logger_debug("lmdb_journalstore", "cursor_get: No records found in db.\n");
+			} else if (retVal == EINVAL) {
+				libp2p_logger_debug("lmdb_journalstore", "cursor_get: Invalid parameter specified.\n");
+			}
 			return 0;
+		}
+
+		if (*record == NULL) {
+			// make a new record and pass it back
+			if (!lmdb_journalstore_build_record(&mdb_key, &mdb_value, record))
+				return 0;
+			return 1;
 		}
 
 		// see if the passed in record has a specific record in mind (take care of duplicate keys)
@@ -332,17 +366,21 @@ int lmdb_journalstore_cursor_put(struct lmdb_trans_cursor *crsr, struct JournalR
 }
 
 /**
- * Close the cursor
+ * Close the cursor and commits the transaction.
  * @param crsr a lmdb_trans_cursor pointer
+ * @returns true(1)
  */
-int lmdb_journalstore_cursor_close(struct lmdb_trans_cursor *cursor) {
-	if (cursor->cursor != NULL) {
-		mdb_cursor_close(cursor->cursor);
-		mdb_txn_commit(cursor->transaction);
-		free(cursor);
-		return 1;
-	} else {
-		free(cursor);
+int lmdb_journalstore_cursor_close(struct lmdb_trans_cursor *cursor, int commitTransaction) {
+	if (cursor != NULL) {
+		if (cursor->cursor != NULL) {
+			//mdb_cursor_close(cursor->cursor);
+		}
+		if (cursor->transaction != NULL && commitTransaction) {
+			mdb_txn_commit(cursor->transaction);
+		}
+		cursor->cursor = NULL;
+		cursor->transaction = NULL;
+		lmdb_trans_cursor_free(cursor);
 	}
-	return 0;
+	return 1;
 }

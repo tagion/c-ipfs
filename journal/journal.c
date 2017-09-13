@@ -17,9 +17,10 @@
  * @returns true(1) if the protocol in incoming is something we can handle. False(0) otherwise.
  */
 int ipfs_journal_can_handle(const uint8_t* incoming, size_t incoming_size) {
-	if (incoming_size < 8)
+	const char* protocol = "/ipfs/journalio/1.0.0";
+	if (incoming_size < 21)
 		return 0;
-	char* result = strstr((char*)incoming, "/ipfs/journalio/1.0.0");
+	char* result = strnstr((char*)incoming, protocol, incoming_size);
 	if(result == NULL || result != (char*)incoming)
 		return 0;
 	libp2p_logger_debug("journal", "Handling incoming message.\n");
@@ -61,7 +62,7 @@ struct Libp2pVector* ipfs_journal_get_last(struct Datastore* database, int n) {
 	struct Libp2pVector* vector = libp2p_utils_vector_new(1);
 	if (vector != NULL) {
 		struct lmdb_trans_cursor *cursor = NULL;
-		if (!lmdb_journalstore_cursor_open(database->handle, &cursor)) {
+		if (!lmdb_journalstore_cursor_open(database->datastore_context, &cursor, NULL)) {
 			libp2p_logger_error("journal", "Unable to open a cursor for the journalstore.\n");
 			return NULL;
 		}
@@ -69,7 +70,7 @@ struct Libp2pVector* ipfs_journal_get_last(struct Datastore* database, int n) {
 		if (!lmdb_journalstore_cursor_get(cursor, CURSOR_LAST, &rec)) {
 			libp2p_logger_error("journal", "Unable to find last record from the journalstore.\n");
 			libp2p_utils_vector_free(vector);
-			lmdb_journalstore_cursor_close(cursor);
+			lmdb_journalstore_cursor_close(cursor, 1);
 			return NULL;
 		}
 		// we've got one, now start the loop
@@ -83,7 +84,7 @@ struct Libp2pVector* ipfs_journal_get_last(struct Datastore* database, int n) {
 			i++;
 		} while(i < n);
 		libp2p_logger_debug("journal", "Closing journalstore cursor.\n");
-		lmdb_journalstore_cursor_close(cursor);
+		lmdb_journalstore_cursor_close(cursor, 1);
 	} else {
 		libp2p_logger_error("journal", "Unable to allocate vector for ipfs_journal_get_last.\n");
 	}
@@ -147,6 +148,7 @@ int ipfs_journal_sync(struct IpfsNode* local_node, struct ReplicationPeer* repli
 	if (journal_records == NULL || journal_records->total == 0) {
 		// nothing to do
 		libp2p_logger_debug("journal", "There are no journal records to process.\n");
+		replication_peer->lastConnect = os_utils_gmtime();
 		return 1;
 	}
 	// build the message
@@ -169,17 +171,11 @@ int ipfs_journal_sync(struct IpfsNode* local_node, struct ReplicationPeer* repli
 			return 0;
 		}
 		memcpy(entry->hash, rec->hash, entry->hash_size);
-		// debugging
-		size_t b58size = 100;
-		uint8_t *b58key = (uint8_t*) malloc(b58size);
-		libp2p_crypto_encoding_base58_encode(entry->hash, entry->hash_size, &b58key, &b58size);
-		free(b58key);
-		libp2p_logger_debug("journal", "Adding hash %s to JournalMessage.\n", b58key);
 		libp2p_utils_vector_add(message->journal_entries, entry);
 	}
 	// send the message
 	message->current_epoch = os_utils_gmtime();
-	libp2p_logger_debug("journal", "Sending message to %s.\n", peer->id);
+	libp2p_logger_debug("journal", "Sending message to %s.\n", libp2p_peer_id_to_string(peer));
 	int retVal = ipfs_journal_send_message(local_node, peer, message);
 	if (retVal) {
 		replication_peer->lastConnect = message->current_epoch;
@@ -308,6 +304,7 @@ int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, s
 		if (second_read) {
 			free(incoming_pos);
 		}
+		ipfs_journal_message_free(message);
 		return -1;
 	}
 	struct Libp2pVector* todo_vector = NULL;
@@ -344,6 +341,8 @@ int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, s
 		}
 	}
 	//TODO: set new values in their ReplicationPeer struct
+
+	ipfs_journal_message_free(message);
 
 	if (second_read)
 		free(incoming_pos);

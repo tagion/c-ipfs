@@ -28,7 +28,7 @@ int lmdb_journal_record_free(struct JournalRecord* rec);
  * @param cursor where to place the results
  * @returns true(1) on success, false(0) otherwise
  */
-int lmdb_journalstore_cursor_open(void* db_handle, struct lmdb_trans_cursor **cursor);
+int lmdb_journalstore_cursor_open(void* db_handle, struct lmdb_trans_cursor **cursor, struct MDB_txn *trans_to_use);
 
 /**
  * Read a record from the cursor
@@ -46,11 +46,11 @@ int lmdb_journalstore_cursor_put(struct lmdb_trans_cursor *crsr, struct JournalR
 /**
  * Close the cursor
  */
-int lmdb_journalstore_cursor_close(struct lmdb_trans_cursor *cursor);
+int lmdb_journalstore_cursor_close(struct lmdb_trans_cursor *cursor, int commitTransaction);
 
 int journal_record_free(struct JournalRecord* rec);
 
-int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, struct JournalRecord* record);
+int lmdb_journalstore_journal_add(struct lmdb_trans_cursor *journalstore_cursor, struct JournalRecord *journalstore_record);
 
 /***
  * Attempt to get a specific record identified by its timestamp and bytes
@@ -60,4 +60,12 @@ int lmdb_journalstore_journal_add(MDB_txn* mdb_txn, struct JournalRecord* record
  * @returns true(1) on success, false(0) otherwise
  */
 int lmdb_journalstore_get_record(void* handle, struct lmdb_trans_cursor *journalstore_cursor, struct JournalRecord **journalstore_record);
+
+/***
+ * Convert the JournalRec struct into a lmdb key and lmdb value
+ * @param journal_record the record to convert
+ * @param db_key where to store the key information
+ * @param db_value where to store the value information
+ */
+int lmdb_journalstore_build_key_value_pair(const struct JournalRecord* journal_record, struct MDB_val* db_key, struct MDB_val *db_value);
 

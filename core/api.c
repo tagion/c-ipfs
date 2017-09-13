@@ -1,6 +1,8 @@
 /**
  * Methods for lightweight/specific HTTP for API communication.
  */
+#define _GNU_SOURCE
+#define __USE_GNU
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -180,6 +182,94 @@ int read_all(int fd, struct s_request *req, char *already, size_t alread_size)
 }
 
 /**
+ * Find a token in a string array.
+ * @param string array and token string.
+ * @returns the pointer after where the token was found or NULL if it fails.
+ */
+char *str_tok(char *str, char *tok)
+{
+	char *p = strstr(str, tok);
+	if (p) {
+		p += strlen(tok);
+		while(*p == ' ') p++;
+	}
+	return p;
+}
+
+/**
+ * Find a token in a binary array.
+ * @param array, size of array, token and size of token.
+ * @returns the pointer after where the token was found or NULL if it fails.
+ */
+char *bin_tok(char *bin, size_t limit, char *tok, size_t tok_size)
+{
+	char *p = memmem(bin, limit, tok, tok_size);
+	if (p) {
+		p += tok_size;
+	}
+	return p;
+}
+
+/**
+ * Check if header contain a especific value.
+ * @param request structure, header name and value to check.
+ * @returns the pointer where the value was found or NULL if it fails.
+ */
+char *header_value_cmp(struct s_request *req, char *header, char *value)
+{
+	char *p = str_tok(req->buf + req->header, header);
+	if (p) {
+		if (strstart(p, value)) {
+			return p;
+		}
+	}
+	return NULL;
+}
+
+/**
+ * Lookup for boundary at buffer string.
+ * @param body buffer string, boundary id, filename and content-type string.
+ * @returns the pointer where the multipart start.
+ */
+char *boundary_find(char *str, char *boundary, char **filename, char **contenttype)
+{
+	char *p = str_tok(str, "--");
+	while (p) {
+		if (strstart(p, boundary)) {
+			// skip to the beginning, ignoring the header for now, if there is.
+			// TODO: return filename and content-type
+			p = strstr(p, "\r\n\r\n");
+			if (p) {
+				return p + 4; // ignore 4 bytes CRLF 2x
+			}
+			break;
+		}
+		p = str_tok(str, "--");
+	}
+	return NULL;
+}
+
+/**
+ * Return the size of boundary.
+ * @param boundary buffer, boundary id.
+ * @returns the size of boundary or 0 if fails.
+ */
+size_t boundary_size(char *str, char *boundary, size_t limit)
+{
+	char *p = bin_tok(str, limit, "\r\n--", 4);
+	while (p) {
+		if (strstart(p, boundary)) {
+			if (cstrstart(p + strlen(boundary), "--\r\n")) {
+				p -= 4;
+				return (size_t)(p - str);
+			}
+		}
+		p = bin_tok(p, limit, "\r\n--", 4);
+	}
+	return 0;
+}
+
+/**
  * Pthread to take care of each client connection.
  * @param ptr is the connection index in api_list, integer not pointer, cast required.
  * @returns nothing
@@ -256,13 +346,8 @@ void *api_connection_thread (void *ptr)
 		req.body = req.size;
 		req.body_size = 0;
 
-		p = strstr(req.buf + req.header, "Transfer-Encoding:");
-		if (p) {
-			p += strlen("Transfer-Encoding:");
-			while(*p == ' ') p++;
-			if (cstrstart(p, "chunked\r\n") || strcmp(p, "chunked")==0) {
-				read_func = read_chunked;
-			}
+		if (header_value_cmp(&req, "Transfer-Encoding:", "chunked")) {
+			read_func = read_chunked;
 		}
 
 		if (!read_func(s, &req, body, r - (body - buf))) {
@@ -271,29 +356,65 @@ void *api_connection_thread (void *ptr)
 			goto quit;
 		}
 
-		p = strstr(req.buf + req.header, "Accept-Encoding:");
-		libp2p_logger_error("api", "method = '%s'\n"
-					   "path = '%s'\n"
-					   "http_ver = '%s'\n"
-					   "header {\n%s\n}\n"
-					   "body_size = %d\n",
-		req.buf+req.method, req.buf+req.path, req.buf+req.http_ver,
-		req.buf+req.header, req.body_size);
-
-		snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
-		"Content-Type: application/json\r\n"
-		"Server: c-ipfs/0.0.0-dev\r\n"
-		"X-Chunked-Output: 1\r\n"
-		"Connection: close\r\n"
-		"Transfer-Encoding: chunked\r\n\r\n", req.buf + req.http_ver);
-		write_str (s, resp);
-		libp2p_logger_error("api", "resp = {\n%s\n}\n", resp);
-
 		if (strcmp(req.buf + req.method, "GET")==0) {
-			// just an error message, because it's not used.
+			// just an error message, because it's not used yet.
+			// TODO: implement gateway requests and GUI (javascript) for API.
 			write_dual (s, req.buf + req.http_ver, strchr (HTTP_404, ' '));
-		//} else if (cstrstart(buf, "POST ")) {
-			// TODO: Handle chunked/gzip/form-data/json POST requests.
+		} else if (cstrstart(buf, "POST ")) {
+			// TODO: Handle gzip/json POST requests.
+
+			p = header_value_cmp(&req, "Content-Type:", "multipart/form-data;");
+			if (p) {
+				p = str_tok(p, "boundary=");
+				if (p) {
+					char *boundary, *l;
+					int len;
+					if (*p == '"') {
+						p++;
+						l = strchr(p, '"');
+					} else {
+						l = p;
+						while (*l != '\r' && *l != '\0') l++;
+					}
+					len = l - p;
+					boundary = malloc (len+1);
+					if (boundary) {
+						memcpy(boundary, p, len);
+						boundary[len] = '\0';
+
+						p = boundary_find(req.buf + req.body, boundary, NULL, NULL);
+						if (p) {
+							req.boundary_size = boundary_size(p, boundary, req.size - (p - buf));
+							if (req.boundary_size > 0) {
+								req.boundary = p - req.buf;
+							}
+						}
+
+						free (boundary);
+					}
+				}
+			}
+			// TODO: Parse the path var and decide what to do with the received data.
+			if (req.boundary > 0) {
+				libp2p_logger_error("api", "boundary index = %d, size = %d\n", req.boundary, req.boundary_size);
+			}
+
+			libp2p_logger_error("api", "method = '%s'\n"
+						   "path = '%s'\n"
+						   "http_ver = '%s'\n"
+						   "header {\n%s\n}\n"
+						   "body_size = %d\n",
+			req.buf+req.method, req.buf+req.path, req.buf+req.http_ver,
+			req.buf+req.header, req.body_size);
+
+			snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
+			"Content-Type: application/json\r\n"
+			"Server: c-ipfs/0.0.0-dev\r\n"
+			"X-Chunked-Output: 1\r\n"
+			"Connection: close\r\n"
+			"Transfer-Encoding: chunked\r\n\r\n", req.buf + req.http_ver);
+			write_str (s, resp);
+			libp2p_logger_error("api", "resp = {\n%s\n}\n", resp);
 		}
 	} else {
 		libp2p_logger_error("api", "fail looking for body.\n");

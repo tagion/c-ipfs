@@ -2,6 +2,7 @@
 
 #include "ipfs/journal/journal_entry.h"
 #include "ipfs/journal/journal_message.h"
+#include "ipfs/repo/fsrepo/journalstore.h"
 
 int test_journal_encode_decode() {
 	int retVal = 0;
@@ -120,6 +121,7 @@ int test_journal_server_1() {
 	ipfs_node_offline_new(ipfs_path, &local_node);
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
 	ipfs_node_free(local_node);
+	ipfs_hashtable_node_free(node);
 
 	libp2p_logger_debug("test_journal", "*** Firing up daemon for server 1 ***\n");
 
@@ -127,6 +129,8 @@ int test_journal_server_1() {
 	thread_started = 1;
 
 	sleep(45);
+
+	libp2p_logger_error("test_journal", "Sleep is over. Shutting down.\n");
 
 	retVal = 1;
 	exit:
@@ -182,7 +186,9 @@ int test_journal_server_2() {
 	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
 	thread_started = 1;
 
-	sleep(120);
+	sleep(45);
+
+	libp2p_logger_error("test_journal", "Sleep is over. Shutting down.\n");
 
 	retVal = 1;
 	exit:
@@ -190,4 +196,89 @@ int test_journal_server_2() {
 	if (thread_started)
 		pthread_join(daemon_thread, NULL);
 	return retVal;
+}
+
+#include "lmdb.h"
+
+// test the lightning db process
+int test_journal_db() {
+
+	MDB_env *mdb_env = NULL;
+	MDB_txn *mdb_txn = NULL;
+	MDB_dbi datastore_db;
+	MDB_dbi journalstore_db;
+	MDB_val datastore_key;
+	MDB_val datastore_value;
+	MDB_val *journalstore_key;
+	MDB_val *journalstore_value;
+	MDB_val returned_value;
+
+	// set up records
+	char* key = "ABC123";
+	char* value = "Hello, world!";
+	datastore_key.mv_size = strlen(key);
+	datastore_key.mv_data = (void*)key;
+	datastore_value.mv_size = strlen(value);
+	datastore_value.mv_data = (void*)value;
+	journalstore_key = (MDB_val*) malloc(sizeof(MDB_val));
+	journalstore_key->mv_size = strlen(key);
+	journalstore_key->mv_data = (void*)key;
+	journalstore_value = (MDB_val*) malloc(sizeof(MDB_val));
+	journalstore_value->mv_size = strlen(value);
+	journalstore_value->mv_data = (void*)value;
+
+	// clean up the old stuff
+	unlink ("/tmp/lock.mdb");
+	unlink ("/tmp/data.mdb");
+
+	// create environment
+	if (mdb_env_create(&mdb_env) != 0)
+		return 0;
+
+	if (mdb_env_set_maxdbs(mdb_env, (MDB_dbi)2) != 0)
+		return 0;
+
+	if (mdb_env_open(mdb_env, "/tmp", 0, S_IRWXU) != 0) {
+		fprintf(stderr, "Unable to open environment.\n");
+		return 0;
+	}
+
+	// create a transaction
+	if (mdb_txn_begin(mdb_env, NULL, 0, &mdb_txn) != 0) {
+		fprintf(stderr, "Unable to open transaction.\n");
+		return 0;
+	}
+
+	// open databases
+	if (mdb_dbi_open(mdb_txn, "DATASTORE", MDB_DUPSORT | MDB_CREATE, &datastore_db) != 0)
+		return 0;
+	if (mdb_dbi_open(mdb_txn, "JOURNALSTORE", MDB_DUPSORT | MDB_CREATE, &journalstore_db) != 0)
+		return 0;
+
+	// search for a record in the datastore
+	if (mdb_get(mdb_txn, datastore_db, &datastore_key, &returned_value) != MDB_NOTFOUND) {
+		return 0;
+	}
+
+	// add record to datastore
+	if (mdb_put(mdb_txn, datastore_db, &datastore_key, &datastore_value, 0) != 0)
+		return 0;
+
+	// add record to journalstore
+	if (mdb_put(mdb_txn, journalstore_db, journalstore_key, journalstore_value, 0) != 0)
+		return 0;
+
+	// get rid of MDB_val values from journalstore to see if commit still works
+	free(journalstore_key);
+	free(journalstore_value);
+	journalstore_key = NULL;
+	journalstore_value = NULL;
+
+	// close everything up
+	if (mdb_txn_commit(mdb_txn) != 0)
+		return 0;
+
+	mdb_env_close(mdb_env);
+
+	return 1;
 }
