@@ -79,6 +79,8 @@ int ipfs_cid_set_add (struct CidSet *set, struct Cid *cid, int visit)
         }
         set = set->next;
     }
+    //this should never get hit
+    return 0;
 }
 
 int ipfs_cid_set_has (struct CidSet *set, struct Cid *cid)
@@ -96,6 +98,7 @@ int ipfs_cid_set_has (struct CidSet *set, struct Cid *cid)
         }
         set = set->next;
     }
+    return 0;
 }
 
 int ipfs_cid_set_remove (struct CidSet *set, struct Cid *cid)
@@ -128,6 +131,7 @@ int ipfs_cid_set_remove (struct CidSet *set, struct Cid *cid)
         prev = set;
         set = set->next;
     }
+    return 0;
 }
 
 int ipfs_cid_set_len (struct CidSet *set)

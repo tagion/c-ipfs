@@ -56,7 +56,7 @@ int test_ipfs_datastore_put() {
 		return 0;
 	}
 	// send to Put with key
-	retVal = fs_repo->config->datastore->datastore_put((const unsigned char*)key, key_length, block->data, block->data_length, fs_repo->config->datastore);
+	retVal = ipfs_datastore_helper_add_block_to_datastore(block, fs_repo->config->datastore);
 	if (retVal == 0) {
 		ipfs_block_free(block);
 		return 0;

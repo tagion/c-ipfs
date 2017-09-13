@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O0 -I../include -I../../c-libp2p/include -I../../c-multihash/include -I../../c-multiaddr/include -I../../lmdb/libraries/liblmdb -Wall
+CFLAGS = -O0 -I../include -I../../c-libp2p/include -I../../c-multihash/include -I../../c-multiaddr/include -I../../lmdb/libraries/liblmdb -I../../c-protobuf -Wall
 
 ifdef DEBUG
 CFLAGS += -g3

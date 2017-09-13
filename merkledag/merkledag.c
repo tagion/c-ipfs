@@ -11,6 +11,37 @@
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/unixfs/unixfs.h"
 
+/***
+ * Convert a HashtableNode into a Block
+ * @param node the node to convert
+ * @param blockResult where to put the results
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_merkledag_convert_node_to_block(struct HashtableNode* node, struct Block** blockResult) {
+	*blockResult = ipfs_block_new();
+	if (*blockResult == NULL)
+		return 0;
+	struct Block* block = *blockResult;
+	block->cid = ipfs_cid_new(1, node->hash, node->hash_size, CID_DAG_PROTOBUF);
+	if (block->cid == NULL) {
+		ipfs_block_free(block);
+		*blockResult = NULL;
+		return 0;
+	}
+	block->data_length = ipfs_hashtable_node_protobuf_encode_size(node);
+	block->data = malloc(block->data_length);
+	if (block->data == NULL) {
+		ipfs_block_free(block);
+		*blockResult = NULL;
+		return 0;
+	}
+	if (!ipfs_hashtable_node_protobuf_encode(node, block->data, block->data_length, &block->data_length)) {
+		ipfs_block_free(block);
+		*blockResult = NULL;
+		return 0;
+	}
+	return 1;
+}
 
 /***
  * Adds a node to the dagService and blockService
@@ -42,8 +73,13 @@ int ipfs_merkledag_add(struct HashtableNode* node, struct FSRepo* fs_repo, size_
 	}
 
 	// write to block store & datastore
-	retVal = ipfs_repo_fsrepo_node_write(node, fs_repo, bytes_written);
+	struct Block* block = NULL;
+	if (!ipfs_merkledag_convert_node_to_block(node, &block)) {
+		return 0;
+	}
+	retVal = ipfs_repo_fsrepo_block_write(block, fs_repo, bytes_written);
 	if (retVal == 0) {
+		ipfs_block_free(block);
 		return 0;
 	}
 

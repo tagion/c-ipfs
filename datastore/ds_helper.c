@@ -2,6 +2,7 @@
  * Some code to help with the datastore / blockstore interface
  * NOTE: the datastore stores things under a multihash key
  */
+#include <stdlib.h>
 #include "libp2p/crypto/encoding/base32.h"
 #include "ipfs/datastore/ds_helper.h"
 /**
@@ -54,3 +55,41 @@ int ipfs_datastore_helper_binary_from_ds_key(const unsigned char* ds_key, size_t
 	}
 	return 1;
 }
+
+/***
+ * Add a record in the datastore based on a block
+ * @param block the block
+ * @param datastore the Datastore
+ * @reutrns true(1) on success, false(0) otherwise
+ */
+int ipfs_datastore_helper_add_block_to_datastore(struct Block* block, struct Datastore* datastore) {
+	struct DatastoreRecord* rec = libp2p_datastore_record_new();
+	if (rec == NULL)
+		return 0;
+	rec->key_size = block->cid->hash_length;
+	rec->key = (uint8_t*) malloc(rec->key_size);
+	if (rec->key == NULL) {
+		libp2p_datastore_record_free(rec);
+		return 0;
+	}
+	memcpy(rec->key, block->cid->hash, rec->key_size);
+	rec->timestamp = 0;
+	// convert the key to base32, and store it in the DatabaseRecord->value section
+	size_t fs_key_length = 100;
+	uint8_t fs_key[fs_key_length];
+	if (!ipfs_datastore_helper_ds_key_from_binary(block->cid->hash, block->cid->hash_length, fs_key, fs_key_length, &fs_key_length)) {
+		libp2p_datastore_record_free(rec);
+		return 0;
+	}
+	rec->value_size = fs_key_length;
+	rec->value = malloc(rec->value_size);
+	if (rec->value == NULL) {
+		libp2p_datastore_record_free(rec);
+		return 0;
+	}
+	memcpy(rec->value, fs_key, rec->value_size);
+	int retVal = datastore->datastore_put(rec, datastore);
+	libp2p_datastore_record_free(rec);
+	return retVal;
+}
+

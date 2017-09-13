@@ -58,7 +58,8 @@ int test_repo_fsrepo_write_read_block() {
 		return 0;
 	}
 
-	retVal = ipfs_repo_fsrepo_block_write(block, fs_repo);
+	size_t bytes_written;
+	retVal = ipfs_repo_fsrepo_block_write(block, fs_repo, &bytes_written);
 	if (retVal == 0) {
 		ipfs_repo_fsrepo_free(fs_repo);
 		ipfs_block_free(block);

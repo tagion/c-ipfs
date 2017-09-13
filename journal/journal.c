@@ -243,7 +243,8 @@ int ipfs_journal_build_todo(struct IpfsNode* local_node, struct JournalMessage* 
 			libp2p_utils_vector_add(todos, td);
 		} else {
 			// do we need to adjust the time?
-			if (datastore_record->timestamp != entry->timestamp) {
+			if ( 	(datastore_record->timestamp == 0 && entry->timestamp != 0) ||
+					(entry->timestamp != 0 && entry->timestamp < datastore_record->timestamp) ) {
 				struct JournalToDo* td = ipfs_journal_todo_new();
 				td->action = JOURNAL_TIME_ADJUST;
 				td->hash = entry->hash;
@@ -259,6 +260,36 @@ int ipfs_journal_build_todo(struct IpfsNode* local_node, struct JournalMessage* 
 	// are they perhaps missing something?
 	//struct Libp2pVector* local_records_for_second;
 	return 0;
+}
+
+/***
+ * Adjust the time in the journal
+ * @param todo the JournalToDo struct that contains the new time
+ * @param local_node the context
+ * @returns true(1) if success, or if no change was needed, false(0) if there was an error
+ */
+int ipfs_journal_adjust_time(struct JournalToDo* todo, struct IpfsNode* local_node) {
+	// grab the datastore record
+	struct DatastoreRecord* datastore_record = NULL;
+	if (!local_node->repo->config->datastore->datastore_get(todo->hash, todo->hash_size, &datastore_record, local_node->repo->config->datastore)) {
+		// did not find the record
+		libp2p_logger_error("journal", "Attempted time_adjust, but could not find the hash.\n");
+		return 0;
+	}
+	// record found
+	if (todo->remote_timestamp != 0) {
+		if ( datastore_record == 0 || datastore_record->timestamp > todo->remote_timestamp) {
+			datastore_record->timestamp = todo->remote_timestamp;
+		} else {
+			// we don't need to change the time
+			return 1;
+		}
+	}
+	if (!local_node->repo->config->datastore->datastore_put(datastore_record, local_node->repo->config->datastore)) {
+		libp2p_logger_error("journal", "Attempted time_adjust put, but failed.\n");
+		return 0;
+	}
+	return 1;
 }
 
 /***
@@ -317,21 +348,17 @@ int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, s
 				// go get a file
 				struct Block* block = NULL;
 				struct Cid* cid = ipfs_cid_new(0, curr->hash, curr->hash_size, CID_DAG_PROTOBUF);
-				// debugging
-				char* str = NULL;
-				libp2p_logger_debug("journal", "Looking for block %s.\n", ipfs_cid_to_string(cid, &str));
-				if (str != NULL)
-					free(str);
-
 				if (local_node->exchange->GetBlockAsync(local_node->exchange, cid, &block)) {
-					// set timestamp
+					// set timestamp (if we got the block already, but we probably didn't)
+					if (block != NULL)
+						ipfs_journal_adjust_time(curr, local_node);
 				}
 				ipfs_cid_free(cid);
 				ipfs_block_free(block);
 			}
 			break;
 			case (JOURNAL_TIME_ADJUST): {
-
+				ipfs_journal_adjust_time(curr, local_node);
 			}
 			break;
 			case (JOURNAL_REMOTE_NEEDS): {

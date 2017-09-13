@@ -1,10 +1,12 @@
+#pragma once
+
 /**
  * Some code to help with the datastore / blockstore interface
  */
-#ifndef __IPFS_DATASTORE_DS_HELPER_H__
-#define __IPFS_DATASTORE_DS_HELPER_H__
 
 #include <string.h>
+#include "ipfs/blocks/block.h"
+#include "libp2p/db/datastore.h"
 
 /**
  * Generate a key based on the passed in binary_array
@@ -30,4 +32,10 @@ int ipfs_datastore_helper_ds_key_from_binary(const unsigned char* binary_array, 
 int ipfs_datastore_helper_binary_from_ds_key(const unsigned char* ds_key, size_t key_length, unsigned char* binary_array,
 		size_t max_binary_array_length, size_t* completed_binary_array_length);
 
-#endif
+/***
+ * Add a record in the datastore based on a block
+ * @param block the block
+ * @param datastore the Datastore
+ * @reutrns true(1) on success, false(0) otherwise
+ */
+int ipfs_datastore_helper_add_block_to_datastore(struct Block* block, struct Datastore* datastore);

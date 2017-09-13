@@ -147,7 +147,7 @@ int ipfs_blockstore_get(const struct BlockstoreContext* context, struct Cid* cid
  * @param block the block to store
  * @returns true(1) on success
  */
-int ipfs_blockstore_put(const struct BlockstoreContext* context, struct Block* block) {
+int ipfs_blockstore_put(const struct BlockstoreContext* context, struct Block* block, size_t* bytes_written) {
 	// from blockstore.go line 118
 	int retVal = 0;
 
@@ -177,9 +177,9 @@ int ipfs_blockstore_put(const struct BlockstoreContext* context, struct Block* b
 	}
 
 	FILE* file = fopen(filename, "wb");
-	int bytes_written = fwrite(protobuf, 1, protobuf_len, file);
+	*bytes_written = fwrite(protobuf, 1, protobuf_len, file);
 	fclose(file);
-	if (bytes_written != protobuf_len) {
+	if (*bytes_written != protobuf_len) {
 		free(key);
 		free(filename);
 		return 0;

@@ -707,7 +707,7 @@ int fs_repo_write_config_file(char* path, struct RepoConfig* config) {
  * @param fs_repo the repo to write to
  * @returns true(1) on success
  */
-int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_repo) {
+int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_repo, size_t* bytes_written) {
 	/**
 	 * What is put in the blockstore is the block.
 	 * What is put in the datastore is the multihash (the Cid) as the key,
@@ -717,75 +717,11 @@ int ipfs_repo_fsrepo_block_write(struct Block* block, const struct FSRepo* fs_re
 	struct Blockstore* blockstore = ipfs_blockstore_new(fs_repo);
 	if (blockstore == NULL)
 		return 0;
-	retVal = ipfs_blockstore_put(blockstore->blockstoreContext, block);
+	retVal = ipfs_blockstore_put(blockstore->blockstoreContext, block, bytes_written);
 	ipfs_blockstore_free(blockstore);
 	if (retVal == 0)
 		return 0;
-	// take the cid, base32 it, and send both to the datastore
-	size_t fs_key_length = 100;
-	unsigned char fs_key[fs_key_length];
-	retVal = ipfs_datastore_helper_ds_key_from_binary(block->cid->hash, block->cid->hash_length, fs_key, fs_key_length, &fs_key_length);
-	if (retVal == 0)
-		return 0;
-	retVal = fs_repo->config->datastore->datastore_put(block->cid->hash, block->cid->hash_length, fs_key, fs_key_length, fs_repo->config->datastore);
-	if (retVal == 0)
-		return 0;
-	return 1;
-}
-
-/***
- * Write a unixfs to the datastore and blockstore
- * @param unix_fs the struct to write
- * @param fs_repo the repo to write to
- * @param bytes_written number of bytes written to the repo
- * @returns true(1) on success
- */
-int ipfs_repo_fsrepo_unixfs_write(const struct UnixFS* unix_fs, const struct FSRepo* fs_repo, size_t* bytes_written) {
-	/**
-	 * What is put in the blockstore is the block.
-	 * What is put in the datastore is the multihash (the Cid) as the key,
-	 * and the base32 encoded multihash as the value.
-	 */
-	int retVal = 1;
-	retVal = ipfs_blockstore_put_unixfs(unix_fs, fs_repo, bytes_written);
-	if (retVal == 0)
-		return 0;
-	// take the hash, base32 it, and send both to the datastore
-	size_t fs_key_length = 100;
-	unsigned char fs_key[fs_key_length];
-	retVal = ipfs_datastore_helper_ds_key_from_binary(unix_fs->hash, unix_fs->hash_length, fs_key, fs_key_length, &fs_key_length);
-	if (retVal == 0)
-		return 0;
-	retVal = fs_repo->config->datastore->datastore_put(unix_fs->hash, unix_fs->hash_length, fs_key, fs_key_length, fs_repo->config->datastore);
-	if (retVal == 0)
-		return 0;
-	return 1;
-}
-
-/***
- * Write a unixfs to the datastore and blockstore
- * @param unix_fs the struct to write
- * @param fs_repo the repo to write to
- * @param bytes_written number of bytes written to the repo
- * @returns true(1) on success
- */
-int ipfs_repo_fsrepo_node_write(const struct HashtableNode* node, const struct FSRepo* fs_repo, size_t* bytes_written) {
-	/**
-	 * What is put in the blockstore is the node.
-	 * What is put in the datastore is the multihash as the key,
-	 * and the base32 encoded multihash as the value.
-	 */
-	int retVal = 1;
-	retVal = ipfs_blockstore_put_node(node, fs_repo, bytes_written);
-	if (retVal == 0)
-		return 0;
-	// take the hash, base32 it, and send both to the datastore
-	size_t fs_key_length = 100;
-	unsigned char fs_key[fs_key_length];
-	retVal = ipfs_datastore_helper_ds_key_from_binary(node->hash, node->hash_size, fs_key, fs_key_length, &fs_key_length);
-	if (retVal == 0)
-		return 0;
-	retVal = fs_repo->config->datastore->datastore_put(node->hash, node->hash_size, fs_key, fs_key_length, fs_repo->config->datastore);
+	retVal = ipfs_datastore_helper_add_block_to_datastore(block, fs_repo->config->datastore);
 	if (retVal == 0)
 		return 0;
 	return 1;

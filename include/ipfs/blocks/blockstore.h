@@ -20,7 +20,7 @@ struct Blockstore {
 	 * Retrieve a block from the blockstore
 	 */
 	int (*Get)(const struct BlockstoreContext* context, struct Cid* cid, struct Block** block);
-	int (*Put)(const struct BlockstoreContext* context, struct Block* block);
+	int (*Put)(const struct BlockstoreContext* context, struct Block* block, size_t* bytes_written);
 };
 
 /***
@@ -67,7 +67,7 @@ int ipfs_blockstore_get(const struct BlockstoreContext* context, struct Cid* cid
  * @param block the block to store
  * @returns true(1) on success
  */
-int ipfs_blockstore_put(const struct BlockstoreContext* context, struct Block* block);
+int ipfs_blockstore_put(const struct BlockstoreContext* context, struct Block* block, size_t* bytes_written);
 
 /***
  * Put a struct UnixFS in the blockstore

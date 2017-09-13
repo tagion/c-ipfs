@@ -188,7 +188,13 @@ int test_journal_server_2() {
 
 	sleep(45);
 
-	libp2p_logger_error("test_journal", "Sleep is over. Shutting down.\n");
+	// see if we have the file that we should have...
+	if (!have_file_in_blockstore("/tmp/ipfs_2/.ipfs/blockstore", "2PD7A7OALR6OCEDZNKYAX363LMX3SBXZQPD3IAVTT")) {
+		libp2p_logger_error("test_journal", "We don't have the file that we think we should.\n");
+		goto exit;
+	} else {
+		libp2p_logger_debug("test_journal", "File is here. Success!\n");
+	}
 
 	retVal = 1;
 	exit:

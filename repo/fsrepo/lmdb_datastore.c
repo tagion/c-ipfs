@@ -174,12 +174,12 @@ int lmdb_datastore_create_transaction(struct lmdb_context *db_context, MDB_txn *
  * @param datastore the datastore to write to
  * @returns true(1) on success
  */
-int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned char* data, size_t data_size, const struct Datastore* datastore) {
+int repo_fsrepo_lmdb_put(struct DatastoreRecord* datastore_record, const struct Datastore* datastore) {
 	int retVal;
 	struct MDB_txn *child_transaction;
 	struct MDB_val datastore_key;
 	struct MDB_val datastore_value;
-	struct DatastoreRecord *datastore_record = NULL;
+	struct DatastoreRecord* existingRecord = NULL;
 	struct JournalRecord *journalstore_record = NULL;
 	struct lmdb_trans_cursor *journalstore_cursor = NULL;
 
@@ -207,24 +207,20 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	}
 
 	// see if what we want is already in the datastore
-	repo_fsrepo_lmdb_get_with_transaction(key, key_size, &datastore_record, child_transaction, db_context->datastore_db);
-	if (datastore_record != NULL) {
+	repo_fsrepo_lmdb_get_with_transaction(datastore_record->key, datastore_record->key_size, &existingRecord, child_transaction, db_context->datastore_db);
+	if (existingRecord != NULL) {
+		// overwrite the timestamp of the incoming record if what we have is older than what is coming in
+		if ( existingRecord->timestamp != 0 && datastore_record->timestamp > existingRecord->timestamp) {
+			datastore_record->timestamp = existingRecord->timestamp;
+		}
 		// build the journalstore_record with the search criteria
 		journalstore_record = lmdb_journal_record_new();
-		journalstore_record->hash_size = key_size;
-		journalstore_record->hash = malloc(key_size);
-		memcpy(journalstore_record->hash, key, key_size);
+		journalstore_record->hash_size = datastore_record->key_size;
+		journalstore_record->hash = malloc(datastore_record->key_size);
+		memcpy(journalstore_record->hash, datastore_record->key, datastore_record->key_size);
 		journalstore_record->timestamp = datastore_record->timestamp;
 		// look up the corresponding journalstore record for possible updating
 		lmdb_journalstore_get_record(db_context, journalstore_cursor, &journalstore_record);
-	} else { // it wasn't previously in the database
-		datastore_record = libp2p_datastore_record_new();
-		if (datastore_record == NULL) {
-			libp2p_logger_error("lmdb_datastore", "put: Unable to allocate memory for DatastoreRecord.\n");
-			lmdb_trans_cursor_free(journalstore_cursor);
-			mdb_txn_commit(child_transaction);
-			return 0;
-		}
 	}
 
 	// Put in the timestamp if it isn't there already (or is newer)
@@ -234,13 +230,6 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 		//old_timestamp = datastore_record->timestamp;
 		datastore_record->timestamp = now;
 	}
-	// fill in the other fields
-	datastore_record->key_size = key_size;
-	datastore_record->key = (uint8_t*) malloc(key_size);
-	memcpy(datastore_record->key, key, key_size);
-	datastore_record->value_size = data_size;
-	datastore_record->value = (uint8_t *) malloc(data_size);
-	memcpy(datastore_record->value, data, data_size);
 
 	// convert it into a byte array
 
@@ -249,8 +238,8 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 	repo_fsrepo_lmdb_encode_record(datastore_record, &record, &record_size);
 
 	// prepare data
-	datastore_key.mv_size = key_size;
-	datastore_key.mv_data = (char*)key;
+	datastore_key.mv_size = datastore_record->key_size;
+	datastore_key.mv_data = (char*)datastore_record->key;
 
 	// write
 	datastore_value.mv_size = record_size;
@@ -271,9 +260,9 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 		} else {
 			// add it to the journalstore
 			journalstore_record = lmdb_journal_record_new();
-			journalstore_record->hash = (uint8_t*) malloc(key_size);
-			memcpy(journalstore_record->hash, key, key_size);
-			journalstore_record->hash_size = key_size;
+			journalstore_record->hash = (uint8_t*) malloc(datastore_record->key_size);
+			memcpy(journalstore_record->hash, datastore_record->key, datastore_record->key_size);
+			journalstore_record->hash_size = datastore_record->key_size;
 			journalstore_record->timestamp = datastore_record->timestamp;
 			journalstore_record->pending = 1; // TODO: Calculate this correctly
 			journalstore_record->pin = 1;
@@ -295,7 +284,7 @@ int repo_fsrepo_lmdb_put(unsigned const char* key, size_t key_size, unsigned cha
 		libp2p_logger_error("lmdb_datastore", "lmdb_put: transaction commit failed.\n");
 	}
 	free(record);
-	libp2p_datastore_record_free(datastore_record);
+	libp2p_datastore_record_free(existingRecord);
 	return retVal;
 }
 

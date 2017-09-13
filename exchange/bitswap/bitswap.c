@@ -6,6 +6,7 @@
 #include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/ipfs_node.h"
+#include "ipfs/datastore/ds_helper.h"
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/exchange/bitswap/message.h"
@@ -140,8 +141,10 @@ int ipfs_bitswap_close(struct Exchange* exchange) {
 int ipfs_bitswap_has_block(struct Exchange* exchange, struct Block* block) {
 	// add the block to the blockstore
 	struct BitswapContext* context = exchange->exchangeContext;
-	context->ipfsNode->blockstore->Put(context->ipfsNode->blockstore->blockstoreContext, block);
-	context->ipfsNode->repo->config->datastore->datastore_put(block->cid->hash, block->cid->hash_length, block->data, block->data_length, context->ipfsNode->repo->config->datastore);
+	size_t bytes_written;
+	context->ipfsNode->blockstore->Put(context->ipfsNode->blockstore->blockstoreContext, block, &bytes_written);
+	// add it to the datastore
+	ipfs_datastore_helper_add_block_to_datastore(block, context->ipfsNode->repo->config->datastore);
 	// update requests
 	struct WantListQueueEntry* queueEntry = ipfs_bitswap_wantlist_queue_find(context->localWantlist, block->cid);
 	if (queueEntry != NULL) {

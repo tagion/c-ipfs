@@ -53,3 +53,11 @@ int create_bytes(unsigned char* buffer, size_t num_bytes);
  * @returns NULL
  */
 void* test_daemon_start(void* arg);
+
+/**
+ * Determine if a file exists in the blockstore
+ * @param dir the directory of the blockstore
+ * @param filename the file name (a base32 hash)
+ * @returns true(1) if the file exists, false(0) otherwise
+ */
+int have_file_in_blockstore(const char* dir, const char* filename);

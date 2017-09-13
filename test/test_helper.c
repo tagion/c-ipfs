@@ -255,3 +255,7 @@ void* test_daemon_start(void* arg) {
 	ipfs_daemon_start((char*)arg);
 	return NULL;
 }
+
+int have_file_in_blockstore(const char* dir, const char* filename) {
+	return 0;
+}
