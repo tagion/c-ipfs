@@ -7,12 +7,7 @@ OBJS = testit.o test_helper.o \
 	../cid/cid.o \
 	../cmd/ipfs/init.o \
 	../commands/argument.o ../commands/command_option.o ../commands/command.o ../commands/cli/parse.o \
-	../core/builder.o \
-	../core/daemon.o \
-	../core/null.o \
-	../core/bootstrap.o \
-	../core/ping.o \
-	../core/ipfs_node.o \
+	../core/*.o \
 	../datastore/ds_helper.o \
 	../exchange/bitswap/*.o \
 	../flatfs/flatfs.o \

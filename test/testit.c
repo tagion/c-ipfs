@@ -1,5 +1,10 @@
 #include "cid/test_cid.h"
 #include "cmd/ipfs/test_init.h"
+#include "core/test_api.h"
+#include "core/test_ping.h"
+#include "core/test_null.h"
+#include "core/test_daemon.h"
+#include "core/test_node.h"
 #include "exchange/test_bitswap.h"
 #include "exchange/test_bitswap_request_queue.h"
 #include "flatfs/test_flatfs.h"
@@ -18,10 +23,6 @@
 #include "storage/test_datastore.h"
 #include "storage/test_blocks.h"
 #include "storage/test_unixfs.h"
-#include "core/test_ping.h"
-#include "core/test_null.h"
-#include "core/test_daemon.h"
-#include "core/test_node.h"
 #include "libp2p/utils/logger.h"
  		 
 int testit(const char* name, int (*func)(void)) {
@@ -45,6 +46,7 @@ const char* names[] = {
 		"test_cid_cast_multihash",
 		"test_cid_cast_non_multihash",
 		"test_cid_protobuf_encode_decode",
+		"test_core_api_startup_shutdown",
 		"test_daemon_startup_shutdown",
 		"test_datastore_list_journal",
 		"test_journal_encode_decode",
@@ -105,6 +107,7 @@ int (*funcs[])(void) = {
 		test_cid_cast_multihash,
 		test_cid_cast_non_multihash,
 		test_cid_protobuf_encode_decode,
+		test_core_api_startup_shutdown,
 		test_daemon_startup_shutdown,
 		test_datastore_list_journal,
 		test_journal_encode_decode,

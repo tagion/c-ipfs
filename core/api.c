@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <arpa/inet.h>
+#include <sys/uio.h>
 
 #include <fcntl.h>
 
@@ -44,7 +45,7 @@ int find_chunk(char *buf, const size_t buf_size, size_t *pos, size_t *size)
 	char *p = NULL;
 
 	*size = strtol(buf, &p, 16);
-	if (*size < 0 || !p || p < buf || p > (buf + 10)) {
+	if (!p || p < buf || p > (buf + 10)) {
 		return 0;
 	}
 	*pos = (int)(p - buf);

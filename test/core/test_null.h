@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "ipfs/importer/importer.h"
 
 int test_null_add_provider() {
 	int retVal = 0;
@@ -17,7 +18,7 @@ int test_null_add_provider() {
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0)
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
 	thread1_started = 1;
 
@@ -35,7 +36,7 @@ int test_null_add_provider() {
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0)
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
 	thread2_started = 1;
     // wait for everything to start up

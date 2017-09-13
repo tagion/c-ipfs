@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pthread.h>
+
 #ifdef __x86_64__
 	#define INT_TYPE uint64_t
 #else
