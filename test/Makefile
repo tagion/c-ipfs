@@ -15,6 +15,8 @@ OBJS = testit.o test_helper.o \
 	../journal/*.o \
 	../merkledag/merkledag.o ../merkledag/node.o \
 	../multibase/multibase.o \
+	../namesys/pb.o \
+	../namesys/publisher.o \
 	../repo/init.o \
 	../repo/fsrepo/*.o \
 	../repo/config/*.o \

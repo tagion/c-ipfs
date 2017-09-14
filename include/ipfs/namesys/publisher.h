@@ -1,9 +1,21 @@
-#ifndef IPFS_PUBLISHER_H
-    #define IPFS_PUBLISHER_H
-    char* ipns_entry_data_for_sig (struct ipns_entry *entry);
-    int ipns_selector_func (int *idx, struct ipns_entry ***recs, char *k, char **vals);
-    int ipns_select_record (int *idx, struct ipns_entry **recs, char **vals);
-    // ipns_validate_ipns_record implements ValidatorFunc and verifies that the
-    // given 'val' is an IpnsEntry and that that entry is valid.
-    int ipns_validate_ipns_record (char *k, char *val);
-#endif // IPFS_PUBLISHER_H
+#pragma once
+
+#include "ipfs/cid/cid.h"
+#include "ipfs/core/ipfs_node.h"
+#include "ipfs/namesys/pb.h"
+
+char* ipns_entry_data_for_sig (struct ipns_entry *entry);
+int ipns_selector_func (int *idx, struct ipns_entry ***recs, char *k, char **vals);
+int ipns_select_record (int *idx, struct ipns_entry **recs, char **vals);
+// ipns_validate_ipns_record implements ValidatorFunc and verifies that the
+// given 'val' is an IpnsEntry and that that entry is valid.
+int ipns_validate_ipns_record (char *k, char *val);
+
+/**
+ * Store the hash locally, and notify the network
+ *
+ * @param local_node the context
+ * @param cid the hash
+ * @returns true(1) on success, false(0) otherwise
+*/
+int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, struct Cid* cid);

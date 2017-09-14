@@ -10,6 +10,7 @@
 #include "flatfs/test_flatfs.h"
 #include "journal/test_journal.h"
 #include "merkledag/test_merkledag.h"
+#include "namesys/test_publisher.h"
 #include "node/test_node.h"
 #include "node/test_importer.h"
 #include "node/test_resolver.h"
@@ -80,6 +81,7 @@ const char* names[] = {
 		"test_merkledag_get_data",
 		"test_merkledag_add_node",
 		"test_merkledag_add_node_with_links",
+		"test_namesys_publisher_publish",
 		"test_resolver_get",
 		"test_routing_find_peer",
 		"test_routing_provide" /*,
@@ -142,6 +144,7 @@ int (*funcs[])(void) = {
 		test_merkledag_get_data,
 		test_merkledag_add_node,
 		test_merkledag_add_node_with_links,
+		test_namesys_publisher_publish,
 		test_resolver_get,
 		test_routing_find_peer,
 		test_routing_provide /*,

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include "libp2p/routing/dht_protocol.h"
 #include "ipfs/util/errs.h"
 #include "ipfs/util/time.h"
 #include "ipfs/namesys/pb.h"
@@ -68,6 +69,7 @@ int ipns_selector_func (int *idx, struct ipns_entry ***recs, char *k, char **val
  */
 int ipns_select_record (int *idx, struct ipns_entry **recs, char **vals)
 {
+	/*
     int err, i, best_i = -1, best_seq = 0;
     struct timespec rt, bestt;
 
@@ -105,6 +107,7 @@ int ipns_select_record (int *idx, struct ipns_entry **recs, char **vals)
         return ErrNoRecord;
     }
     *idx = best_i;
+    */
     return 0;
 }
 
@@ -118,6 +121,7 @@ int ipns_select_record (int *idx, struct ipns_entry **recs, char **vals)
  */
 int ipns_validate_ipns_record (char *k, char *val)
 {
+	/*
     int err = 0;
     struct ipns_entry *entry = ipfs_namesys_pb_new_ipns_entry();
     struct timespec ts, now;
@@ -142,6 +146,7 @@ int ipns_validate_ipns_record (char *k, char *val)
     } else {
         return ErrUnrecognizedValidity;
     }
+    */
    return 0;
 }
 
@@ -154,7 +159,7 @@ int ipns_validate_ipns_record (char *k, char *val)
  * @param to_size where to put the value of from_size in the new structure
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_namesys_copy_bytes(uint8_t* from, int from_size, uint8_t** to, int* to_size) {
+int ipfs_namesys_copy_bytes(uint8_t* from, size_t from_size, uint8_t** to, size_t* to_size) {
 	*to = (uint8_t*) malloc(from_size);
 	if (*to == NULL) {
 		return 0;
@@ -171,7 +176,7 @@ int ipfs_namesys_copy_bytes(uint8_t* from, int from_size, uint8_t** to, int* to_
  * @param cid the hash
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_namesys_publish(struct IpfsNode* local_node, struct Cid* cid) {
+int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, struct Cid* cid) {
 	// store locally
 	struct DatastoreRecord* record = libp2p_datastore_record_new();
 	if (record == NULL)
@@ -183,7 +188,7 @@ int ipfs_namesys_publish(struct IpfsNode* local_node, struct Cid* cid) {
 		return 0;
 	}
 	// value
-	if (!ipfs_namesys_copy_bytes(local_node->identity->peer->id, local_node->identity->peer->id_size, &record->value, &record->value_size)) {
+	if (!ipfs_namesys_copy_bytes((unsigned char*)local_node->identity->peer->id, local_node->identity->peer->id_size, &record->value, &record->value_size)) {
 		libp2p_datastore_record_free(record);
 		return 0;
 	}
@@ -201,8 +206,8 @@ int ipfs_namesys_publish(struct IpfsNode* local_node, struct Cid* cid) {
 		libp2p_message_free(msg);
 		return 0;
 	}
-	msg->provider_peer_head = libp2p_utils_vector_new(1);
-	libp2p_utils_vector_add(msg->provider_peer_head, local_node->identity->peer);
+	msg->provider_peer_head = libp2p_utils_linked_list_new();
+	msg->provider_peer_head->item = local_node->identity->peer;
 	// msg->Libp2pRecord
 	msg->record = libp2p_record_new();
 	if (msg->record == NULL) {
@@ -210,22 +215,22 @@ int ipfs_namesys_publish(struct IpfsNode* local_node, struct Cid* cid) {
 		return 0;
 	}
 	// KademliaMessage->Libp2pRecord->author
-	if (!ipfs_namesys_copy_bytes(local_node->identity->peer->id, local_node->identity->peer->id_size, &msg->record->author, &msg->record->author_size)) {
+	if (!ipfs_namesys_copy_bytes((unsigned char*)local_node->identity->peer->id, local_node->identity->peer->id_size, (unsigned char**)&msg->record->author, &msg->record->author_size)) {
 		libp2p_message_free(msg);
 		return 0;
 	}
 	// KademliaMessage->Libp2pRecord->key
-	if (!ipfs_namesys_copy_bytes(cid->hash, cid->hash_length, &msg->record->key, &msg->record->key_size)) {
+	if (!ipfs_namesys_copy_bytes(cid->hash, cid->hash_length, (unsigned char**)&msg->record->key, &msg->record->key_size)) {
 		libp2p_message_free(msg);
 		return 0;
 	}
 	// KademliaMessage->Libp2pRecord->value
-	if (!ipfs_namesys_copy_bytes(local_node->identity->peer->id, local_node->identity->peer->id_size, &msg->record->value, &msg->record->value_size)) {
+	if (!ipfs_namesys_copy_bytes((unsigned char*)local_node->identity->peer->id, local_node->identity->peer->id_size, &msg->record->value, &msg->record->value_size)) {
 		libp2p_message_free(msg);
 		return 0;
 	}
 
-	int retVal = libp2p_routing_send_message(local_node->identity->peer, local_node->providerstore, msg);
+	int retVal = libp2p_routing_dht_send_message(local_node->identity->peer, local_node->providerstore, msg);
 	libp2p_message_free(msg);
 	return retVal;
 }
