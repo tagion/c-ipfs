@@ -21,6 +21,70 @@ void* test_routing_daemon_start(void* arg) {
 	return NULL;
 }
 
+/***
+ * "publish" a hash to the datastore (for ipns)
+ */
+int test_routing_put_value() {
+	int retVal = 0;
+	char* ipfs_path_publisher = "/tmp/ipfs_1";
+	char* peer_id_publisher = NULL;
+	struct MultiAddress* ma_publisher = NULL;
+	pthread_t thread_publisher;
+	int publisher_thread_started = 0;
+	pthread_t thread_consumer;
+	char* ipfs_path_consumer = "/tmp/ipfs_2";
+	char* peer_id_consumer = NULL;
+	int consumer_thread_started = 0;
+	struct Libp2pVector* ma_vector = NULL;
+
+	// fire up the "publisher"
+	drop_and_build_respository(ipfs_path_publisher, 4001, NULL, &peer_id_publisher);
+	char multiaddress_string[255];
+	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_publisher);
+	ma_publisher = multiaddress_new_from_string(multiaddress_string);
+	char* args[] = { "ipfs", "--config", ipfs_path_publisher, "add", "-r", "~/site"};
+	ipfs_import_files(args, 6);
+	if (!pthread_create(&thread_publisher, test_routing_daemon_start, (void*)ipfs_path_publisher)) {
+		goto exit;
+	}
+	publisher_thread_started = 1;
+
+	// fire up the "consumer"
+	ma_vector = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector, ma_publisher);
+	drop_and_build_repository(ipfs_path_consumer, 4002, ma_vector, &peer_id_consumer);
+	if (pthread_create(&thread_consumer, NULL, test_routing_daemon_start, (void*)ipfs_path_consumer) < 0)
+		goto exit;
+	consumer_thread_started = 1;
+
+	// wait for everything to fire up
+	sleep(5);
+
+	// now "publish" to publisher, and verify that "consumer" receives the message
+	char* args2[] = {"ipfs" "--config", ipfs_path_publisher, "name", "publish", "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD" };
+	ipfs_name_publish(args2, 6);
+
+	// wait for everything to settle in
+	sleep(3);
+
+	// see if we have what we should...
+	char* args3[] = {"ipfs", "--config", ipfs_path_consumer, "resolve", peer_id_publisher};
+	char* results = NULL;
+	ipfs_resolve(args3, 5, &results);
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (publisher_thread_started) {
+		pthread_join(thread_publisher);
+	}
+	if (consumer_thread_started) {
+		pthread_join(thread_consumer);
+	}
+	multiaddress_free(ma_publisher);
+	return retVal;
+}
+
 int test_routing_find_peer() {
 	int retVal = 0;
 	char* ipfs_path = "/tmp/test1";
