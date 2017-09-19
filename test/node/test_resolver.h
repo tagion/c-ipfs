@@ -76,11 +76,6 @@ int test_resolver_get() {
 	return retVal;
 }
 
-void* test_resolver_daemon_start(void* arg) {
-	ipfs_daemon_start((char*)arg);
-	return NULL;
-}
-
 int test_resolver_remote_get() {
 	// clean out repository
 	const char* ipfs_path = "/tmp";
@@ -107,7 +102,7 @@ int test_resolver_remote_get() {
 	drop_and_build_repository(ipfs_path, 4001, NULL, NULL);
 
 	// start the daemon in a separate thread
-	if (pthread_create(&thread, NULL, test_resolver_daemon_start, (void*)ipfs_path) < 0)
+	if (pthread_create(&thread, NULL, test_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
 	thread_started = 1;
 

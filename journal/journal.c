@@ -362,7 +362,7 @@ int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, s
 			}
 			break;
 			case (JOURNAL_REMOTE_NEEDS): {
-
+				// next time we sync, let them know that this file is available
 			}
 			break;
 		}

@@ -230,7 +230,8 @@ int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, struct Cid* cid)
 		return 0;
 	}
 
-	int retVal = libp2p_routing_dht_send_message(local_node->identity->peer, local_node->providerstore, msg);
+	int retVal = libp2p_routing_dht_send_message_nearest_x(&local_node->identity->private_key, local_node->peerstore, local_node->repo->config->datastore, msg, 10);
+
 	libp2p_message_free(msg);
 	return retVal;
 }

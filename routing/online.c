@@ -23,51 +23,17 @@
  * @returns what was received
  */
 struct KademliaMessage* ipfs_routing_online_send_receive_message(struct SessionContext* sessionContext, struct KademliaMessage* message) {
-	size_t protobuf_size = 0, results_size = 0;
-	unsigned char* protobuf = NULL, *results = NULL;
 	struct KademliaMessage* return_message = NULL;
 	//unsigned char* protocol = (unsigned char*)"/ipfs/kad/1.0.0\n";
 
-	protobuf_size = libp2p_message_protobuf_encode_size(message);
-	protobuf = (unsigned char*)malloc(protobuf_size);
-	libp2p_message_protobuf_encode(message, &protobuf[0], protobuf_size, &protobuf_size);
-
-
-	// upgrade to kademlia protocol
-	if (!libp2p_routing_dht_upgrade_stream(sessionContext)) {
-		goto exit;
-	}
-
-	//if (!sessionContext->default_stream->write(sessionContext, protocol, strlen( (char*)protocol))) {
-	//	libp2p_logger_error("online", "Unable to switch to kademlia protocol.\n");
-	//}
-
 	// send the message, and expect the same back
-	if (!sessionContext->default_stream->write(sessionContext, protobuf, protobuf_size)) {
+	if (!libp2p_routing_dht_send_message(sessionContext, message)) {
 		libp2p_logger_error("online", "Attempted to write to Kademlia stream, but could not.\n");
-		goto exit;
+	} else {
+		if (!libp2p_routing_dht_receive_message(sessionContext, &return_message)) {
+			libp2p_logger_error("online", "Unable to receive kademlia message.\n");
+		}
 	}
-	if (!sessionContext->default_stream->read(sessionContext, &results, &results_size, 5)) {
-		libp2p_logger_error("online", "Attempted to read from Kademlia stream, but could not.\n");
-	}
-
-	if (results_size == 0) {
-		libp2p_logger_error("online", "reading kademlia header response returned nothing.\n");
-		goto exit;
-	}
-
-	// see if we can unprotobuf
-	if (!libp2p_message_protobuf_decode(results, results_size, &return_message)) {
-		libp2p_logger_error("online", "Received kademlia response, but cannot decode it.\n");
-		goto exit;
-	}
-	exit:
-
-	if (protobuf != NULL)
-		free(protobuf);
-	if (results != NULL)
-		free(results);
-
 	return return_message;
 }
 

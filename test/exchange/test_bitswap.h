@@ -199,7 +199,7 @@ int test_bitswap_retrieve_file_remote() {
 	ipfs_node_online_new(ipfs_path, &ipfs_node1);
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, ipfs_node1, &bytes_written, 0);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		libp2p_logger_error("test_bitswap", "Unable to start thread 1\n");
 		goto exit;
 	}
@@ -398,7 +398,7 @@ int test_bitswap_retrieve_file_third_party() {
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		libp2p_logger_error("test_bitswap", "Unable to start thread 1\n");
 		goto exit;
 	}
@@ -424,7 +424,7 @@ int test_bitswap_retrieve_file_third_party() {
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, ipfs_node2, &bytes_written, 0);
 	ipfs_node_free(ipfs_node2);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		libp2p_logger_error("test_bitswap", "Unable to start thread 2\n");
 		goto exit;
 	}

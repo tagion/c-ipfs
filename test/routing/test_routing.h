@@ -16,10 +16,6 @@
 
 #include "../test_helper.h"
 
-void* test_routing_daemon_start(void* arg) {
-	ipfs_daemon_start((char*)arg);
-	return NULL;
-}
 
 /***
  * "publish" a hash to the datastore (for ipns)
@@ -44,7 +40,7 @@ int test_routing_put_value() {
 	ma_publisher = multiaddress_new_from_string(multiaddress_string);
 	char* args[] = { "ipfs", "--config", ipfs_path_publisher, "add", "-r", "~/site"};
 	ipfs_import_files(6, args);
-	if (!pthread_create(&thread_publisher, NULL, test_routing_daemon_start, (void*)ipfs_path_publisher)) {
+	if (!pthread_create(&thread_publisher, NULL, test_daemon_start, (void*)ipfs_path_publisher)) {
 		goto exit;
 	}
 	publisher_thread_started = 1;
@@ -53,12 +49,14 @@ int test_routing_put_value() {
 	ma_vector = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(ma_vector, ma_publisher);
 	drop_and_build_repository(ipfs_path_consumer, 4002, ma_vector, &peer_id_consumer);
-	if (pthread_create(&thread_consumer, NULL, test_routing_daemon_start, (void*)ipfs_path_consumer) < 0)
+	if (pthread_create(&thread_consumer, NULL, test_daemon_start, (void*)ipfs_path_consumer) < 0)
 		goto exit;
 	consumer_thread_started = 1;
 
 	// wait for everything to fire up
 	sleep(5);
+
+	/* this area is for when we get the command line interface closer to completion... So skip for now and do it at a lower level
 
 	// now "publish" to publisher, and verify that "consumer" receives the message
 	char* args2[] = {"ipfs" "--config", ipfs_path_publisher, "name", "publish", "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD" };
@@ -71,6 +69,9 @@ int test_routing_put_value() {
 	char* args3[] = {"ipfs", "--config", ipfs_path_consumer, "resolve", peer_id_publisher};
 	char* results = NULL;
 	//ipfs_resolve(5, args3, &results);
+	 */
+
+	ipfs_namesys_publisher_publish();
 
 	retVal = 1;
 	exit:
@@ -115,7 +116,7 @@ int test_routing_find_peer() {
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0)
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
 	thread1_started = 1;
 
@@ -135,7 +136,7 @@ int test_routing_find_peer() {
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0)
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
 	thread2_started = 1;
 
@@ -231,7 +232,7 @@ int test_routing_find_providers() {
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		fprintf(stderr, "Unable to start thread 1\n");
 		goto exit;
 	}
@@ -252,7 +253,7 @@ int test_routing_find_providers() {
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		fprintf(stderr, "Unable to start thread 2\n");
 		goto exit;
 	}
@@ -386,7 +387,7 @@ int test_routing_provide() {
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		fprintf(stderr, "Unable to start thread 1\n");
 		goto exit;
 	}
@@ -407,7 +408,7 @@ int test_routing_provide() {
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		fprintf(stderr, "Unable to start thread 2\n");
 		goto exit;
 	}
@@ -474,7 +475,7 @@ int test_routing_retrieve_file_third_party() {
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
 	libp2p_logger_debug("test_routing", "Firing up daemon 1.\n");
-	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		fprintf(stderr, "Unable to start thread 1\n");
 		goto exit;
 	}
@@ -502,7 +503,7 @@ int test_routing_retrieve_file_third_party() {
 	ipfs_node_free(ipfs_node2);
 	// start the daemon in a separate thread
 	libp2p_logger_debug("test_routing", "Firing up daemon 2.\n");
-	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		fprintf(stderr, "Unable to start thread 2\n");
 		goto exit;
 	}
@@ -608,7 +609,7 @@ int test_routing_retrieve_large_file() {
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
 	libp2p_logger_debug("test_routing", "Firing up daemon 1.\n");
-	if (pthread_create(&thread1, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		fprintf(stderr, "Unable to start thread 1\n");
 		goto exit;
 	}
@@ -636,7 +637,7 @@ int test_routing_retrieve_large_file() {
 	ipfs_node_free(ipfs_node2);
 	// start the daemon in a separate thread
 	libp2p_logger_debug("test_routing", "Firing up daemon 2.\n");
-	if (pthread_create(&thread2, NULL, test_routing_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		fprintf(stderr, "Unable to start thread 2\n");
 		goto exit;
 	}
