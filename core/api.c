@@ -270,6 +270,28 @@ size_t boundary_size(char *str, char *boundary, size_t limit)
 }
 
 /**
+ * function to find and read the object.
+ * @param path is the ipfs address, obj is a pointer to be allocated and will be the return of the data, size is a pointer to return the data length.
+ * @returns 1 when success is 0 when failure.
+ */
+int get_object(char *path, unsigned char **obj, size_t *size)
+{
+	// TODO: implement.
+	return 0; // fail.
+}
+
+/**
+ * send object data as an http response.
+ * @param socket, object pointer and size.
+ * @returns 1 when success is 0 when failure.
+ */
+int send_object(int socket, unsigned char *obj, size_t size)
+{
+	// TODO: implement.
+	return 0; // fail.
+}
+
+/**
  * Pthread to take care of each client connection.
  * @param ptr is the connection index in api_list, integer not pointer, cast required.
  * @returns nothing
@@ -356,11 +378,29 @@ void *api_connection_thread (void *ptr)
 			goto quit;
 		}
 
-		if (strcmp(req.buf + req.method, "GET")==0) {
-			// just an error message, because it's not used yet.
-			// TODO: implement gateway requests and GUI (javascript) for API.
-			write_dual (s, req.buf + req.http_ver, strchr (HTTP_404, ' '));
-		} else if (cstrstart(buf, "POST ")) {
+		if (strcmp(buf + req.method, "GET")==0) {
+			char *path;
+			unsigned char *obj;
+			size_t size;
+
+			if (strcmp (req.buf + req.path, "/")==0   ||
+			    strcmp (req.buf + req.path, "/webui") ||
+			    strcmp (req.buf + req.path, "/webui/")==0) {
+				path = "/ipfs/QmPhnvn747LqwPYMJmQVorMaGbMSgA7mRRoyyZYz3DoZRQ/"; // WEBUI PAGE
+			} else {
+				path = req.buf + req.path;
+			}
+
+			if (get_object(path, &obj, &size)) {
+				if (!send_object(s, obj, size)) {
+					libp2p_logger_error("api", "fail send_object.\n");
+				}
+				free(obj);
+			} else {
+				// object not found.
+				write_dual (s, req.buf + req.http_ver, strchr (HTTP_404, ' '));
+			}
+		} else if (strcmp(buf + req.method, "POST")==0) {
 			// TODO: Handle gzip/json POST requests.
 
 			p = header_value_cmp(&req, "Content-Type:", "multipart/form-data;");
@@ -415,6 +455,10 @@ void *api_connection_thread (void *ptr)
 			"Transfer-Encoding: chunked\r\n\r\n", req.buf + req.http_ver);
 			write_str (s, resp);
 			libp2p_logger_error("api", "resp = {\n%s\n}\n", resp);
+		} else {
+			// Unexpected???
+			libp2p_logger_error("api", "fail unexpected '%s'.\n", req.buf + req.method);
+			write_cstr (s, HTTP_500);
 		}
 	} else {
 		libp2p_logger_error("api", "fail looking for body.\n");
