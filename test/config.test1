@@ -5,7 +5,7 @@
  },
  "Datastore": {
   "Type": "lmdb",
-  "Path": "/tmp/ipfs_1/datastore",
+  "Path": "/tmp/ipfs_1/.ipfs/datastore",
   "StorageMax": "10GB",
   "StorageGCWatermark": 90,
   "GCPeriod": "1h",

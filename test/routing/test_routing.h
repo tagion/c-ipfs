@@ -22,7 +22,7 @@
  */
 int test_routing_put_value() {
 	int retVal = 0;
-	char* ipfs_path_publisher = "/tmp/ipfs_1";
+	char* ipfs_path_publisher = "/tmp/ipfs_1/.ipfs";
 	char* peer_id_publisher = NULL;
 	struct MultiAddress* ma_publisher = NULL;
 	pthread_t thread_publisher;

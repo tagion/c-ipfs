@@ -8,7 +8,7 @@
 #include "ipfs/importer/importer.h"
 
 int test_core_api_startup_shutdown() {
-	char* repo_path = "/tmp/ipfs_1";
+	char* repo_path = "/tmp/ipfs_1/.ipfs";
 	char* peer_id = NULL;
 	int retVal = 0;
 

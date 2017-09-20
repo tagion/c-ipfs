@@ -9,7 +9,7 @@ int test_namesys_publisher_publish() {
 	struct IpfsNode* local_node = NULL;
 	struct Cid* cid = NULL;
 	char* hash_text = "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD";
-	char* repo_path = "/tmp/ipfs_1";
+	char* repo_path = "/tmp/ipfs_1/.ipfs";
 
 	// get a local node
 	if (!ipfs_node_offline_new(repo_path, &local_node)) {

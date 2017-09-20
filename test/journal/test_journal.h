@@ -78,7 +78,7 @@ int test_journal_server_1() {
 	int retVal = 0;
 	pthread_t daemon_thread;
 	int thread_started = 0;
-	char* ipfs_path = "/tmp/ipfs_1";
+	char* ipfs_path = "/tmp/ipfs_1/.ipfs";
 	char* config_file = "config.test1";
 	struct FSRepo* fs_repo = NULL;
 
