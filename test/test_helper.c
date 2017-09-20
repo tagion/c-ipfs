@@ -172,6 +172,23 @@ int drop_repository(const char* path) {
 	return 1;
 }
 
+static void _mkdir(const char *dir, const mode_t mode) {
+        char tmp[256];
+        char *p = NULL;
+        size_t len;
+
+        snprintf(tmp, sizeof(tmp),"%s",dir);
+        len = strlen(tmp);
+        if(tmp[len - 1] == '/')
+                tmp[len - 1] = 0;
+        for(p = tmp + 1; *p; p++)
+                if(*p == '/') {
+                        *p = 0;
+                        mkdir(tmp, mode);
+                        *p = '/';
+                }
+        mkdir(tmp, S_IRWXU);
+}
 /**
  * drops and builds a repository at the specified path
  * @param path the path
@@ -187,7 +204,7 @@ int drop_and_build_repository(const char* path, int swarm_port, struct Libp2pVec
 			return 0;
 		}
 	}
-	mkdir(path, S_IRWXU);
+	_mkdir(path, S_IRWXU);
 
 	return make_ipfs_repository(path, swarm_port, bootstrap_peers, peer_id);
 }
