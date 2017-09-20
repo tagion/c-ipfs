@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <pthread.h>
 #include "ipfs/importer/importer.h"
 
 int test_null_add_provider() {

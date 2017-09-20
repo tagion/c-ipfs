@@ -5,6 +5,7 @@
 #include "libp2p/secio/secio.h"
 #include "libp2p/routing/dht_protocol.h"
 #include "ipfs/core/api.h"
+#include "ipfs/core/client_api.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/journal/journal.h"
@@ -132,6 +133,9 @@ int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
 	local_node->routing = ipfs_routing_new_offline(local_node, &fs_repo->config->identity->private_key);
 	local_node->exchange = ipfs_bitswap_new(local_node);
 
+	if (api_running(local_node))
+		local_node->mode = MODE_API_AVAILABLE;
+
 	return 1;
 }
 
@@ -157,7 +161,7 @@ int ipfs_node_free(struct IpfsNode* node) {
 		if (node->mode == MODE_ONLINE) {
 			ipfs_routing_online_free(node->routing);
 		}
-		if (node->mode == MODE_OFFLINE) {
+		if (node->mode == MODE_OFFLINE || node->mode == MODE_API_AVAILABLE) {
 			ipfs_routing_offline_free(node->routing);
 		}
 		if (node->blockstore != NULL) {

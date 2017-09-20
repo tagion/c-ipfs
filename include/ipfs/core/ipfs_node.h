@@ -8,9 +8,25 @@
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/routing/routing.h"
 
-enum NodeMode { MODE_OFFLINE, MODE_ONLINE };
+/***
+ * Holds information about the local node
+ */
+
+/***
+ * Modes:
+ * MODE_OFFLINE: Do everything yourself
+ * MODE_API_AVAILABLE: If you want to, the API is running
+ * MODE_ONLINE: You are the API
+ */
+enum NodeMode { MODE_OFFLINE, MODE_API_AVAILABLE, MODE_ONLINE };
 
 struct IpfsNode {
+	/***
+	 * Modes:
+	 * MODE_OFFLINE: Do everything yourself
+	 * MODE_API_AVAILABLE: If you want to, the API is running
+	 * MODE_ONLINE: You are the API
+	 */
 	enum NodeMode mode;
 	struct Identity* identity;
 	struct FSRepo* repo;

@@ -7,7 +7,7 @@ endif
 
 LFLAGS = 
 DEPS = builder.h ipfs_node.h
-OBJS = builder.o daemon.o null.o ping.o bootstrap.o ipfs_node.o api.o
+OBJS = builder.o daemon.o null.o ping.o bootstrap.o ipfs_node.o api.o client_api.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

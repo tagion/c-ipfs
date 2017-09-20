@@ -270,19 +270,26 @@ int ipfs_exporter_object_cat(int argc, char** argv) {
 		return 0;
 	}
 
-	if (!ipfs_node_online_new(repo_dir, &local_node))
+	if (!ipfs_node_offline_new(repo_dir, &local_node))
 		return 0;
 
-	// find hash
-	// convert hash to cid
-	struct Cid* cid = NULL;
-	if ( ipfs_cid_decode_hash_from_base58((unsigned char*)argv[2], strlen(argv[2]), &cid) == 0) {
+	if (local_node->mode == MODE_API_AVAILABLE) {
+		// TODO: we should use the api for this
 		return 0;
+	} else {
+		// find hash
+		// convert hash to cid
+		struct Cid* cid = NULL;
+		if ( ipfs_cid_decode_hash_from_base58((unsigned char*)argv[2], strlen(argv[2]), &cid) == 0) {
+			return 0;
+		}
+
+		int retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, stdout);
+		ipfs_cid_free(cid);
+
+		return retVal;
 	}
 
-	int retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, stdout);
-	ipfs_cid_free(cid);
-
-	return retVal;
+	return 0;
 
 }

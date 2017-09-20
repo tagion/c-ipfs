@@ -1,9 +1,9 @@
 #include "../test_helper.h"
-#include "ipfs/core/api.h"
 #include "libp2p/utils/logger.h"
+#include "ipfs/core/client_api.h"
+#include "ipfs/core/daemon.h"
 
 int test_core_api_startup_shutdown() {
-	struct IpfsNode* local_node = NULL;
 	char* repo_path = "/tmp/ipfs_1";
 	char* peer_id = NULL;
 	int retVal = 0;
@@ -12,15 +12,28 @@ int test_core_api_startup_shutdown() {
 		goto exit;
 
 	// this should start the api
-	if (!ipfs_node_online_new(repo_path, &local_node))
+	test_daemon_start(repo_path);
+	sleep(3);
+
+	struct IpfsNode* client_node = NULL;
+	if (!ipfs_node_offline_new(repo_path, &client_node)) {
+		goto exit;
+	}
+	// test to see if it is working
+	if (client_node->mode == MODE_API_AVAILABLE)
 		goto exit;
 
-
-	// TODO: test to see if it works
-
-	// TODO shut down
 	retVal = 1;
+	// cleanup
 	exit:
+	ipfs_daemon_stop();
+	if (peer_id != NULL)
+		free(peer_id);
 
 	return retVal;
+}
+
+int test_core_api_local_object_cat() {
+	// add a file to the store, then use the api to get it
+	return 0;
 }
