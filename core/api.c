@@ -16,6 +16,7 @@
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/api.h"
+#include "ipfs/importer/exporter.h"
 
 pthread_mutex_t conns_lock;
 int conns_count;
@@ -629,8 +630,9 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 
 	struct MultiAddress* my_address = multiaddress_new_from_string(local_node->repo->config->addresses->api);
 
-	char* ip = multiaddress_ip(my_address);
-	int port = multiaddress_port(my_address);
+	char* ip = NULL;
+	multiaddress_get_ip_address(my_address, &ip);
+	int port = multiaddress_get_ip_port(my_address);
 
 	api_list.ipv4 = hostname_to_ip(ip); // api is listening only on loopback.
 	api_list.port = port;

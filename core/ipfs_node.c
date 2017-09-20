@@ -4,6 +4,7 @@
 #include "libp2p/utils/vector.h"
 #include "libp2p/secio/secio.h"
 #include "libp2p/routing/dht_protocol.h"
+#include "ipfs/core/api.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/journal/journal.h"

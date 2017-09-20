@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include "ipfs/core/ipfs_node.h"
 
 #ifdef __x86_64__
 	#define INT_TYPE uint64_t
@@ -67,5 +68,5 @@ struct s_request {
 void *api_connection_thread (void *ptr);
 void api_connections_cleanup (void);
 void *api_listen_thread (void *ptr);
-int api_start (uint16_t port, int max_conns, int timeout);
+int api_start (struct IpfsNode* local_node, int max_conns, int timeout);
 int api_stop (void);
