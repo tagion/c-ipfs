@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "ipfs/importer/importer.h"
 #include "ipfs/merkledag/merkledag.h"
@@ -378,6 +379,7 @@ int ipfs_import_files(int argc, char** argv) {
 	char* path = NULL;
 	char* filename = NULL;
 	struct HashtableNode* directory_entry = NULL;
+	pthread_t api_pth = 0;
 
 	int recursive = ipfs_import_is_recursive(argc, argv);
 
@@ -389,7 +391,7 @@ int ipfs_import_files(int argc, char** argv) {
 		fprintf(stderr, "Repo does not exist: %s\n", repo_path);
 		goto exit;
 	}
-	ipfs_node_online_new(repo_path, &local_node);
+	ipfs_node_online_new(&api_pth, repo_path, &local_node);
 
 
 	// import the file(s)
@@ -419,7 +421,7 @@ int ipfs_import_files(int argc, char** argv) {
 	retVal = 1;
 	exit:
 	if (local_node != NULL)
-		ipfs_node_free(local_node);
+		ipfs_node_free(&api_pth, local_node);
 	// free file list
 	current = first;
 	while (current != NULL) {

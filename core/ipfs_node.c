@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "libp2p/net/multistream.h"
 #include "libp2p/utils/vector.h"
@@ -43,7 +44,7 @@ int ipfs_node_online_protocol_handlers_free(struct Libp2pVector* handlers) {
  * @param node the completed IpfsNode struct
  * @returns true(1) on success
  */
-int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
+int ipfs_node_online_new(pthread_t *pth_scope, const char* repo_path, struct IpfsNode** node) {
 	struct FSRepo* fs_repo = NULL;
 
 	*node = (struct IpfsNode*)malloc(sizeof(struct IpfsNode));
@@ -60,13 +61,13 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 
 	// build the struct
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
-		ipfs_node_free(local_node);
+		ipfs_node_free(pth_scope, local_node);
 		*node = NULL;
 		return 0;
 	}
 	// open the repo
 	if (!ipfs_repo_fsrepo_open(fs_repo)) {
-		ipfs_node_free(local_node);
+		ipfs_node_free(pth_scope, local_node);
 		*node = NULL;
 		return 0;
 	}
@@ -83,7 +84,7 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 	local_node->exchange = ipfs_bitswap_new(local_node);
 
 	// fire up the API
-	api_start(local_node, 10, 5);
+	api_start(pth_scope, local_node, 10, 5);
 
 	return 1;
 }
@@ -94,7 +95,7 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
  * @param node the completed IpfsNode struct
  * @returns true(1) on success
  */
-int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
+int ipfs_node_offline_new(pthread_t *pth_scope, const char* repo_path, struct IpfsNode** node) {
 	struct FSRepo* fs_repo = NULL;
 
 	*node = (struct IpfsNode*)malloc(sizeof(struct IpfsNode));
@@ -111,13 +112,13 @@ int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
 
 	// build the struct
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
-		ipfs_node_free(local_node);
+		ipfs_node_free(pth_scope, local_node);
 		*node = NULL;
 		return 0;
 	}
 	// open the repo
 	if (!ipfs_repo_fsrepo_open(fs_repo)) {
-		ipfs_node_free(local_node);
+		ipfs_node_free(pth_scope, local_node);
 		*node = NULL;
 		return 0;
 	}
@@ -144,9 +145,9 @@ int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
  * @param node the node to free
  * @returns true(1)
  */
-int ipfs_node_free(struct IpfsNode* node) {
+int ipfs_node_free(pthread_t *pth_scope, struct IpfsNode* node) {
 	if (node != NULL) {
-		api_stop();
+		api_stop(pth_scope);
 		if (node->exchange != NULL) {
 			node->exchange->Close(node->exchange);
 		}

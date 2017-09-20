@@ -1,6 +1,8 @@
 /**
  * The journal protocol attempts to keep a journal in sync with other (approved) nodes
  */
+#include <pthread.h>
+
 #include "libp2p/crypto/encoding/base58.h"
 #include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include "libp2p/routing/dht_protocol.h"
 #include "ipfs/util/errs.h"
 #include "ipfs/util/time.h"

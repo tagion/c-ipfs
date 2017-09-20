@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "ipfs/journal/journal_entry.h"
 #include "ipfs/journal/journal_message.h"
@@ -118,9 +119,10 @@ int test_journal_server_1() {
 	struct HashtableNode* node;
 	size_t bytes_written;
 	struct IpfsNode *local_node = NULL;
-	ipfs_node_offline_new(ipfs_path, &local_node);
+	pthread_t api_pth = 0;
+	ipfs_node_offline_new(&api_pth, ipfs_path, &local_node);
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
-	ipfs_node_free(local_node);
+	ipfs_node_free(&api_pth, local_node);
 	ipfs_hashtable_node_free(node);
 
 	libp2p_logger_debug("test_journal", "*** Firing up daemon for server 1 ***\n");

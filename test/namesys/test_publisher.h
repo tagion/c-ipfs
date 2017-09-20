@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "ipfs/cid/cid.h"
 #include "ipfs/core/ipfs_node.h"
@@ -10,9 +11,10 @@ int test_namesys_publisher_publish() {
 	struct Cid* cid = NULL;
 	char* hash_text = "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD";
 	char* repo_path = "/tmp/ipfs_1/.ipfs";
+	pthread_t api_pth = 0;
 
 	// get a local node
-	if (!ipfs_node_offline_new(repo_path, &local_node)) {
+	if (!ipfs_node_offline_new(&api_pth, repo_path, &local_node)) {
 		libp2p_logger_error("test_publisher", "publish: Unable to open ipfs repository.\n");
 		goto exit;
 	}
@@ -31,7 +33,7 @@ int test_namesys_publisher_publish() {
 
 	retVal = 1;
 	exit:
-	ipfs_node_free(local_node);
+	ipfs_node_free(&api_pth, local_node);
 	ipfs_cid_free(cid);
 	return retVal;
 }

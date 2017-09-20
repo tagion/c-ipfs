@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <pthread.h>
 
 #include "../test_helper.h"
 #include "ipfs/importer/importer.h"
@@ -29,6 +30,7 @@ int test_import_large_file() {
 	size_t bytes_read2 = 1;
 	unsigned char buf1[100];
 	unsigned char buf2[100];
+	pthread_t api_pth = 0;
 
 	// create the necessary file
 	create_bytes(file_bytes, bytes_size);
@@ -40,7 +42,7 @@ int test_import_large_file() {
 		goto exit;
 	}
 
-	if (!ipfs_node_online_new(repo_dir, &local_node)) {
+	if (!ipfs_node_online_new(&api_pth, repo_dir, &local_node)) {
 		fprintf(stderr, "Unable to create new IpfsNode\n");
 		goto exit;
 	}
@@ -128,7 +130,7 @@ int test_import_large_file() {
 	exit:
 
 	if (local_node != NULL)
-		ipfs_node_free(local_node);
+		ipfs_node_free(&api_pth, local_node);
 	if (write_node != NULL)
 		ipfs_hashtable_node_free(write_node);
 	if (read_node != NULL)
@@ -146,6 +148,7 @@ int test_import_small_file() {
 	const char* fileName = "/tmp/test_import_small.tmp";
 	const char* repo_path = "/tmp/.ipfs";
 	struct IpfsNode *local_node = NULL;
+	pthread_t api_pth = 0;
 
 	// create the necessary file
 	create_bytes(file_bytes, bytes_size);
@@ -154,13 +157,13 @@ int test_import_small_file() {
 	// get the repo
 	drop_and_build_repository(repo_path, 4001, NULL, NULL);
 
-	ipfs_node_offline_new(repo_path, &local_node);
+	ipfs_node_offline_new(&api_pth, repo_path, &local_node);
 
 	// write to ipfs
 	struct HashtableNode* write_node;
 	size_t bytes_written;
 	if (ipfs_import_file("/tmp", fileName, &write_node, local_node, &bytes_written, 1) == 0) {
-		ipfs_node_free(local_node);
+		ipfs_node_free(&api_pth, local_node);
 		return 0;
 	}
 
@@ -171,7 +174,7 @@ int test_import_small_file() {
 	for(int i = 0; i < 10; i++) {
 		if (write_node->hash[i] != cid_test[i]) {
 			printf("Hashes do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->hash[i]);
-			ipfs_node_free(local_node);
+			ipfs_node_free(&api_pth, local_node);
 			ipfs_hashtable_node_free(write_node);
 			return 0;
 		}
@@ -180,7 +183,7 @@ int test_import_small_file() {
 	// make sure all went okay
 	struct HashtableNode* read_node;
 	if (ipfs_merkledag_get(write_node->hash, write_node->hash_size, &read_node, local_node->repo) == 0) {
-		ipfs_node_free(local_node);
+		ipfs_node_free(&api_pth, local_node);
 		ipfs_hashtable_node_free(write_node);
 		return 0;
 	}
@@ -188,7 +191,7 @@ int test_import_small_file() {
 	// compare data
 	if (write_node->data_size != bytes_size + 8 || write_node->data_size != read_node->data_size) {
 		printf("Data size of nodes are not equal or are incorrect. Should be %lu but are %lu\n", write_node->data_size, read_node->data_size);
-		ipfs_node_free(local_node);
+		ipfs_node_free(&api_pth, local_node);
 		ipfs_hashtable_node_free(write_node);
 		ipfs_hashtable_node_free(read_node);
 		return 0;
@@ -197,7 +200,7 @@ int test_import_small_file() {
 	for(int i = 0; i < bytes_size; i++) {
 		if (write_node->data[i] != read_node->data[i]) {
 			printf("Data within node is different at position %d\n", i);
-			ipfs_node_free(local_node);
+			ipfs_node_free(&api_pth, local_node);
 			ipfs_hashtable_node_free(write_node);
 			ipfs_hashtable_node_free(read_node);
 			return 0;
@@ -217,7 +220,7 @@ int test_import_small_file() {
 		fprintf(stderr, "Unable to find any records in the database.\n");
 	}
 
-	ipfs_node_free(local_node);
+	ipfs_node_free(&api_pth, local_node);
 	ipfs_hashtable_node_free(write_node);
 	ipfs_hashtable_node_free(read_node);
 

@@ -3,6 +3,7 @@
  */
 #include <stdlib.h>
 #include <unistd.h> // for sleep()
+#include <pthread.h>
 #include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/ipfs_node.h"

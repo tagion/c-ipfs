@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include "ipfs/repo/init.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"

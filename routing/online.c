@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
+#include <pthread.h>
 
 #include "libp2p/crypto/encoding/base58.h"
 #include "ipfs/routing/routing.h"

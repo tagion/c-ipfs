@@ -15,14 +15,14 @@
 
 int ipfs_daemon_start(char* repo_path) {
     int count_pths = 0, retVal = 0;
-    pthread_t work_pths[MAX];
+    pthread_t work_pths[MAX], api_pth = 0;
     struct IpfsNodeListenParams listen_param;
     struct MultiAddress* ma = NULL;
 
     libp2p_logger_info("daemon", "Initializing daemon for %s...\n", repo_path);
 
     struct IpfsNode* local_node = NULL;
-    if (!ipfs_node_online_new(repo_path, &local_node))
+    if (!ipfs_node_online_new(&api_pth, repo_path, &local_node))
     	goto exit;
 
     // Set null router param
@@ -56,7 +56,7 @@ int ipfs_daemon_start(char* repo_path) {
     if (ma != NULL)
     	multiaddress_free(ma);
     if (local_node != NULL) {
-    	ipfs_node_free(local_node);
+    	ipfs_node_free(&api_pth, local_node);
     }
     return retVal;
 

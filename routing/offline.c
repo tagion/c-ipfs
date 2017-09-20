@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <pthread.h>
 #include <ipfs/routing/routing.h>
 #include <ipfs/util/errs.h>
 #include "libp2p/crypto/rsa.h"

@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 #include "ipfs/routing/routing.h"
 #include "libp2p/routing/kademlia.h"
 #include "libp2p/peer/providerstore.h"

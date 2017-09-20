@@ -5,6 +5,8 @@
  * For a somewhat accurate diagram of how this may work, @see https://github.com/ipfs/js-ipfs-bitswap
  */
 
+#include <pthread.h>
+
 #include "libp2p/utils/logger.h"
 #include "ipfs/exchange/bitswap/network.h"
 #include "ipfs/exchange/bitswap/peer_request_queue.h"

@@ -47,7 +47,7 @@ struct IpfsNode {
  * @param node the completed IpfsNode struct
  * @returns true(1) on success
  */
-int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node);
+int ipfs_node_online_new(pthread_t *pth_scope, const char* repo_path, struct IpfsNode** node);
 
 /***
  * build an offline IpfsNode
@@ -55,11 +55,11 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node);
  * @param node the completed IpfsNode struct
  * @returns true(1) on success
  */
-int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node);
+int ipfs_node_offline_new(pthread_t *pth_scope, const char* repo_path, struct IpfsNode** node);
 
 /***
  * Free resources from the creation of an IpfsNode
  * @param node the node to free
  * @returns true(1)
  */
-int ipfs_node_free(struct IpfsNode* node);
+int ipfs_node_free(pthread_t *pth_scope, struct IpfsNode* node);

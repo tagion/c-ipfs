@@ -1,3 +1,4 @@
+#include <pthread.h>
 
 #include "libp2p/peer/peer.h"
 #include "libp2p/utils/logger.h"

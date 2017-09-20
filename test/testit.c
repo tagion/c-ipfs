@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 #include "cid/test_cid.h"
 #include "cmd/ipfs/test_init.h"
 #include "core/test_api.h"

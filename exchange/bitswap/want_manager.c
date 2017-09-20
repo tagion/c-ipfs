@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 #include "ipfs/exchange/bitswap/want_manager.h"
 #include "ipfs/exchange/bitswap/wantlist_queue.h"
 

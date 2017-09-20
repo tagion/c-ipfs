@@ -22,8 +22,6 @@
 pthread_mutex_t conns_lock;
 int conns_count;
 
-pthread_t listen_thread = 0;
-
 struct s_list api_list;
 
 /**
@@ -624,7 +622,7 @@ void *api_listen_thread (void *ptr)
  * @param timeout time out of client connection.
  * @returns 0 when failure or 1 if success.
  */
-int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
+int api_start (pthread_t *scope_pth, struct IpfsNode* local_node, int max_conns, int timeout)
 {
 	int s;
 	size_t alloc_size = sizeof(void*) * max_conns;
@@ -637,11 +635,6 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 
 	api_list.ipv4 = hostname_to_ip(ip); // api is listening only on loopback.
 	api_list.port = port;
-
-	if (listen_thread != 0) {
-		libp2p_logger_error("api", "API already running.\n");
-		return 0;
-	}
 
 	if ((s = socket_listen(socket_tcp4(), &(api_list.ipv4), &(api_list.port))) <= 0) {
 		libp2p_logger_error("api", "Failed to init API. port: %d\n", port);
@@ -660,11 +653,11 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 	}
 	memset(api_list.conns, 0, alloc_size);
 
-	if (pthread_create(&listen_thread, NULL, api_listen_thread, (void*)local_node)) {
+	if (pthread_create(scope_pth, NULL, api_listen_thread, (void*)local_node)) {
 		close (s);
 		free (api_list.conns);
 		api_list.conns = NULL;
-		listen_thread = 0;
+		*scope_pth = 0;
 		libp2p_logger_error("api", "Error creating thread for API.\n");
 		return 0;
 	}
@@ -676,14 +669,14 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
  * Stop API.
  * @returns 0 when failure or 1 if success.
  */
-int api_stop (void)
+int api_stop (pthread_t *scope_pth)
 {
-	if (!listen_thread) return 0;
-	pthread_cancel(listen_thread);
+	if (*scope_pth == 0) return 0;
+	pthread_cancel(*scope_pth);
 
 	api_connections_cleanup ();
 
-	listen_thread = 0;
+	*scope_pth = 0;
 
 	return 1;
 }

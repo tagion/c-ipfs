@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "ipfs/cmd/ipfs/init.h"
 #include "ipfs/commands/request.h"

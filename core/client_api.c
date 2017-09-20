@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <pthread.h>
 
 #include "ipfs/core/client_api.h"
 #include "multiaddr/multiaddr.h"

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <stdio.h>
 //#include <string.h>
+#include <pthread.h>
 
 #include "ipfs/cmd/ipfs/init.h"
 #include "ipfs/commands/argument.h"

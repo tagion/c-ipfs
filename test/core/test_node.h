@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "../test_helper.h"
 #include "ipfs/core/ipfs_node.h"
@@ -9,11 +10,12 @@ int test_node_peerstore() {
 	char* peer_id = NULL;
 	struct IpfsNode *local_node = NULL;
 	struct Libp2pPeer* peer = NULL;
+	pthread_t api_pth = 0;
 
 	if (!drop_and_build_repository(repo_path, 4001, NULL, &peer_id))
 		goto exit;
 
-	if (!ipfs_node_online_new(repo_path, &local_node))
+	if (!ipfs_node_online_new(&api_pth, repo_path, &local_node))
 		goto exit;
 
 	// add a peer to the peerstore
@@ -47,7 +49,7 @@ int test_node_peerstore() {
 	if (peer != NULL)
 		libp2p_peer_free(peer);
 	if (local_node != NULL)
-		ipfs_node_free(local_node);
+		ipfs_node_free(&api_pth, local_node);
 
 	return retVal;
 }

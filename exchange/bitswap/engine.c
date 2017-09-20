@@ -1,4 +1,6 @@
 #include <unistd.h>
+#include <pthread.h>
+
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/null.h"
 #include "ipfs/exchange/bitswap/engine.h"

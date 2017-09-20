@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/net/multistream.h"
 #include "libp2p/record/message.h"

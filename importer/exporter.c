@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "ipfs/cid/cid.h"
 #include "ipfs/merkledag/merkledag.h"
@@ -190,6 +191,7 @@ int ipfs_exporter_to_console(const unsigned char* hash, struct IpfsNode *local_n
  */
 int ipfs_exporter_object_get(int argc, char** argv) {
 	char* repo_path = NULL;
+	pthread_t api_pth = 0;
 
 	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
 		fprintf(stderr, "Unable to open repository: %s\n", repo_path);
@@ -197,13 +199,13 @@ int ipfs_exporter_object_get(int argc, char** argv) {
 	}
 
 	struct IpfsNode* local_node = NULL;
-	if (!ipfs_node_online_new(repo_path, &local_node))
+	if (!ipfs_node_online_new(&api_pth, repo_path, &local_node))
 		return 0;
 
 	// find hash
 	int retVal = ipfs_exporter_to_console((unsigned char*)argv[3], local_node);
 
-	ipfs_node_free(local_node);
+	ipfs_node_free(&api_pth, local_node);
 
 	return retVal;
 }
@@ -264,13 +266,14 @@ int ipfs_exporter_object_cat_to_file(struct IpfsNode *local_node, unsigned char*
 int ipfs_exporter_object_cat(int argc, char** argv) {
 	struct IpfsNode *local_node = NULL;
 	char* repo_dir = NULL;
+	pthread_t api_pth = 0;
 
 	if (!ipfs_repo_get_directory(argc, argv, &repo_dir)) {
 		fprintf(stderr, "Unable to open repo: %s\n", repo_dir);
 		return 0;
 	}
 
-	if (!ipfs_node_offline_new(repo_dir, &local_node))
+	if (!ipfs_node_offline_new(&api_pth, repo_dir, &local_node))
 		return 0;
 
 	if (local_node->mode == MODE_API_AVAILABLE) {

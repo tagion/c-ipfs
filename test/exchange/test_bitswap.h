@@ -125,11 +125,12 @@ int test_bitswap_retrieve_file()
 	size_t bytes_written = 0;
 	struct Block* block = NULL;
 	struct Cid* cid = NULL;
+	pthread_t api_pth = 0;
 
 	// build and open the new IPFS repository with no bootstrap peers
 	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
 	drop_and_build_repository(ipfs_path, 4001, NULL, NULL);
-	ipfs_node_online_new(ipfs_path, &localNode);
+	ipfs_node_online_new(&api_pth, ipfs_path, &localNode);
 
 	// add a file
 	localNode->routing->Bootstrap(localNode->routing);
@@ -154,7 +155,7 @@ int test_bitswap_retrieve_file()
 		ipfs_cid_free(cid);
 	if (node != NULL)
 		ipfs_hashtable_node_free(node);
-	ipfs_node_free(localNode);
+	ipfs_node_free(&api_pth, localNode);
 	return retVal;
 }
 
@@ -187,6 +188,7 @@ int test_bitswap_retrieve_file_remote() {
 	struct HashtableNode* node = NULL;
 	struct Block* result = NULL;
 	struct Cid* cid = NULL;
+	pthread_t api_pth1 = 0, api_pth2 = 0;
 
 	// create peer 1
 	libp2p_logger_debug("test_bitswap", "Firing up daemon 1.\n");
@@ -196,7 +198,7 @@ int test_bitswap_retrieve_file_remote() {
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// add a file
 	size_t bytes_written = 0;
-	ipfs_node_online_new(ipfs_path, &ipfs_node1);
+	ipfs_node_online_new(&api_pth1, ipfs_path, &ipfs_node1);
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, ipfs_node1, &bytes_written, 0);
 	// start the daemon in a separate thread
 	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
@@ -215,7 +217,7 @@ int test_bitswap_retrieve_file_remote() {
 	libp2p_utils_vector_add(ma_vector2, ma_peer1);
 	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
 	multiaddress_free(ma_peer1);
-	ipfs_node_online_new(ipfs_path, &ipfs_node2);
+	ipfs_node_online_new(&api_pth2, ipfs_path, &ipfs_node2);
 
     ipfs_node2->routing->Bootstrap(ipfs_node2->routing);
 
@@ -299,6 +301,7 @@ int test_bitswap_retrieve_file_known_remote() {
 	struct Libp2pVector* ma_vector2 = NULL;
 	struct Block* result = NULL;
 	struct Cid* cid = NULL;
+	pthread_t api_pth = 0;
 
 	// create peer 1
 	char multiaddress_string[255];
@@ -312,7 +315,7 @@ int test_bitswap_retrieve_file_known_remote() {
 	libp2p_utils_vector_add(ma_vector2, ma_peer1);
 	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
 	multiaddress_free(ma_peer1);
-	ipfs_node_online_new(ipfs_path, &ipfs_node2);
+	ipfs_node_online_new(&api_pth, ipfs_path, &ipfs_node2);
 
     if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hello_world_hash, strlen(hello_world_hash), &cid))
     		goto exit;
@@ -354,7 +357,7 @@ int test_bitswap_retrieve_file_known_remote() {
 	//	ipfs_block_free(result);
 	if (cid != NULL)
 		ipfs_cid_free(cid);
-	ipfs_node_free(ipfs_node2);
+	ipfs_node_free(&api_pth, ipfs_node2);
 	return retVal;
 }
 
@@ -390,6 +393,7 @@ int test_bitswap_retrieve_file_third_party() {
 	struct HashtableNode* node = NULL;
 	struct Block* result = NULL;
 	struct Cid* cid = NULL;
+	pthread_t api_pth1 = 0, api_pth2 = 0;
 
 	// create peer 1
 	libp2p_logger_debug("test_bitswap", "Firing up daemon 1.\n");
@@ -418,11 +422,11 @@ int test_bitswap_retrieve_file_third_party() {
 	// add a file, to prime the connection to peer 1
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
-	if (!ipfs_node_online_new(ipfs_path, &ipfs_node2))
+	if (!ipfs_node_online_new(&api_pth1, ipfs_path, &ipfs_node2))
 		goto exit;
 	ipfs_node2->routing->Bootstrap(ipfs_node2->routing);
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, ipfs_node2, &bytes_written, 0);
-	ipfs_node_free(ipfs_node2);
+	ipfs_node_free(&api_pth1, ipfs_node2);
 	// start the daemon in a separate thread
 	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
 		libp2p_logger_error("test_bitswap", "Unable to start thread 2\n");
@@ -440,7 +444,7 @@ int test_bitswap_retrieve_file_third_party() {
 	libp2p_utils_vector_add(ma_vector3, ma_peer1);
 	drop_and_build_repository(ipfs_path, 4003, ma_vector3, &peer_id_3);
 	multiaddress_free(ma_peer1);
-	ipfs_node_online_new(ipfs_path, &ipfs_node3);
+	ipfs_node_online_new(&api_pth2, ipfs_path, &ipfs_node3);
 
     ipfs_node3->routing->Bootstrap(ipfs_node3->routing);
 
@@ -469,7 +473,7 @@ int test_bitswap_retrieve_file_third_party() {
 	if (thread2_started)
 		pthread_join(thread2, NULL);
 	if (ipfs_node3 != NULL)
-		ipfs_node_free(ipfs_node3);
+		ipfs_node_free(&api_pth2, ipfs_node3);
 	if (peer_id_1 != NULL)
 		free(peer_id_1);
 	if (peer_id_2 != NULL)
