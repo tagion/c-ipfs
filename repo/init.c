@@ -50,9 +50,14 @@ char* ipfs_repo_get_home_directory(int argc, char** argv) {
  */
 int ipfs_repo_get_directory(int argc, char** argv, char** repo_dir) {
 	char* home = ipfs_repo_get_home_directory(argc, argv);
-	int dir_len = strlen(home) + 7;
-	*repo_dir = malloc(dir_len);
-	os_utils_filepath_join(home, ".ipfs", *repo_dir, dir_len);
+	// it shouldn't include the .ipfs directory, but if it does, we're done
+	if (strstr(home, ".ipfs") == NULL) {
+		int dir_len = strlen(home) + 7;
+		*repo_dir = malloc(dir_len);
+		os_utils_filepath_join(home, ".ipfs", *repo_dir, dir_len);
+	} else {
+		*repo_dir = home;
+	}
 	return os_utils_directory_exists(*repo_dir);
 }
 

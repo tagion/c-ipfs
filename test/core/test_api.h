@@ -1,7 +1,11 @@
+#include <pthread.h>
+
 #include "../test_helper.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/client_api.h"
 #include "ipfs/core/daemon.h"
+#include "ipfs/importer/exporter.h"
+#include "ipfs/importer/importer.h"
 
 int test_core_api_startup_shutdown() {
 	char* repo_path = "/tmp/ipfs_1";
@@ -42,9 +46,9 @@ int test_core_api_object_cat() {
 	pthread_t daemon_thread2;
 	int thread_started1 = 0;
 	int thread_started2 = 0;
-	char* ipfs_path1 = "/tmp/ipfs_1";
+	char* ipfs_path1 = "/tmp/ipfs_1/.ipfs";
 	char* config_file1 = "config.test1";
-	char* ipfs_path2 = "/tmp/ipfs_2";
+	char* ipfs_path2 = "/tmp/ipfs_2/.ipfs";
 	char* config_file2 = "config.test2";
 	struct FSRepo* fs_repo = NULL;
 	char hash[256] = "";
@@ -96,7 +100,7 @@ int test_core_api_object_cat() {
 	ipfs_node_offline_new(ipfs_path1, &local_node);
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
 	memset(hash, 0, 256);
-	ipfs_cid_hash_to_base58(node->hash, node->hash_size, hash, 256);
+	ipfs_cid_hash_to_base58(node->hash, node->hash_size, (unsigned char*)hash, 256);
 	ipfs_node_free(local_node);
 	ipfs_hashtable_node_free(node);
 
