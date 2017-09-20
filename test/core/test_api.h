@@ -1,3 +1,4 @@
+#include "../test_helper.h"
 #include "ipfs/core/api.h"
 #include "libp2p/utils/logger.h"
 

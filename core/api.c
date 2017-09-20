@@ -14,6 +14,7 @@
 #include <fcntl.h>
 
 #include "libp2p/net/p2pnet.h"
+#include "libp2p/os/memstream.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/api.h"
 #include "ipfs/importer/exporter.h"
@@ -303,16 +304,16 @@ int get_object(struct IpfsNode* local_node, char *path, unsigned char **obj, siz
 	}
 
 	// throw everything (including links) into the memory stream
-	ifps_exporter_cat_node(read_node, local_node, memstream_file);
+	ipfs_exporter_cat_node(read_node, local_node, memstream_file);
 
 	fclose(memstream_file);
 
 	// no longer need these
 	ipfs_cid_free(cid);
-	libp2p_hashtable_node_free(read_node);
+	ipfs_hashtable_node_free(read_node);
 
 	*size = memstream_size;
-	*obj = memstream_char;
+	*obj = (unsigned char*)memstream_char;
 
 	return 1;
 }

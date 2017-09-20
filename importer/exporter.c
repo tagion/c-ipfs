@@ -208,6 +208,13 @@ int ipfs_exporter_object_get(int argc, char** argv) {
 	return retVal;
 }
 
+/**
+ * rebuild a file based on this HashtableNode, traversing links
+ * @param node the HashtableNode to start with
+ * @param local_node the context
+ * @param file the filestream to fill
+ * @returns true(1) on success, false(0) otherwise
+ */
 int ipfs_exporter_cat_node(struct HashtableNode* node, struct IpfsNode* local_node, FILE *file) {
 	// process this node, then move on to the links
 

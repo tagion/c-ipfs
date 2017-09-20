@@ -56,7 +56,7 @@ int test_routing_put_value() {
 	// wait for everything to fire up
 	sleep(5);
 
-	/* this area is for when we get the command line interface closer to completion... So skip for now and do it at a lower level
+	/* this area is for when we get the command line interface closer to completion... So skip for now
 
 	// now "publish" to publisher, and verify that "consumer" receives the message
 	char* args2[] = {"ipfs" "--config", ipfs_path_publisher, "name", "publish", "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD" };
@@ -71,7 +71,6 @@ int test_routing_put_value() {
 	//ipfs_resolve(5, args3, &results);
 	 */
 
-	ipfs_namesys_publisher_publish();
 
 	retVal = 1;
 	exit:
