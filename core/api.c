@@ -538,6 +538,7 @@ void *api_listen_thread (void *ptr)
 		api_list.conns[i] = malloc (sizeof (struct s_conns));
 		if (!api_list.conns[i]) {
 			libp2p_logger_error("api", "Fail to allocate memory to accept connection.\n");
+			pthread_mutex_unlock(&conns_lock);
 			close (s);
 			continue;
 		}
