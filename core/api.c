@@ -274,7 +274,7 @@ size_t boundary_size(char *str, char *boundary, size_t limit)
  * @param path is the ipfs address, obj is a pointer to be allocated and will be the return of the data, size is a pointer to return the data length.
  * @returns 1 when success is 0 when failure.
  */
-int get_object(char *path, unsigned char **obj, size_t *size)
+int get_object(struct IpfsNode* local_node, char *path, unsigned char **obj, size_t *size)
 {
 	FILE* memstream_file = NULL;
 	char* memstream_char = NULL;
@@ -327,15 +327,20 @@ int send_object(int socket, unsigned char *obj, size_t size)
 	return 0; // fail.
 }
 
+struct ApiConnectionParam {
+	int index;
+	struct IpfsNode* this_node;
+};
+
 /**
  * Pthread to take care of each client connection.
- * @param ptr is the connection index in api_list, integer not pointer, cast required.
+ * @param ptr an ApiConnectionParam
  * @returns nothing
  */
 void *api_connection_thread (void *ptr)
 {
 	int timeout, s, r;
-	const INT_TYPE i = (INT_TYPE) ptr;
+	struct ApiConnectionParam* params = (struct ApiConnectionParam*)ptr;
 	char resp[MAX_READ+1], buf[MAX_READ+1], *p, *body;
 	char client[INET_ADDRSTRLEN];
 	struct s_request req;
@@ -345,7 +350,7 @@ void *api_connection_thread (void *ptr)
 
 	buf[MAX_READ] = '\0';
 
-	s = api_list.conns[i]->socket;
+	s = api_list.conns[params->index]->socket;
 	timeout = api_list.timeout;
 
 	if (socket_read_select4(s, timeout) <= 0) {
@@ -427,7 +432,7 @@ void *api_connection_thread (void *ptr)
 				path = req.buf + req.path;
 			}
 
-			if (get_object(path, &obj, &size)) {
+			if (get_object(params->this_node, path, &obj, &size)) {
 				if (!send_object(s, obj, size)) {
 					libp2p_logger_error("api", "fail send_object.\n");
 				}
@@ -504,16 +509,16 @@ void *api_connection_thread (void *ptr)
 quit:
 	if (req.buf)
 		free(req.buf);
-	if (inet_ntop(AF_INET, &(api_list.conns[i]->ipv4), client, INET_ADDRSTRLEN) == NULL)
+	if (inet_ntop(AF_INET, &(api_list.conns[params->index]->ipv4), client, INET_ADDRSTRLEN) == NULL)
 		strcpy(client, "UNKNOW");
-	libp2p_logger_error("api", "Closing client connection %s:%d (%d).\n", client, api_list.conns[i]->port, i+1);
+	libp2p_logger_error("api", "Closing client connection %s:%d (%d).\n", client, api_list.conns[params->index]->port, params->index+1);
 	pthread_mutex_lock(&conns_lock);
 	close(s);
-	free (api_list.conns[i]);
-	api_list.conns[i] = NULL;
+	free (api_list.conns[params->index]);
+	api_list.conns[params->index] = NULL;
 	conns_count--;
 	pthread_mutex_unlock(&conns_lock);
-
+	free(params);
 	return NULL;
 }
 
@@ -555,6 +560,7 @@ void *api_listen_thread (void *ptr)
 	uint32_t ipv4;
 	uint16_t port;
 	char client[INET_ADDRSTRLEN];
+	struct IpfsNode* local_node = (struct IpfsNode*)ptr;
 
 	conns_count = 0;
 
@@ -583,7 +589,17 @@ void *api_listen_thread (void *ptr)
 		api_list.conns[i]->socket = s;
 		api_list.conns[i]->ipv4   = ipv4;
 		api_list.conns[i]->port   = port;
-		if (pthread_create(&(api_list.conns[i]->pthread), NULL, api_connection_thread, (void*)i)) {
+		// create a struct, which the thread is responsible to destroy
+		struct ApiConnectionParam* connection_param = (struct ApiConnectionParam*) malloc(sizeof(struct ApiConnectionParam));
+		if (connection_param == NULL) {
+			libp2p_logger_error("api", "api_listen_thread: Unable to allocate memory.\n");
+			pthread_mutex_unlock(&conns_lock);
+			close (s);
+			continue;
+		}
+		connection_param->index = i;
+		connection_param->this_node = local_node;
+		if (pthread_create(&(api_list.conns[i]->pthread), NULL, api_connection_thread, (void*)connection_param)) {
 			libp2p_logger_error("api", "Create pthread fail.\n");
 			free (api_list.conns[i]);
 			api_list.conns[i] = NULL;
@@ -601,17 +617,22 @@ void *api_listen_thread (void *ptr)
 
 /**
  * Start API interface daemon.
- * @param port.
+ * @param local_node the context
  * @param max_conns.
  * @param timeout time out of client connection.
  * @returns 0 when failure or 1 if success.
  */
-int api_start (uint16_t port, int max_conns, int timeout)
+int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 {
 	int s;
 	size_t alloc_size = sizeof(void*) * max_conns;
 
-	api_list.ipv4 = hostname_to_ip("127.0.0.1"); // api is listening only on loopback.
+	struct MultiAddress* my_address = multiaddress_new_from_string(local_node->repo->config->addresses->api);
+
+	char* ip = multiaddress_ip(my_address);
+	int port = multiaddress_port(my_address);
+
+	api_list.ipv4 = hostname_to_ip(ip); // api is listening only on loopback.
 	api_list.port = port;
 
 	if (listen_thread != 0) {
@@ -636,7 +657,7 @@ int api_start (uint16_t port, int max_conns, int timeout)
 	}
 	memset(api_list.conns, 0, alloc_size);
 
-	if (pthread_create(&listen_thread, NULL, api_listen_thread, NULL)) {
+	if (pthread_create(&listen_thread, NULL, api_listen_thread, (void*)local_node)) {
 		close (s);
 		free (api_list.conns);
 		api_list.conns = NULL;

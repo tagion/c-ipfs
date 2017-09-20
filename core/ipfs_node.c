@@ -80,6 +80,9 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 	local_node->routing = ipfs_routing_new_online(local_node, &fs_repo->config->identity->private_key);
 	local_node->exchange = ipfs_bitswap_new(local_node);
 
+	// fire up the API
+	api_start(local_node, 10, 5);
+
 	return 1;
 }
 
@@ -138,6 +141,7 @@ int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
  */
 int ipfs_node_free(struct IpfsNode* node) {
 	if (node != NULL) {
+		api_stop();
 		if (node->exchange != NULL) {
 			node->exchange->Close(node->exchange);
 		}
