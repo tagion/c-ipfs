@@ -18,6 +18,7 @@
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/api.h"
 #include "ipfs/importer/exporter.h"
+#include "ipfs/core/http_request.h"
 
 pthread_mutex_t conns_lock;
 int conns_count;
@@ -419,6 +420,7 @@ void *api_connection_thread (void *ptr)
 			goto quit;
 		}
 
+		struct HttpRequest* http_request = ipfs_core_http_request_new();
 		if (strcmp(buf + req.method, "GET")==0) {
 			char *path;
 			unsigned char *obj;
@@ -440,6 +442,7 @@ void *api_connection_thread (void *ptr)
 					write_cstr (s, HTTP_500);
 				}
 			} else {
+				//TODO: build http_request here
 				path = req.buf + req.path;
 
 				if (get_object(params->this_node, path, &obj, &size)) {
@@ -454,6 +457,7 @@ void *api_connection_thread (void *ptr)
 			}
 		} else if (strcmp(buf + req.method, "POST")==0) {
 			// TODO: Handle gzip/json POST requests.
+			// TODO: build http_request here
 
 			p = header_value_cmp(&req, "Content-Type:", "multipart/form-data;");
 			if (p) {
@@ -499,12 +503,18 @@ void *api_connection_thread (void *ptr)
 			req.buf+req.method, req.buf+req.path, req.buf+req.http_ver,
 			req.buf+req.header, req.body_size);
 
+			char* response_text = NULL;
+			if (!ipfs_core_http_request_process(http_request, &response_text)) {
+				libp2p_logger_error("api", "ipfs_core_http_request_process returned false.\n");
+				// TODO: Handle this condition
+			}
+
 			snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
 			"Content-Type: application/json\r\n"
 			"Server: c-ipfs/0.0.0-dev\r\n"
 			"X-Chunked-Output: 1\r\n"
 			"Connection: close\r\n"
-			"Transfer-Encoding: chunked\r\n\r\n", req.buf + req.http_ver);
+			"Transfer-Encoding: chunked\r\n\r\n%s", req.buf + req.http_ver, response_text);
 			write_str (s, resp);
 			libp2p_logger_error("api", "resp = {\n%s\n}\n", resp);
 		} else {

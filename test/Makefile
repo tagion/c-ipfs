@@ -5,6 +5,7 @@ DEPS = cmd/ipfs/test_init.h repo/test_repo_bootstrap_peers.h repo/test_repo_conf
 OBJS = testit.o test_helper.o \
 	../blocks/block.o ../blocks/blockstore.o \
 	../cid/cid.o \
+	../cmd/cli.o \
 	../cmd/ipfs/init.o \
 	../commands/argument.o ../commands/command_option.o ../commands/command.o ../commands/cli/parse.o \
 	../core/*.o \
@@ -18,6 +19,7 @@ OBJS = testit.o test_helper.o \
 	../namesys/pb.o \
 	../namesys/publisher.o \
 	../namesys/resolver.o \
+	../namesys/name.o \
 	../repo/init.o \
 	../repo/fsrepo/*.o \
 	../repo/config/*.o \
