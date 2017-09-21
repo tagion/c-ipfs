@@ -266,14 +266,13 @@ int ipfs_exporter_object_cat_to_file(struct IpfsNode *local_node, unsigned char*
 int ipfs_exporter_object_cat(int argc, char** argv) {
 	struct IpfsNode *local_node = NULL;
 	char* repo_dir = NULL;
-	pthread_t api_pth = 0;
 
 	if (!ipfs_repo_get_directory(argc, argv, &repo_dir)) {
 		fprintf(stderr, "Unable to open repo: %s\n", repo_dir);
 		return 0;
 	}
 
-	if (!ipfs_node_offline_new(&api_pth, repo_dir, &local_node))
+	if (!ipfs_node_offline_new(repo_dir, &local_node))
 		return 0;
 
 	if (local_node->mode == MODE_API_AVAILABLE) {

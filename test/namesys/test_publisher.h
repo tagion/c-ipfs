@@ -14,7 +14,7 @@ int test_namesys_publisher_publish() {
 	pthread_t api_pth = 0;
 
 	// get a local node
-	if (!ipfs_node_offline_new(&api_pth, repo_path, &local_node)) {
+	if (!ipfs_node_offline_new(repo_path, &local_node)) {
 		libp2p_logger_error("test_publisher", "publish: Unable to open ipfs repository.\n");
 		goto exit;
 	}

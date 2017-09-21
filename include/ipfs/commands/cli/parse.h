@@ -16,7 +16,7 @@
  * @param request the end result, something that can be passed on that actually does something
  * @returns 0 if something bad happens, otherwise 1
  */
-int cli_parse(char** params, FILE* inStream, struct Command* cmd, struct Request* request);
+int cli_parse(int argc, char** params, FILE* inStream, struct Command** cmd, struct Request* request);
 
 int cli_parse_opts(char** params, struct Command* cmd, char* path, char** stringVals);
 

@@ -6,6 +6,7 @@ OBJS = main.o \
 	../blocks/block.o ../blocks/blockstore.o \
 	../cid/cid.o \
 	../cmd/ipfs/init.o \
+	../cmd/*.o \
 	../commands/argument.o ../commands/command_option.o ../commands/command.o ../commands/cli/parse.o \
 	../core/*.o \
 	../datastore/ds_helper.o \

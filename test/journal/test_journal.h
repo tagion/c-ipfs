@@ -120,7 +120,7 @@ int test_journal_server_1() {
 	size_t bytes_written;
 	struct IpfsNode *local_node = NULL;
 	pthread_t api_pth = 0;
-	ipfs_node_offline_new(&api_pth, ipfs_path, &local_node);
+	ipfs_node_offline_new(ipfs_path, &local_node);
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
 	ipfs_node_free(&api_pth, local_node);
 	ipfs_hashtable_node_free(node);

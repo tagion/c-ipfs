@@ -11,7 +11,6 @@ int test_core_api_startup_shutdown() {
 	char* repo_path = "/tmp/ipfs_1/.ipfs";
 	char* peer_id = NULL;
 	int retVal = 0;
-	pthread_t api_pth;
 
 	if (!drop_and_build_repository(repo_path, 4001, NULL, &peer_id))
 		goto exit;
@@ -21,7 +20,7 @@ int test_core_api_startup_shutdown() {
 	sleep(3);
 
 	struct IpfsNode* client_node = NULL;
-	if (!ipfs_node_offline_new(&api_pth, repo_path, &client_node)) {
+	if (!ipfs_node_offline_new(repo_path, &client_node)) {
 		goto exit;
 	}
 	// test to see if it is working
@@ -99,7 +98,7 @@ int test_core_api_object_cat() {
 	size_t bytes_written;
 	struct IpfsNode *local_node = NULL;
 	pthread_t api_pth = 0;
-	ipfs_node_offline_new(&api_pth, ipfs_path1, &local_node);
+	ipfs_node_offline_new(ipfs_path1, &local_node);
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
 	memset(hash, 0, 256);
 	ipfs_cid_hash_to_base58(node->hash, node->hash_size, (unsigned char*)hash, 256);

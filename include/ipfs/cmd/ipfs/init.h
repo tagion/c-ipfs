@@ -20,4 +20,12 @@ int ipfs_cmd_ipfs_init_command_new(struct Command* command);
  */
 int ipfs_cmd_ipfs_init_command_free(struct Command* command);
 
+/***
+ * Parse the command line
+ * @param argc the number of arguments
+ * @param argv the actual arguments
+ * @returns a command structure
+ */
+struct Command* ipfs_cmd_parse_command_line(int argc, char** argv);
+
 #endif

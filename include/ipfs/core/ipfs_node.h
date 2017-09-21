@@ -1,5 +1,6 @@
 #pragma once
 
+#include <pthread.h>
 #include "libp2p/peer/peerstore.h"
 #include "libp2p/peer/providerstore.h"
 #include "ipfs/blocks/blockstore.h"
@@ -55,7 +56,7 @@ int ipfs_node_online_new(pthread_t *pth_scope, const char* repo_path, struct Ipf
  * @param node the completed IpfsNode struct
  * @returns true(1) on success
  */
-int ipfs_node_offline_new(pthread_t *pth_scope, const char* repo_path, struct IpfsNode** node);
+int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node);
 
 /***
  * Free resources from the creation of an IpfsNode

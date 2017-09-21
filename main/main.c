@@ -7,6 +7,8 @@
 #include "ipfs/importer/exporter.h"
 #include "ipfs/dnslink/dnslink.h"
 #include "ipfs/core/daemon.h"
+#include "ipfs/cmd/cli.h"
+#include "ipfs/namesys/name.h"
 
 #ifdef __MINGW32__
     void bzero(void *s, size_t n)
@@ -59,38 +61,83 @@ void strip_quotes(int argc, char** argv) {
 #define DAEMON 6
 #define PING 7
 #define GET 8
+#define NAME 9
+
+/**
+ * Find out if this command line argument is part of a switch
+ * @param argc the number of arguments
+ * @param argv the arguments
+ * @param index the argument to look at
+ * @returns 0 if not a switch, 1 if it is a regular switch, 2 if the next parameter is also part of the switch
+ */
+int is_switch(int argc, char** argv, int index) {
+	char* to_test = argv[index];
+	if (to_test[0] == '-') {
+		if (strcmp(to_test, "-c") == 0 || strcmp(to_test, "--config") == 0) {
+			return 2;
+		}
+		return 1;
+	}
+	return 0;
+}
+
+/**
+ * Find the command line piece that will actually do something
+ * @param argc the number of command line arguments
+ * @param argv the actual command line arguments
+ * @returns the index of the item that does something, or false(0)
+ */
+int get_cli_verb(int argc, char** argv) {
+	for(int i = 1; i < argc; i++) {
+		int advance_by_more_than_one = is_switch(argc, argv, i);
+		if (advance_by_more_than_one == 0) {
+			// this is the verb
+			return i;
+		} else {
+			if (advance_by_more_than_one == 2) {
+				// skip the next one
+				i++;
+			}
+		}
+	}
+	return 0;
+}
 
 /***
  * Basic parsing of command line arguments to figure out where the user wants to go
  */
 int parse_arguments(int argc, char** argv) {
-	if (argc == 1) {
-		printf("No parameters passed.\n");
+	int index = get_cli_verb(argc, argv);
+	if (argc == 1 || index == 0) {
+		libp2p_logger_error("main", "No parameters passed.\n");
 		return 0;
 	}
-	if (strcmp("init", argv[1]) == 0) {
+	if (strcmp("init", argv[index]) == 0) {
 		return INIT;
 	}
-	if (strcmp("add", argv[1]) == 0) {
+	if (strcmp("add", argv[index]) == 0) {
 		return ADD;
 	}
-	if (strcmp("object", argv[1]) == 0 && argc > 2 && strcmp("get", argv[2]) == 0) {
+	if (strcmp("object", argv[index]) == 0 && argc > 2 && strcmp("get", argv[index+1]) == 0) {
 		return OBJECT_GET;
 	}
-	if (strcmp("cat", argv[1]) == 0) {
+	if (strcmp("cat", argv[index]) == 0) {
 		return CAT;
 	}
-	if (strcmp("dns", argv[1]) == 0) {
+	if (strcmp("dns", argv[index]) == 0) {
 		return DNS;
 	}
-	if (strcmp("daemon", argv[1]) == 0) {
+	if (strcmp("daemon", argv[index]) == 0) {
 		return DAEMON;
 	}
-	if (strcmp("ping", argv[1]) == 0) {
+	if (strcmp("ping", argv[index]) == 0) {
 		return PING;
 	}
-	if (strcmp("get", argv[1]) == 0) {
+	if (strcmp("get", argv[index]) == 0) {
 		return GET;
+	}
+	if (strcmp("name", argv[index]) == 0) {
+		return NAME;
 	}
 	return -1;
 }
@@ -111,32 +158,44 @@ int main(int argc, char** argv) {
 	libp2p_logger_add_class("lmdb_datastore");
 
 	strip_quotes(argc, argv);
-	int retVal = parse_arguments(argc, argv);
-	switch (retVal) {
-	case (INIT):
-		return ipfs_repo_init(argc, argv);
-		break;
-	case (ADD):
-		ipfs_import_files(argc, argv);
-		break;
-	case (OBJECT_GET):
-		ipfs_exporter_object_get(argc, argv);
-		break;
-	case(GET):
-		//ipfs_exporter_get(argc, argv);
-		//break;
-	case (CAT):
-		ipfs_exporter_object_cat(argc, argv);
-		break;
-	case (DNS):
-		ipfs_dns(argc, argv);
-		break;
-	case (DAEMON):
-		ipfs_daemon(argc, argv);
-		break;
-	case (PING):
-		ipfs_ping(argc, argv);
-		break;
+	// CliArguments is the new way to do it. Eventually, all will use this structure
+	struct CliArguments* args = cli_arguments_new(argc, argv);
+	if (args != NULL) {
+		// until then, use the old way
+		int retVal = parse_arguments(argc, argv);
+		switch (retVal) {
+			case (INIT):
+				return ipfs_repo_init(argc, argv);
+				break;
+			case (ADD):
+				ipfs_import_files(argc, argv);
+				break;
+			case (OBJECT_GET):
+				ipfs_exporter_object_get(argc, argv);
+				break;
+			case(GET):
+				//ipfs_exporter_get(argc, argv);
+				//break;
+			case (CAT):
+				ipfs_exporter_object_cat(argc, argv);
+				break;
+			case (DNS):
+				ipfs_dns(argc, argv);
+				break;
+			case (DAEMON):
+				ipfs_daemon(argc, argv);
+				break;
+			case (PING):
+				ipfs_ping(argc, argv);
+				break;
+			case (NAME):
+				ipfs_name(args);
+				break;
+			default:
+				libp2p_logger_error("main", "Invalid command line arguments.\n");
+				break;
+		}
+		cli_arguments_free(args);
 	}
 	libp2p_logger_free();
 }
