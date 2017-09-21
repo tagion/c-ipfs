@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <curl/curl.h>
 #include "libp2p/utils/vector.h"
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/http_request.h"
@@ -196,6 +197,62 @@ int ipfs_core_http_request_add_commands(struct HttpRequest* request, char** url)
 	return 1;
 }
 
+/***
+ * Add parameters and arguments to the URL
+ * @param request the request
+ * @param url the url to continue to build
+ */
+int ipfs_core_http_request_add_parameters(struct HttpRequest* request, char** url) {
+	// params
+	if (request->params != NULL) {
+		for (int i = 0; i < request->params->total; i++) {
+			struct HttpParam* curr_param = (struct HttpParam*) libp2p_utils_vector_get(request->params, i);
+			int len = strlen(curr_param->name) + strlen(curr_param->value) + 2;
+			char* str = (char*) malloc(strlen(*url) + len);
+			if (str == NULL) {
+				return 0;
+			}
+			sprintf(str, "%s/%s=%s", *url, curr_param->name, curr_param->value);
+			free(*url);
+			*url = str;
+		}
+	}
+	// args
+	if (request->arguments != NULL) {
+		int isFirst = 1;
+		for(int i = 0; i < request->arguments->total; i++) {
+			char* arg = (char*) libp2p_utils_vector_get(request->arguments, i);
+			int len = strlen(arg) + strlen(*url) + 6;
+			char* str = (char*) malloc(len);
+			if (str == NULL)
+				return 0;
+			if (isFirst)
+				sprintf(str, "%s?arg=%s", *url, arg);
+			else
+				sprintf(str, "%s&arg=%s", *url, arg);
+			free(*url);
+			*url = str;
+		}
+	}
+	return 1;
+}
+
+struct curl_string {
+	char* ptr;
+	size_t len;
+};
+
+size_t curl_cb(void* ptr, size_t size, size_t nmemb, struct curl_string* str) {
+	size_t new_len = str->len + size * nmemb;
+	str->ptr = realloc(str->ptr, new_len + 1);
+	if (str->ptr != NULL) {
+		memcpy(str->ptr + str->len, ptr, size*nmemb);
+		str->ptr[new_len] = '\0';
+		str->len = new_len;
+	}
+	return size + nmemb;
+}
+
 /**
  * Do an HTTP Get to the local API
  * @param local_node the context
@@ -216,10 +273,31 @@ int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* 
 		return 0;
 	}
 
-	int request_length = 10 + strlen(request->command);
-	if (request->sub_command != NULL)
-		request_length += 1 + strlen(request->sub_command);
-	//TODO: continue building out this method
-	return 0;
+	if (!ipfs_core_http_request_add_parameters(request, &url)) {
+		free(url);
+		return 0;
+	}
+
+	// do the GET using libcurl
+	CURL *curl;
+	CURLcode res;
+	struct curl_string s;
+	s.len = 0;
+	s.ptr = malloc(1);
+	s.ptr[0] = '\0';
+
+	curl = curl_easy_init();
+	if (!curl) {
+		return 0;
+	}
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_cb);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+	res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
+	if (res == CURLE_OK) {
+		*result = s.ptr;
+	}
+	return res == CURLE_OK;
 }
 

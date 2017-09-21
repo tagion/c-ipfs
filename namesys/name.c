@@ -3,6 +3,7 @@
  */
 #include <stdlib.h>
 #include "libp2p/utils/logger.h"
+#include "libp2p/utils/vector.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/cmd/cli.h"
 #include "ipfs/core/http_request.h"
@@ -18,6 +19,7 @@ int ipfs_name_publish(struct IpfsNode* local_node, char* name) {
 		return 0;
 	request->command = "name";
 	request->sub_command = "publish";
+	libp2p_utils_vector_add(request->arguments, name);
 	int retVal = ipfs_core_http_request_get(local_node, request, &response);
 	if (response != NULL)
 		free(response);
@@ -27,7 +29,18 @@ int ipfs_name_publish(struct IpfsNode* local_node, char* name) {
 
 int ipfs_name_resolve(struct IpfsNode* local_node, char* name) {
 	// ask api
-	return 0;
+	char* response = NULL;
+	struct HttpRequest* request = ipfs_core_http_request_new();
+	if (request == NULL)
+		return 0;
+	request->command = "name";
+	request->sub_command = "resolve";
+	libp2p_utils_vector_add(request->arguments, name);
+	int retVal = ipfs_core_http_request_get(local_node, request, &response);
+	if (response != NULL)
+		free(response);
+	ipfs_core_http_request_free(request);
+	return retVal;
 }
 
 /**
