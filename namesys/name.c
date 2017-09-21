@@ -5,13 +5,24 @@
 #include "libp2p/utils/logger.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/cmd/cli.h"
+#include "ipfs/core/http_request.h"
 
 /***
  * Publish IPNS name
  */
 int ipfs_name_publish(struct IpfsNode* local_node, char* name) {
-	// call api
-	return 0;
+	// call api.
+	char* response = NULL;
+	struct HttpRequest* request = ipfs_core_http_request_new();
+	if (request == NULL)
+		return 0;
+	request->command = "name";
+	request->sub_command = "publish";
+	int retVal = ipfs_core_http_request_get(local_node, request, &response);
+	if (response != NULL)
+		free(response);
+	ipfs_core_http_request_free(request);
+	return retVal;
 }
 
 int ipfs_name_resolve(struct IpfsNode* local_node, char* name) {

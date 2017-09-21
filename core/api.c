@@ -333,6 +333,20 @@ struct ApiConnectionParam {
 	struct IpfsNode* this_node;
 };
 
+/***
+ * Take an s_request and turn it into an HttpRequest
+ * @param req the incoming s_request
+ * @returns the resultant HttpRequest or NULL on error
+ */
+struct HttpRequest* api_build_http_request(struct s_request* req) {
+	struct HttpRequest* request = ipfs_core_http_request_new();
+	if (request != NULL) {
+		request->command = req->buf + req->method;
+		//TODO: Complete this method
+	}
+	return request;
+}
+
 /**
  * Pthread to take care of each client connection.
  * @param ptr an ApiConnectionParam
@@ -420,11 +434,10 @@ void *api_connection_thread (void *ptr)
 			goto quit;
 		}
 
-		struct HttpRequest* http_request = ipfs_core_http_request_new();
+		// once we leave the building of the req struct, do we need to do more? This flag will tell us.
+		int further_processing_necessary = 1;
+
 		if (strcmp(buf + req.method, "GET")==0) {
-			char *path;
-			unsigned char *obj;
-			size_t size;
 
 			if (strcmp (req.buf + req.path, "/")==0   ||
 			    strcmp (req.buf + req.path, "/webui") ||
@@ -441,23 +454,13 @@ void *api_connection_thread (void *ptr)
 				} else {
 					write_cstr (s, HTTP_500);
 				}
+				further_processing_necessary = 0;
 			} else {
-				//TODO: build http_request here
-				path = req.buf + req.path;
-
-				if (get_object(params->this_node, path, &obj, &size)) {
-					if (!send_object(s, obj, size)) {
-						libp2p_logger_error("api", "fail send_object.\n");
-					}
-					free(obj);
-				} else {
-					// object not found.
-					write_dual (s, req.buf + req.http_ver, strchr (HTTP_404, ' '));
-				}
+				// move out of the if to do further processing
 			}
+			// end of GET
 		} else if (strcmp(buf + req.method, "POST")==0) {
 			// TODO: Handle gzip/json POST requests.
-			// TODO: build http_request here
 
 			p = header_value_cmp(&req, "Content-Type:", "multipart/form-data;");
 			if (p) {
@@ -490,39 +493,51 @@ void *api_connection_thread (void *ptr)
 					}
 				}
 			}
-			// TODO: Parse the path var and decide what to do with the received data.
+
 			if (req.boundary > 0) {
 				libp2p_logger_error("api", "boundary index = %d, size = %d\n", req.boundary, req.boundary_size);
 			}
 
-			libp2p_logger_error("api", "method = '%s'\n"
+			libp2p_logger_debug("api", "method = '%s'\n"
 						   "path = '%s'\n"
 						   "http_ver = '%s'\n"
 						   "header {\n%s\n}\n"
 						   "body_size = %d\n",
 			req.buf+req.method, req.buf+req.path, req.buf+req.http_ver,
 			req.buf+req.header, req.body_size);
-
-			char* response_text = NULL;
-			if (!ipfs_core_http_request_process(http_request, &response_text)) {
-				libp2p_logger_error("api", "ipfs_core_http_request_process returned false.\n");
-				// TODO: Handle this condition
-			}
-			ipfs_core_http_request_free(http_request);
-
-			snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
-			"Content-Type: application/json\r\n"
-			"Server: c-ipfs/0.0.0-dev\r\n"
-			"X-Chunked-Output: 1\r\n"
-			"Connection: close\r\n"
-			"Transfer-Encoding: chunked\r\n\r\n%s", req.buf + req.http_ver, response_text);
-			free(response_text);
-			write_str (s, resp);
-			libp2p_logger_error("api", "resp = {\n%s\n}\n", resp);
+			// end of POST
 		} else {
 			// Unexpected???
 			libp2p_logger_error("api", "fail unexpected '%s'.\n", req.buf + req.method);
 			write_cstr (s, HTTP_500);
+			further_processing_necessary = 0;
+		}
+
+		if (further_processing_necessary) {
+			// now do something with the request we have built
+			struct HttpRequest* http_request = api_build_http_request(&req);
+			if (http_request != NULL) {
+				char* response_text = NULL;
+				if (!ipfs_core_http_request_process(params->this_node, http_request, &response_text)) {
+					libp2p_logger_error("api", "ipfs_core_http_request_process returned false.\n");
+					// TODO: Handle this condition
+				}
+				ipfs_core_http_request_free(http_request);
+				// now send the results
+				snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
+				"Content-Type: application/json\r\n"
+				"Server: c-ipfs/0.0.0-dev\r\n"
+				"X-Chunked-Output: 1\r\n"
+				"Connection: close\r\n"
+				"Transfer-Encoding: chunked\r\n\r\n%s", req.buf + req.http_ver, response_text);
+				if (response_text != NULL)
+					free(response_text);
+				write_str (s, resp);
+				libp2p_logger_debug("api", "resp = {\n%s\n}\n", resp);
+			} else {
+				// uh oh... something went wrong converting to the HttpRequest struct
+				libp2p_logger_error("api", "Unable to build HttpRequest struct.\n");
+			}
 		}
 	} else {
 		libp2p_logger_error("api", "fail looking for body.\n");

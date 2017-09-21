@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ipfs/core/ipfs_node.h"
+
 /***
  * A name/value pair of http parameters
  */
@@ -44,8 +46,18 @@ void ipfs_core_http_param_free(struct HttpParam* param);
 
 /***
  * Process the parameters passed in from an http request
+ * @param local_node the context
  * @param request the request
  * @param response the response
  * @returns true(1) on success, false(0) otherwise.
  */
-int ipfs_core_http_request_process(struct HttpRequest* request, char** response);
+int ipfs_core_http_request_process(struct IpfsNode* local_node, struct HttpRequest* request, char** response);
+
+/**
+ * Do an HTTP Get to the local API
+ * @param local_node the context
+ * @param request the request
+ * @param result the results
+ * @returns true(1) on success, false(0) on error
+ */
+int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* request, char** result);
