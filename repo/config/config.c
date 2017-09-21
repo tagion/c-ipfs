@@ -149,8 +149,15 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 	config->addresses->swarm_head->next = libp2p_utils_linked_list_new();
 	config->addresses->swarm_head->next->item = malloc(strlen(addr1) + 1);
 	strcpy(config->addresses->swarm_head->next->item, addr1);
+
+	strcpy(addr1, "/ip4/127.0.0.1/tcp/5001");
+	config->addresses->api = malloc(strlen(addr1)+1);
+	strcpy(config->addresses->api, addr1);
+	strcpy(addr1, "ip4/127.0.0.1/tcp/8080");
+	config->addresses->gateway = malloc(strlen(addr1+1));
+	strcpy(config->addresses->gateway, addr1);
 	free(addr1);
-	
+
 	config->discovery.mdns.enabled = 1;
 	config->discovery.mdns.interval = 10;
 	

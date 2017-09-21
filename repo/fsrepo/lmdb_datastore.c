@@ -341,6 +341,8 @@ int repo_fsrepro_lmdb_open(int argc, char** argv, struct Datastore* datastore) {
 		db_context->db_environment = NULL;
 		return 0;
 	}
+	mdb_txn_commit(db_context->current_transaction);
+	db_context->current_transaction = NULL;
 	return 1;
 }
 

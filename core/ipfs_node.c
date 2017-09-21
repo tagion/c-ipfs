@@ -11,6 +11,22 @@
 #include "ipfs/exchange/bitswap/bitswap.h"
 #include "ipfs/journal/journal.h"
 
+struct IpfsNode* ipfs_node_new() {
+	struct IpfsNode* node = malloc(sizeof(struct IpfsNode));
+	if (node != NULL) {
+		node->blockstore = NULL;
+		node->exchange = NULL;
+		node->identity = NULL;
+		node->mode = MODE_OFFLINE;
+		node->peerstore = NULL;
+		node->protocol_handlers = NULL;
+		node->providerstore = NULL;
+		node->repo = NULL;
+		node->routing = NULL;
+	}
+	return node;
+}
+
 struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* node) {
 	struct Libp2pVector* retVal = libp2p_utils_vector_new(1);
 	if (retVal != NULL) {
@@ -47,17 +63,11 @@ int ipfs_node_online_protocol_handlers_free(struct Libp2pVector* handlers) {
 int ipfs_node_online_new(pthread_t *pth_scope, const char* repo_path, struct IpfsNode** node) {
 	struct FSRepo* fs_repo = NULL;
 
-	*node = (struct IpfsNode*)malloc(sizeof(struct IpfsNode));
+	*node = ipfs_node_new();
 	if(*node == NULL)
 		return 0;
 
 	struct IpfsNode* local_node = *node;
-	local_node->identity = NULL;
-	local_node->peerstore = NULL;
-	local_node->providerstore = NULL;
-	local_node->repo = NULL;
-	local_node->routing = NULL;
-	local_node->exchange =  NULL;
 
 	// build the struct
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
@@ -98,17 +108,11 @@ int ipfs_node_online_new(pthread_t *pth_scope, const char* repo_path, struct Ipf
 int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
 	struct FSRepo* fs_repo = NULL;
 
-	*node = (struct IpfsNode*)malloc(sizeof(struct IpfsNode));
+	*node = ipfs_node_new();
 	if(*node == NULL)
 		return 0;
 
 	struct IpfsNode* local_node = *node;
-	local_node->identity = NULL;
-	local_node->peerstore = NULL;
-	local_node->providerstore = NULL;
-	local_node->repo = NULL;
-	local_node->routing = NULL;
-	local_node->exchange =  NULL;
 
 	// build the struct
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {

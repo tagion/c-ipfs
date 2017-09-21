@@ -38,10 +38,14 @@
 #endif // MINGW
 
 void stripit(int argc, char** argv) {
-	char tmp[strlen(argv[argc])];
-	strcpy(tmp, &argv[argc][1]);
+	char* old_arg = argv[argc];
+	int full_length = strlen(old_arg);
+	char *tmp = (char*) malloc(full_length + 1);
+	char* ptr1 = &old_arg[1];
+	strcpy(tmp, ptr1);
 	tmp[strlen(tmp)-1] = 0;
-	strcpy(argv[argc], tmp);
+	strcpy(old_arg, tmp);
+	free(tmp);
 	return;
 }
 
