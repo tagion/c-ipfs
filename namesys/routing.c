@@ -260,7 +260,7 @@ int ipfs_namesys_routing_resolve_once (char **path, char *name, int depth, char 
     } else {
         // Its an old style multihash record
         //log.Warning("Detected old style multihash record")
-        struct Cid *cid = ipfs_cid_new(0, multihash, multihash_size, CID_PROTOBUF);
+        struct Cid *cid = ipfs_cid_new(0, multihash, multihash_size, CID_DAG_PROTOBUF);
         if (cid == NULL) {
             free(multihash);
             return 0;

@@ -95,7 +95,7 @@ int ipfs_cid_protobuf_decode(unsigned char* buffer, size_t buffer_length, struct
  * @param version the version
  * @param hash the multihash
  * @param hash_length the length of the multihash in bytes
- * @param codec the codec to be used (NOTE: For version 0, this should be CID_PROTOBUF)
+ * @param codec the codec to be used (NOTE: For version 0, this should be CID_DAG_PROTOBUF)
  * @returns the new Cid or NULL if there was a problem
  */
 struct Cid* ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, const char codec) {
@@ -150,6 +150,24 @@ struct Cid* ipfs_cid_copy(const struct Cid* original) {
 		memcpy(copy->hash, original->hash, original->hash_length);
 	}
 	return copy;
+}
+
+/***
+ * Create a CID from an ipfs or ipns string (i.e. "/ipns/QmAb12CD..."
+ * @param incoming the incoming string
+ * @param cid the resultant Cid
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_cid_decode_hash_from_ipfs_ipns_string(const char* incoming, struct Cid** cid) {
+	if (incoming == NULL)
+		return 0;
+	if (strstr(incoming, "/ipfs/") != incoming && strstr(incoming, "/ipns/") != incoming)
+		return 0;
+	const char* base58 = &incoming[6];
+	char* slash = strstr(incoming, "/");
+	if (slash != NULL)
+		slash[0] = '\0';
+	return ipfs_cid_decode_hash_from_base58((unsigned char*)base58, strlen(base58), cid);
 }
 
 /***

@@ -78,7 +78,7 @@ size_t ipfs_cid_protobuf_encode_size(const struct Cid* incoming);
  * @param version the version
  * @param hash the multihash
  * @param hash_length the length of the multihash in bytes
- * @param codec the codec to be used (NOTE: For version 0, this should be CID_PROTOBUF)
+ * @param codec the codec to be used (NOTE: For version 0, this should be CID_DAG_PROTOBUF)
  * @returns the Cid, or NULL if there was a problem
  */
 struct Cid* ipfs_cid_new(int version, const unsigned char* hash, size_t hash_length, const char codec);
@@ -105,6 +105,14 @@ struct Cid* ipfs_cid_copy(const struct Cid* original);
  * @return true(1) on success
  */
 int ipfs_cid_decode_hash_from_base58(const unsigned char* incoming, size_t incoming_length, struct Cid** cid);
+
+/***
+ * Create a CID from an ipfs or ipns string (i.e. "/ipns/QmAb12CD..."
+ * @param incoming the incoming string
+ * @param cid the resultant Cid
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_cid_decode_hash_from_ipfs_ipns_string(const char* incoming, struct Cid** cid);
 
 /**
  * Turn a cid into a base 58 of a multihash of the cid hash
