@@ -39,6 +39,20 @@ struct s_request {
 	size_t boundary_size;
 };
 
+#define WEBUI_ADDR	"/ipfs/QmPhnvn747LqwPYMJmQVorMaGbMSgA7mRRoyyZYz3DoZRQ/"
+
+#define HTTP_301	"HTTP/1.1 301 Moved Permanently\r\n" \
+			"Location: %s\r\n" \
+			"Content-Type: text/html\r\n\r\n" \
+			"<a href=\"%s\">Moved Permanently</a>.\r\n\r\n"
+
+#define HTTP_302	"HTTP/1.1 302 Found\r\n" \
+			"Content-Type: text/html\r\n" \
+			"Connection: close\r\n" \
+			"Location: %s\r\n" \
+			"X-Ipfs-Path: %s\r\n\r\n" \
+			"<a href=\"%s\">Found</a>.\r\n\r\n"
+
 #define HTTP_400	"HTTP/1.1 400 Bad Request\r\n" \
 			"Content-Type: text/plain\r\n" \
 			"Connection: close\r\n\r\n" \

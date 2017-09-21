@@ -427,19 +427,30 @@ void *api_connection_thread (void *ptr)
 			if (strcmp (req.buf + req.path, "/")==0   ||
 			    strcmp (req.buf + req.path, "/webui") ||
 			    strcmp (req.buf + req.path, "/webui/")==0) {
-				path = "/ipfs/QmPhnvn747LqwPYMJmQVorMaGbMSgA7mRRoyyZYz3DoZRQ/"; // WEBUI PAGE
+				char *redir;
+				size_t size = sizeof(HTTP_301) + (sizeof(WEBUI_ADDR)*2);
+
+				redir = malloc(size);
+				if (redir) {
+					snprintf(redir, size, HTTP_301, WEBUI_ADDR, WEBUI_ADDR);
+					redir[size-1] = '\0'; // just in case
+					write_dual (s, req.buf + req.http_ver, strchr (redir, ' '));
+					free (redir);
+				} else {
+					write_cstr (s, HTTP_500);
+				}
 			} else {
 				path = req.buf + req.path;
-			}
 
-			if (get_object(params->this_node, path, &obj, &size)) {
-				if (!send_object(s, obj, size)) {
-					libp2p_logger_error("api", "fail send_object.\n");
+				if (get_object(params->this_node, path, &obj, &size)) {
+					if (!send_object(s, obj, size)) {
+						libp2p_logger_error("api", "fail send_object.\n");
+					}
+					free(obj);
+				} else {
+					// object not found.
+					write_dual (s, req.buf + req.http_ver, strchr (HTTP_404, ' '));
 				}
-				free(obj);
-			} else {
-				// object not found.
-				write_dual (s, req.buf + req.http_ver, strchr (HTTP_404, ' '));
 			}
 		} else if (strcmp(buf + req.method, "POST")==0) {
 			// TODO: Handle gzip/json POST requests.
