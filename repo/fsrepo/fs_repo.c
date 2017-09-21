@@ -125,6 +125,9 @@ int repo_config_write_config_file(char* full_filename, struct RepoConfig* config
 	return 1;
 }
 
+// forward declaration, actual is in init.c
+char* ipfs_repo_get_home_directory(int argc, char** argv);
+
 /**
  * constructs the FSRepo struct.
  * Remember: ipfs_repo_fsrepo_free must be called
@@ -137,28 +140,13 @@ int ipfs_repo_fsrepo_new(const char* repo_path, struct RepoConfig* config, struc
 	*repo = (struct FSRepo*)malloc(sizeof(struct FSRepo));
 
 	if (repo_path == NULL) {
-		// get the user's home directory
-		char* ipfs_path = os_utils_getenv("IPFS_PATH");
-		if (ipfs_path == NULL)
-			ipfs_path = os_utils_get_homedir();
-		char* default_subdir = "/.ipfs";
-		unsigned long newPathLen = 0;
-		if (strstr(ipfs_path, default_subdir) != NULL) {
-			newPathLen = strlen(ipfs_path) + 1;
-		} else {
-			// add /.ipfs to the string
-			newPathLen = strlen(ipfs_path) + strlen(default_subdir) + 2;  // 1 for slash and 1 for end
-		}
-		(*repo)->path = malloc(sizeof(char) * newPathLen);
+		char* ipfs_path = ipfs_repo_get_home_directory(0, NULL);
+		(*repo)->path = malloc(strlen(ipfs_path) + 1);
 		if ((*repo)->path == NULL) {
 			free( (*repo));
 			return 0;
 		}
-		if (strstr(ipfs_path, default_subdir) != NULL) {
-			strcpy((*repo)->path, ipfs_path);
-		} else {
-			os_utils_filepath_join(ipfs_path, default_subdir, (*repo)->path, newPathLen);
-		}
+		strcpy((*repo)->path, ipfs_path);
 	} else {
 		int len = strlen(repo_path) + 1;
 		(*repo)->path = (char*)malloc(len);

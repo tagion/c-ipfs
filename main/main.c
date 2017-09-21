@@ -150,16 +150,6 @@ int parse_arguments(int argc, char** argv) {
  * The beginning
  */
 int main(int argc, char** argv) {
-	// for debugging
-	libp2p_logger_add_class("null");
-	libp2p_logger_add_class("bitswap");
-	libp2p_logger_add_class("secio");
-	libp2p_logger_add_class("peer_request_queue");
-	libp2p_logger_add_class("bitswap_engine");
-	libp2p_logger_add_class("peerstore");
-	libp2p_logger_add_class("dht_protocol");
-	libp2p_logger_add_class("peer");
-	libp2p_logger_add_class("lmdb_datastore");
 
 	strip_quotes(argc, argv);
 	// CliArguments is the new way to do it. Eventually, all will use this structure

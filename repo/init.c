@@ -10,11 +10,13 @@
  * The basic functions for initializing an IPFS repo
  */
 
+static char config_dir_path[512];
+
 /**
  * Get the correct repo home directory. This first looks at the
  * command line, then the IPFS_PATH environment variable,
- * then the user's home directory. This is where the .ipfs directory
- * is or will be.
+ * then the user's home directory. This should come back with a
+ * directory that contains a config file.
  * @param argc number of command line parameters
  * @param argv command line parameters
  * @returns the repo home directory
@@ -35,7 +37,12 @@ char* ipfs_repo_get_home_directory(int argc, char** argv) {
 		result = os_utils_getenv("IPFS_PATH");
 	}
 	if (result == NULL) { // not on command line nor environment var.
+		// get user's home directory (or current directory depending on platform),
+		// and add .ipfs to it
 		result = os_utils_get_homedir();
+		strcpy(config_dir_path, result);
+		strcat(config_dir_path, "/.ipfs");
+		result = config_dir_path;
 	}
 	return result;
 }
@@ -49,15 +56,7 @@ char* ipfs_repo_get_home_directory(int argc, char** argv) {
  * @returns true(1) if the directory is there, false(0) if it is not.
  */
 int ipfs_repo_get_directory(int argc, char** argv, char** repo_dir) {
-	char* home = ipfs_repo_get_home_directory(argc, argv);
-	// it shouldn't include the .ipfs directory, but if it does, we're done
-	if (strstr(home, ".ipfs") == NULL) {
-		int dir_len = strlen(home) + 7;
-		*repo_dir = malloc(dir_len);
-		os_utils_filepath_join(home, ".ipfs", *repo_dir, dir_len);
-	} else {
-		*repo_dir = home;
-	}
+	*repo_dir = ipfs_repo_get_home_directory(argc, argv);
 	return os_utils_directory_exists(*repo_dir);
 }
 
