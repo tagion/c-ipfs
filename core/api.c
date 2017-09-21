@@ -508,6 +508,7 @@ void *api_connection_thread (void *ptr)
 				libp2p_logger_error("api", "ipfs_core_http_request_process returned false.\n");
 				// TODO: Handle this condition
 			}
+			ipfs_core_http_request_free(http_request);
 
 			snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
 			"Content-Type: application/json\r\n"
@@ -515,6 +516,7 @@ void *api_connection_thread (void *ptr)
 			"X-Chunked-Output: 1\r\n"
 			"Connection: close\r\n"
 			"Transfer-Encoding: chunked\r\n\r\n%s", req.buf + req.http_ver, response_text);
+			free(response_text);
 			write_str (s, resp);
 			libp2p_logger_error("api", "resp = {\n%s\n}\n", resp);
 		} else {
