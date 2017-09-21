@@ -253,7 +253,7 @@ int repo_fsrepo_lmdb_put(struct DatastoreRecord* datastore_record, const struct 
 			if (journalstore_record->timestamp != datastore_record->timestamp) {
 				// we need to update
 				journalstore_record->timestamp = datastore_record->timestamp;
-				lmdb_journalstore_cursor_put(journalstore_cursor, journalstore_record);
+				retVal = lmdb_journalstore_cursor_put(journalstore_cursor, journalstore_record);
 				lmdb_journalstore_cursor_close(journalstore_cursor, 0);
 				lmdb_journal_record_free(journalstore_record);
 			}

@@ -15,7 +15,7 @@ int ipns_validate_ipns_record (char *k, char *val);
  * Store the hash locally, and notify the network
  *
  * @param local_node the context
- * @param cid the hash
+ * @param path the "/ipfs/" or "/ipns" path
  * @returns true(1) on success, false(0) otherwise
 */
-int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, struct Cid* cid);
+int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, char* path);

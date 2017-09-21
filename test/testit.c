@@ -12,7 +12,6 @@
 #include "flatfs/test_flatfs.h"
 #include "journal/test_journal.h"
 #include "merkledag/test_merkledag.h"
-#include "namesys/test_publisher.h"
 #include "node/test_node.h"
 #include "node/test_importer.h"
 #include "node/test_resolver.h"
@@ -27,6 +26,7 @@
 #include "storage/test_blocks.h"
 #include "storage/test_unixfs.h"
 #include "libp2p/utils/logger.h"
+#include "namesys/test_namesys.h"
  		 
 int testit(const char* name, int (*func)(void)) {
 	printf("TESTING %s...\n", name);
@@ -85,6 +85,7 @@ const char* names[] = {
 		"test_merkledag_add_node",
 		"test_merkledag_add_node_with_links",
 		"test_namesys_publisher_publish",
+		"test_namesys_resolver_resolve",
 		"test_resolver_get",
 		"test_routing_find_peer",
 		"test_routing_provide" /*,
@@ -149,6 +150,7 @@ int (*funcs[])(void) = {
 		test_merkledag_add_node,
 		test_merkledag_add_node_with_links,
 		test_namesys_publisher_publish,
+		test_namesys_resolver_resolve,
 		test_resolver_get,
 		test_routing_find_peer,
 		test_routing_provide /*,

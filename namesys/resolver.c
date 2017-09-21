@@ -1,4 +1,9 @@
 #include <stdlib.h>
+#include <string.h>
+
+#include "libp2p/utils/logger.h"
+#include "ipfs/namesys/resolver.h"
+
 /**
  * The opposite of publisher.c
  *
@@ -61,7 +66,15 @@ int ipfs_namesys_resolver_resolve(struct IpfsNode* local_node, const char* path,
 	char* current_path = (char*) malloc(strlen(path) + 1);
 	strcpy(current_path, path);
 
+	// if we go more than 10 deep, bail
+	int counter = 0;
+
 	do {
+		if (counter > 10) {
+			libp2p_logger_error("resolver", "Resolver looped %d times. Infinite loop? Last result: %s.\n", counter, current_path);
+			free(current_path);
+			return 0;
+		}
 		// resolve the current path
 		if (!ipfs_namesys_resolver_resolve_once(local_node, current_path, &result)) {
 			libp2p_logger_error("resolver", "Resolver returned false searching for %s.\n", current_path);
@@ -73,6 +86,7 @@ int ipfs_namesys_resolver_resolve(struct IpfsNode* local_node, const char* path,
 		current_path = (char*) malloc(strlen(result)+1);
 		strcpy(current_path, result);
 		free(result);
+		counter++;
 	} while(recursive && is_ipns_string(current_path));
 
 	*results = current_path;

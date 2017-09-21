@@ -358,7 +358,24 @@ int lmdb_journalstore_cursor_put(struct lmdb_trans_cursor *crsr, struct JournalR
 		libp2p_logger_error("lmdb_journalstore", "Unable to create journalstore record.\n");
 		return 0;
 	}
-	if (mdb_cursor_put(cursor, &db_key, &db_value, 0) == 0) {
+	int retVal = mdb_cursor_put(cursor, &db_key, &db_value, 0);
+	if (retVal != 0) {
+		char* result = "";
+		switch (retVal) {
+		case(MDB_MAP_FULL):
+				result = "Database Full";
+		break;
+		case (MDB_TXN_FULL):
+				result = "Transaction has too many dirty pages";
+		break;
+		case (EACCES) :
+				result = "Attempt was made to write in a read only transaction";
+		break;
+		case (EINVAL) :
+				result = "An invalid parameter was specified";
+		break;
+		}
+		libp2p_logger_error("lmdb_journalstore", "Put failed with error message %d [%s].\n", retVal, result);
 		return 0;
 	}
 

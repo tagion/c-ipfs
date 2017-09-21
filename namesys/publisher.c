@@ -174,31 +174,47 @@ int ipfs_namesys_copy_bytes(uint8_t* from, size_t from_size, uint8_t** to, size_
  * Store the hash locally, and notify the network
  *
  * @param local_node the context
- * @param cid the hash
+ * @param path the path (could be "/ipns" or "/ipfs")
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, struct Cid* cid) {
+int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, char* path) {
+	int retVal = 0;
+
 	// store locally
 	struct DatastoreRecord* record = libp2p_datastore_record_new();
 	if (record == NULL)
 		return 0;
 
-	// key
-	if (!ipfs_namesys_copy_bytes(cid->hash, cid->hash_length, &record->key, &record->key_size)) {
+	// convert this peer id into a cid
+	struct Cid* local_peer = NULL;
+
+	if (!ipfs_cid_decode_hash_from_base58((unsigned char*)local_node->identity->peer->id, local_node->identity->peer->id_size, &local_peer)) {
 		libp2p_datastore_record_free(record);
 		return 0;
 	}
-	// value
-	if (!ipfs_namesys_copy_bytes((unsigned char*)local_node->identity->peer->id, local_node->identity->peer->id_size, &record->value, &record->value_size)) {
+
+	// key, which is the peer id
+	if (!ipfs_namesys_copy_bytes(local_peer->hash, local_peer->hash_length, &record->key, &record->key_size)) {
+		ipfs_cid_free(local_peer);
+		libp2p_datastore_record_free(record);
+		return 0;
+	}
+	// value, which is what it should resolve to (a mutable key)
+	if (!ipfs_namesys_copy_bytes((uint8_t*)path, strlen(path), &record->value, &record->value_size)) {
+		ipfs_cid_free(local_peer);
 		libp2p_datastore_record_free(record);
 		return 0;
 	}
 
 	if (!local_node->repo->config->datastore->datastore_put(record, local_node->repo->config->datastore)) {
+		ipfs_cid_free(local_peer);
 		libp2p_datastore_record_free(record);
 		return 0;
 	}
 	libp2p_datastore_record_free(record);
+
+	// for now, even if what is below fails because of not being connected, return TRUE
+	retVal = 1;
 
 	// propagate to network
 	// build the KademliaMessage
@@ -208,31 +224,36 @@ int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, struct Cid* cid)
 		return 0;
 	}
 	msg->provider_peer_head = libp2p_utils_linked_list_new();
-	msg->provider_peer_head->item = local_node->identity->peer;
+	msg->provider_peer_head->item = libp2p_peer_copy(local_node->identity->peer);
 	// msg->Libp2pRecord
 	msg->record = libp2p_record_new();
 	if (msg->record == NULL) {
 		libp2p_message_free(msg);
+		ipfs_cid_free(local_peer);
 		return 0;
 	}
 	// KademliaMessage->Libp2pRecord->author
-	if (!ipfs_namesys_copy_bytes((unsigned char*)local_node->identity->peer->id, local_node->identity->peer->id_size, (unsigned char**)&msg->record->author, &msg->record->author_size)) {
+	if (!ipfs_namesys_copy_bytes(local_peer->hash, local_peer->hash_length, (unsigned char**)&msg->record->author, &msg->record->author_size)) {
 		libp2p_message_free(msg);
+		ipfs_cid_free(local_peer);
 		return 0;
 	}
 	// KademliaMessage->Libp2pRecord->key
-	if (!ipfs_namesys_copy_bytes(cid->hash, cid->hash_length, (unsigned char**)&msg->record->key, &msg->record->key_size)) {
+	if (!ipfs_namesys_copy_bytes(local_peer->hash, local_peer->hash_length, (unsigned char**)&msg->record->key, &msg->record->key_size)) {
 		libp2p_message_free(msg);
+		ipfs_cid_free(local_peer);
 		return 0;
 	}
 	// KademliaMessage->Libp2pRecord->value
-	if (!ipfs_namesys_copy_bytes((unsigned char*)local_node->identity->peer->id, local_node->identity->peer->id_size, &msg->record->value, &msg->record->value_size)) {
+	if (!ipfs_namesys_copy_bytes((uint8_t*)path, strlen(path), &msg->record->value, &msg->record->value_size)) {
 		libp2p_message_free(msg);
+		ipfs_cid_free(local_peer);
 		return 0;
 	}
 
-	int retVal = libp2p_routing_dht_send_message_nearest_x(&local_node->identity->private_key, local_node->peerstore, local_node->repo->config->datastore, msg, 10);
+	libp2p_routing_dht_send_message_nearest_x(&local_node->identity->private_key, local_node->peerstore, local_node->repo->config->datastore, msg, 10);
 
 	libp2p_message_free(msg);
+	ipfs_cid_free(local_peer);
 	return retVal;
 }

@@ -17,6 +17,7 @@ OBJS = testit.o test_helper.o \
 	../multibase/multibase.o \
 	../namesys/pb.o \
 	../namesys/publisher.o \
+	../namesys/resolver.o \
 	../repo/init.o \
 	../repo/fsrepo/*.o \
 	../repo/config/*.o \

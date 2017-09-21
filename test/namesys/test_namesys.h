@@ -1,0 +1,79 @@
+#include <stdlib.h>
+#include <pthread.h>
+
+#include "../test_helper.h"
+#include "ipfs/cid/cid.h"
+#include "ipfs/core/ipfs_node.h"
+#include "ipfs/namesys/publisher.h"
+#include "ipfs/namesys/resolver.h"
+
+int test_namesys_publisher_publish() {
+	int retVal = 0;
+	struct IpfsNode* local_node = NULL;
+	char* hash_text = "/ipns/QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD";
+	char* repo_path = "/tmp/ipfs_1";
+
+	// get a local node
+	if (!ipfs_node_offline_new(repo_path, &local_node)) {
+		libp2p_logger_error("test_publisher", "publish: Unable to open ipfs repository.\n");
+		goto exit;
+	}
+
+	// attempt to publish
+	if (!ipfs_namesys_publisher_publish(local_node, hash_text)) {
+		libp2p_logger_error("test_publisher", "publish: Unable to publish %s.\n", hash_text);
+		goto exit;
+	}
+
+	retVal = 1;
+	exit:
+	ipfs_node_free(NULL, local_node);
+	return retVal;
+}
+
+int test_namesys_resolver_resolve() {
+	int retVal = 0;
+	struct IpfsNode* local_node = NULL;
+	char* hash_text = "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD"; // the hash of a hello, world file
+	char ipns_path[512] = ""; // the Peer ID of config.test1
+	char* repo_path = "/tmp/ipfs_1";
+	char* peer_id = NULL;
+	char* result = NULL;
+
+	drop_and_build_repository(repo_path, 4001, NULL, &peer_id);
+
+	// get a local node
+	if (!ipfs_node_offline_new(repo_path, &local_node)) {
+		libp2p_logger_error("test_publisher", "publish: Unable to open ipfs repository.\n");
+		goto exit;
+	}
+
+	// set ipns_path
+	sprintf(ipns_path, "/ipfs/%s", peer_id);
+
+	// attempt to publish
+	if (!ipfs_namesys_publisher_publish(local_node, hash_text)) {
+		libp2p_logger_error("test_publisher", "publish: Unable to publish %s.\n", hash_text);
+		goto exit;
+	}
+
+	// attempt to retrieve
+	if (!ipfs_namesys_resolver_resolve(local_node, ipns_path, 1, &result)) {
+		libp2p_logger_error("test_namesys", "Could not resolve %s.\n", hash_text);
+		goto exit;
+	}
+
+	if (strcmp(result, hash_text) != 0) {
+		libp2p_logger_error("test_namesys", "Retrieve wrong result. %s should be %s.\n", result, hash_text);
+		goto exit;
+	}
+
+	libp2p_logger_error("test_namesys", "Asked for %s and received %s. Success!\n", ipns_path, result);
+
+	retVal = 1;
+	exit:
+	ipfs_node_free(NULL, local_node);
+	if (result != NULL)
+		free(result);
+	return retVal;
+}
