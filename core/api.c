@@ -341,8 +341,42 @@ struct ApiConnectionParam {
 struct HttpRequest* api_build_http_request(struct s_request* req) {
 	struct HttpRequest* request = ipfs_core_http_request_new();
 	if (request != NULL) {
-		request->command = req->buf + req->method;
-		//TODO: Complete this method
+		char *segs = malloc (strlen(req->buf + req->request) + 1);
+		if (segs) {
+			strcpy(segs, req->buf + req->request);
+			request->command = segs;
+			segs = strchr(segs, '/');
+			if (segs) {
+				*segs++ = '\0';
+				request->sub_command = segs; // sub_command can contain another level as filters/add
+			}
+			if (req->query) {
+				segs = malloc (strlen(req->buf + req->query) + 1);
+				if (segs) {
+					strcpy(segs, req->buf + req->query);
+					while (segs) {
+						char *value, *name = segs;
+						segs = strchr(segs, '&');
+						if (segs) { // calc next to split before search for = on another parameter.
+							*segs++ = '\0';
+						}
+
+						value = strchr(name, '=');
+						if (value) { // with = assuming params.
+							struct HttpParam *hp = ipfs_core_http_param_new();
+							if (hp) {
+								*value++ = '\0';
+								hp->name = name;
+								hp->value = value;
+								libp2p_utils_vector_add(request->params, hp);
+							}
+						} else { // without =, assuming arguments
+							libp2p_utils_vector_add(request->arguments, name);
+						}
+					}
+				}
+			}
+		}
 	}
 	return request;
 }
@@ -404,6 +438,13 @@ void *api_connection_thread (void *ptr)
 		}
 		*p++ = '\0'; // End of method.
 		req.path = p - req.buf;
+		if (strchr(p, '?')) {
+			p = strchr(p, '?');
+			*p++ = '\0';
+			req.query = p - req.buf;
+		} else {
+			req.query = 0;
+		}
 		p = strchr(p, ' ');
 		if (!p) {
 			libp2p_logger_error("api", "fail looking for space on path '%s'.\n", req.buf + req.path);
@@ -435,12 +476,11 @@ void *api_connection_thread (void *ptr)
 		}
 
 		// once we leave the building of the req struct, do we need to do more? This flag will tell us.
-		int further_processing_necessary = 1;
+		int further_processing_necessary = 0;
 
 		if (strcmp(buf + req.method, "GET")==0) {
-
-			if (strcmp (req.buf + req.path, "/")==0   ||
-			    strcmp (req.buf + req.path, "/webui") ||
+			if (strcmp (req.buf + req.path, "/")==0      ||
+			    strcmp (req.buf + req.path, "/webui")==0 ||
 			    strcmp (req.buf + req.path, "/webui/")==0) {
 				char *redir;
 				size_t size = sizeof(HTTP_301) + (sizeof(WEBUI_ADDR)*2);
@@ -454,8 +494,11 @@ void *api_connection_thread (void *ptr)
 				} else {
 					write_cstr (s, HTTP_500);
 				}
-				further_processing_necessary = 0;
+			} else if (cstrstart(req.buf + req.path, API_V0_START)) {
+				req.request = req.path + sizeof(API_V0_START) - 1;
+				further_processing_necessary = 1;
 			} else {
+				// TODO: handle download file here.
 				// move out of the if to do further processing
 			}
 			// end of GET

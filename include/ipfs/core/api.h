@@ -31,6 +31,8 @@ struct s_request {
 
 	int method;
 	int path;
+	int request;
+	int query;
 	int http_ver;
 	int header;
 	int body;
@@ -38,6 +40,8 @@ struct s_request {
 	int boundary;
 	size_t boundary_size;
 };
+
+#define API_V0_START	"/api/v0/"
 
 #define WEBUI_ADDR	"/ipfs/QmPhnvn747LqwPYMJmQVorMaGbMSgA7mRRoyyZYz3DoZRQ/"
 
