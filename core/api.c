@@ -362,16 +362,18 @@ struct HttpRequest* api_build_http_request(struct s_request* req) {
 						}
 
 						value = strchr(name, '=');
-						if (value) { // with = assuming params.
+						if (value) {
+							*value++ = '\0';
+						}
+						if (value && (strcmp(name, "arg")==0)) {
+							libp2p_utils_vector_add(request->arguments, value);
+						} else {
 							struct HttpParam *hp = ipfs_core_http_param_new();
 							if (hp) {
-								*value++ = '\0';
 								hp->name = name;
-								hp->value = value;
+								hp->value = value; // maybe null ?
 								libp2p_utils_vector_add(request->params, hp);
 							}
-						} else { // without =, assuming arguments
-							libp2p_utils_vector_add(request->arguments, name);
 						}
 					}
 				}
