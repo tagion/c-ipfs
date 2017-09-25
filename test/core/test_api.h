@@ -2,6 +2,7 @@
 
 #include "../test_helper.h"
 #include "libp2p/utils/logger.h"
+#include "ipfs/cmd/cli.h"
 #include "ipfs/core/client_api.h"
 #include "ipfs/core/daemon.h"
 #include "ipfs/importer/exporter.h"
@@ -56,15 +57,15 @@ int test_core_api_object_cat() {
 	int thread_started1 = 0;
 	int thread_started2 = 0;
 	char* ipfs_path1 = "/tmp/ipfs_1";
-	char* config_file1 = "config.test1";
+	char* config_file1 = "config.test1.wo_journal";
 	char* ipfs_path2 = "/tmp/ipfs_2";
-	char* config_file2 = "config.test2";
+	char* config_file2 = "config.test2.wo_journal";
 	struct FSRepo* fs_repo = NULL;
 	char hash[256] = "";
 	char* args[] = {"ipfs", "--config", ipfs_path2, "cat", hash };
 
 	// logging
-	libp2p_logger_add_class("test_journal");
+	libp2p_logger_add_class("test_api");
 	libp2p_logger_add_class("journal");
 	libp2p_logger_add_class("daemon");
 	libp2p_logger_add_class("online");
@@ -82,6 +83,7 @@ int test_core_api_object_cat() {
 	libp2p_logger_add_class("unixfs");
 	libp2p_logger_add_class("bitswap_engine");
 	libp2p_logger_add_class("bitswap_network");
+	libp2p_logger_add_class("exporter");
 
 	// build 2 repos
 	if (!drop_build_open_repo(ipfs_path1, &fs_repo, config_file1)) {
@@ -99,7 +101,7 @@ int test_core_api_object_cat() {
 	libp2p_logger_debug("test_api", "Changed the server id to %s.\n", fs_repo->config->identity->peer->id);
 	ipfs_repo_fsrepo_free(fs_repo);
 
-	// add some files to the first repo
+	// add a file to the first repo
 	uint8_t *bytes = (unsigned char*)"hello, world!\n";
 	char* filename = "test1.txt";
 	create_file(filename, bytes, strlen((char*)bytes));
@@ -110,19 +112,23 @@ int test_core_api_object_cat() {
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
 	memset(hash, 0, 256);
 	ipfs_cid_hash_to_base58(node->hash, node->hash_size, (unsigned char*)hash, 256);
+	libp2p_logger_debug("test_api", "Inserted file with hash %s.\n", hash);
 	ipfs_node_free(local_node);
 	ipfs_hashtable_node_free(node);
 
 	libp2p_logger_debug("test_api", "*** Firing up daemons ***\n");
 	pthread_create(&daemon_thread1, NULL, test_daemon_start, (void*)ipfs_path1);
 	thread_started1 = 1;
+	sleep(3);
 	pthread_create(&daemon_thread2, NULL, test_daemon_start, (void*)ipfs_path2);
 	thread_started2 = 1;
 
 	sleep(3);
 
 	// use a client to ask for the file on server 1
-	if (ipfs_exporter_object_cat(5, args) == 0) {
+	struct CliArguments* arguments = cli_arguments_new(5, args);
+	if (ipfs_exporter_object_cat(arguments) == 0) {
+		libp2p_logger_error("test_api", "ipfs_exporter_object_cat returned false.\n");
 		goto exit;
 	}
 
@@ -133,6 +139,7 @@ int test_core_api_object_cat() {
 		pthread_join(daemon_thread1, NULL);
 	if (thread_started2)
 		pthread_join(daemon_thread2, NULL);
+	cli_arguments_free(arguments);
 	return retVal;
 }
 

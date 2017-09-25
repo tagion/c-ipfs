@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ipfs/cmd/cli.h"
 #include "ipfs/core/ipfs_node.h"
 
 /**
@@ -32,7 +33,7 @@ int ipfs_exporter_object_get(int argc, char** argv);
  * @param argv arguments
  * @returns true(1) on success
  */
-int ipfs_exporter_object_cat(int argc, char** argv);
+int ipfs_exporter_object_cat(struct CliArguments* args);
 
 /**
  * Retrieves the object pointed to by hash and displays the raw data

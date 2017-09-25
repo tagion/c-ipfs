@@ -1,9 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
+#include "libp2p/os/memstream.h"
 #include "libp2p/utils/vector.h"
 #include "libp2p/utils/logger.h"
+#include "ipfs/cid/cid.h"
 #include "ipfs/core/http_request.h"
+#include "ipfs/importer/exporter.h"
 #include "ipfs/namesys/resolver.h"
 #include "ipfs/namesys/publisher.h"
 
@@ -125,6 +128,16 @@ int ipfs_core_http_process_object(struct IpfsNode* local_node, struct HttpReques
 	int retVal = 0;
 	if (strcmp(request->sub_command, "get") == 0) {
 		// do an object_get
+		if (request->arguments->total == 1) {
+			char* hash = (char*)libp2p_utils_vector_get(request->arguments, 0);
+			struct Cid* cid;
+			ipfs_cid_decode_hash_from_base58(hash, strlen(hash), &cid);
+			size_t size;
+			FILE* response_file = open_memstream(response, &size);
+			retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, response_file);
+			ipfs_cid_free(cid);
+			fclose(response_file);
+		}
 	}
 	return retVal;
 }
@@ -297,7 +310,10 @@ int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* 
 	res = curl_easy_perform(curl);
 	curl_easy_cleanup(curl);
 	if (res == CURLE_OK) {
-		*result = s.ptr;
+		if (strcmp(s.ptr, "404 page not found") != 0)
+			*result = s.ptr;
+		else
+			res = -1;
 	} else {
 		libp2p_logger_error("http_request", "Results of [%s] returned failure. Return value: %d.\n", url, res);
 	}

@@ -187,6 +187,9 @@ int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, 
 				unsigned char* hash;
 				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&hash, &hash_size, &bytes_read) == 0)
 					goto exit;
+				if (hash_size < 2) {
+					goto exit;
+				}
 				link->hash_size = hash_size - 2;
 				link->hash = (unsigned char*)malloc(link->hash_size);
 				memcpy((char*)link->hash, (char*)&hash[2], link->hash_size);
@@ -293,6 +296,9 @@ int ipfs_hashtable_node_protobuf_decode(unsigned char* buffer, size_t buffer_len
 	size_t temp_size;
 	struct NodeLink* temp_link = NULL;
 
+	if (buffer_length == 0)
+		goto exit;
+
 	if (ipfs_hashtable_node_new(node) == 0)
 		goto exit;
 
@@ -315,11 +321,11 @@ int ipfs_hashtable_node_protobuf_decode(unsigned char* buffer, size_t buffer_len
 				if (protobuf_decode_length_delimited(&buffer[pos], buffer_length - pos, (char**)&temp_buffer, &temp_size, &bytes_read) == 0)
 					goto exit;
 				pos += bytes_read;
-				if (ipfs_node_link_protobuf_decode(temp_buffer, temp_size, &temp_link) == 0)
-					goto exit;
+				if (ipfs_node_link_protobuf_decode(temp_buffer, temp_size, &temp_link)) {
+					ipfs_hashtable_node_add_link(*node, temp_link);
+				}
 				free(temp_buffer);
 				temp_buffer = NULL;
-				ipfs_hashtable_node_add_link(*node, temp_link);
 				break;
 			}
 		}

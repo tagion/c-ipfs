@@ -3,6 +3,8 @@
 #include <pthread.h>
 
 #include "ipfs/cid/cid.h"
+#include "ipfs/core/http_request.h"
+#include "ipfs/importer/exporter.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/merkledag/node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
@@ -32,8 +34,9 @@ int ipfs_exporter_get_node(struct IpfsNode* local_node, const unsigned char* has
 	if (local_node->routing->GetValue(local_node->routing, hash, hash_size, (void**)&buffer, &buffer_size)) {
 		libp2p_logger_debug("exporter", "get_node got a value. Converting it to a HashtableNode\n");
 		// unprotobuf
-		if (ipfs_hashtable_node_protobuf_decode(buffer, buffer_size, result)) {
-			libp2p_logger_debug("exporter", "Conversion to HashtableNode successful\n");
+		if (!ipfs_hashtable_node_protobuf_decode(buffer, buffer_size, result)) {
+			libp2p_logger_debug("exporter", "Conversion to HashtableNode not successful\n");
+			goto exit;
 		}
 	} else {
 		libp2p_logger_debug("exporter", "get_node got no value. Returning false.\n");
@@ -221,7 +224,9 @@ int ipfs_exporter_cat_node(struct HashtableNode* node, struct IpfsNode* local_no
 
 	// build the unixfs
 	struct UnixFS* unix_fs;
-	ipfs_unixfs_protobuf_decode(node->data, node->data_size, &unix_fs);
+	if (!ipfs_unixfs_protobuf_decode(node->data, node->data_size, &unix_fs)) {
+		return 0;
+	}
 	for(size_t i = 0LU; i < unix_fs->bytes_size; i++) {
 		fprintf(file, "%c", unix_fs->bytes[i]);
 	}
@@ -262,26 +267,43 @@ int ipfs_exporter_object_cat_to_file(struct IpfsNode *local_node, unsigned char*
  * @param argv arguments
  * @returns true(1) on success
  */
-int ipfs_exporter_object_cat(int argc, char** argv) {
+int ipfs_exporter_object_cat(struct CliArguments* args) {
 	struct IpfsNode *local_node = NULL;
 	char* repo_dir = NULL;
 
-	if (!ipfs_repo_get_directory(argc, argv, &repo_dir)) {
-		fprintf(stderr, "Unable to open repo: %s\n", repo_dir);
+	if (!ipfs_repo_get_directory(args->argc, args->argv, &repo_dir)) {
+		libp2p_logger_error("exporter", "Unable to open repo: %s\n", repo_dir);
 		return 0;
 	}
 
-	if (!ipfs_node_offline_new(repo_dir, &local_node))
+	if (!ipfs_node_offline_new(repo_dir, &local_node)) {
+		libp2p_logger_error("exporter", "Unable to create new offline node based on config at %s.\n", repo_dir);
 		return 0;
+	}
 
 	if (local_node->mode == MODE_API_AVAILABLE) {
-		// TODO: we should use the api for this
-		return 0;
+		char* hash = args->argv[args->verb_index + 1];
+		libp2p_logger_debug("exporter", "We're attempting to use the API for this object get of %s.\n", hash);
+		struct HttpRequest* request = ipfs_core_http_request_new();
+		char* response = NULL;
+		request->command = "object";
+		request->sub_command = "get";
+		request->arguments = libp2p_utils_vector_new(1);
+		libp2p_utils_vector_add(request->arguments, hash);
+		int retVal = ipfs_core_http_request_get(local_node, request, &response);
+		if (response != NULL && strlen(response) > 0) {
+			fprintf(stdout, "%s", response);
+			free(response);
+		} else {
+			retVal = 0;
+		}
+		ipfs_core_http_request_free(request);
+		return retVal;
 	} else {
-		// find hash
-		// convert hash to cid
+		libp2p_logger_debug("exporter", "API not available, using direct access.\n");
 		struct Cid* cid = NULL;
-		if ( ipfs_cid_decode_hash_from_base58((unsigned char*)argv[2], strlen(argv[2]), &cid) == 0) {
+		if ( ipfs_cid_decode_hash_from_base58((unsigned char*)args->argv[args->verb_index+1], strlen(args->argv[args->verb_index+1]), &cid) == 0) {
+			libp2p_logger_error("exporter", "Unable to decode hash from base58 [%s]\n", args->argv[args->verb_index+1]);
 			return 0;
 		}
 

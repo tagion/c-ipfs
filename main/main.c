@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
 				//ipfs_exporter_get(argc, argv);
 				//break;
 			case (CAT):
-				ipfs_exporter_object_cat(argc, argv);
+				ipfs_exporter_object_cat(args);
 				break;
 			case (DNS):
 				ipfs_dns(argc, argv);

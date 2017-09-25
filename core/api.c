@@ -566,25 +566,27 @@ void *api_connection_thread (void *ptr)
 				char* response_text = NULL;
 				if (!ipfs_core_http_request_process(params->this_node, http_request, &response_text)) {
 					libp2p_logger_error("api", "ipfs_core_http_request_process returned false.\n");
-					// TODO: Handle this condition
+					// 404
+					write_str(s, HTTP_404);
+				} else {
+					// now send the results
+					snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
+					"Content-Type: application/json\r\n"
+					"Server: c-ipfs/0.0.0-dev\r\n"
+					"X-Chunked-Output: 1\r\n"
+					"Connection: close\r\n"
+					"Transfer-Encoding: chunked\r\n"
+					"\r\n"
+					"%x\r\n"
+					"%s\r\n"
+					"0\r\n\r\n"
+					,req.buf + req.http_ver, strlen(response_text), response_text);
+					if (response_text != NULL)
+						free(response_text);
+					write_str (s, resp);
+					libp2p_logger_debug("api", "resp = {\n%s\n}\n", resp);
 				}
 				ipfs_core_http_request_free(http_request);
-				// now send the results
-				snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
-				"Content-Type: application/json\r\n"
-				"Server: c-ipfs/0.0.0-dev\r\n"
-				"X-Chunked-Output: 1\r\n"
-				"Connection: close\r\n"
-				"Transfer-Encoding: chunked\r\n"
-				"\r\n"
-				"%x\r\n"
-				"%s\r\n"
-				"0\r\n\r\n"
-				,req.buf + req.http_ver, strlen(response_text), response_text);
-				if (response_text != NULL)
-					free(response_text);
-				write_str (s, resp);
-				libp2p_logger_debug("api", "resp = {\n%s\n}\n", resp);
 			} else {
 				// uh oh... something went wrong converting to the HttpRequest struct
 				libp2p_logger_error("api", "Unable to build HttpRequest struct.\n");

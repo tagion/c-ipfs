@@ -249,12 +249,13 @@ int ipfs_unixfs_protobuf_encode(const struct UnixFS* incoming, unsigned char* ou
  * @param incoming the array of bytes
  * @param incoming_size the length of the array
  * @param outgoing the UnixFS object
+ * @returns true(1) on success, false(0) on error
  */
 int ipfs_unixfs_protobuf_decode(unsigned char* incoming, size_t incoming_size, struct UnixFS** outgoing) {
 	// short cut for nulls
 	if (incoming_size == 0) {
 		*outgoing = NULL;
-		return 1;
+		return 0;
 	}
 
 	size_t pos = 0;
