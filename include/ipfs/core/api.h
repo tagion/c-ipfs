@@ -17,15 +17,15 @@ struct ApiContext {
 	uint16_t port;
 	int max_conns;
 	int timeout;
+	pthread_mutex_t conns_lock;
+	int conns_count;
+	pthread_t api_thread;
 	struct s_conns {
 		int socket;
 		uint32_t ipv4;
 		uint16_t port;
 		pthread_t pthread;
 	} **conns;
-	pthread_mutex_t conns_lock;
-	int conns_count;
-	pthread_t api_thread;
 };
 
 struct s_request {

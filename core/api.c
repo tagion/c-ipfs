@@ -594,13 +594,16 @@ quit:
 		free(req.buf);
 	if (inet_ntop(AF_INET, &( params->this_node->api_context->conns[params->index]->ipv4), client, INET_ADDRSTRLEN) == NULL)
 		strcpy(client, "UNKNOW");
-	libp2p_logger_error("api", "Closing client connection %s:%d (%d).\n", client, params->this_node->api_context->conns[params->index]->port, params->index+1);
+	libp2p_logger_debug("api", "Closing client connection %s:%d (%d).\n", client, params->this_node->api_context->conns[params->index]->port, params->index+1);
+	libp2p_logger_debug("api", "api_connection_thread: Attempting lock of mutex.\n");
 	pthread_mutex_lock(&params->this_node->api_context->conns_lock);
+	libp2p_logger_debug("api", "api_connection_thread: Lock successful.\n");
 	close(s);
 	free ( params->this_node->api_context->conns[params->index]);
 	params->this_node->api_context->conns[params->index] = NULL;
 	params->this_node->api_context->conns_count--;
 	pthread_mutex_unlock(&params->this_node->api_context->conns_lock);
+	libp2p_logger_debug("api", "api_connection_thread: Unlock successful.\n");
 	free(params);
 	return NULL;
 }
@@ -612,7 +615,9 @@ void api_connections_cleanup (struct IpfsNode* local_node)
 {
 	int i;
 
+	libp2p_logger_debug("api", "api_connections_cleanup: Attempting lock.\n");
 	pthread_mutex_lock(&local_node->api_context->conns_lock);
+	libp2p_logger_debug("api", "api_connections_cleanup: Lock successful.\n");
 	if (local_node->api_context->conns_count > 0 && local_node->api_context->conns) {
 		for (i = 0 ; i < local_node->api_context->max_conns ; i++) {
 			if (local_node->api_context->conns[i]->pthread) {
@@ -629,6 +634,7 @@ void api_connections_cleanup (struct IpfsNode* local_node)
 		local_node->api_context->conns = NULL;
 	}
 	pthread_mutex_unlock(&local_node->api_context->conns_lock);
+	libp2p_logger_debug("api", "api_connections_cleanup: Unlock successful\n");
 }
 
 /**
@@ -658,12 +664,15 @@ void *api_listen_thread (void *ptr)
 			continue;
 		}
 
+		libp2p_logger_debug("api", "api_listen_thread: Lock\n");
 		pthread_mutex_lock(&local_node->api_context->conns_lock);
+		libp2p_logger_debug("api", "api_listen_thread: Lock Complete\n");
 		for (i = 0 ; i < local_node->api_context->max_conns && local_node->api_context->conns[i] ; i++);
 		local_node->api_context->conns[i] = malloc (sizeof (struct s_conns));
 		if (!local_node->api_context->conns[i]) {
 			libp2p_logger_error("api", "Fail to allocate memory to accept connection.\n");
 			pthread_mutex_unlock(&local_node->api_context->conns_lock);
+			libp2p_logger_debug("api", "api_listen_thread: memory failure, unlock successful.\n");
 			close (s);
 			continue;
 		}
@@ -677,6 +686,7 @@ void *api_listen_thread (void *ptr)
 		if (connection_param == NULL) {
 			libp2p_logger_error("api", "api_listen_thread: Unable to allocate memory.\n");
 			pthread_mutex_unlock(&local_node->api_context->conns_lock);
+			libp2p_logger_debug("api", "api_listen_thread: memory failure 2 unlock successful.\n");
 			close (s);
 			continue;
 		}
@@ -691,8 +701,9 @@ void *api_listen_thread (void *ptr)
 		} else {
 			local_node->api_context->conns_count++;
 		}
-		libp2p_logger_debug("api", "API for %s: Accept connection %s:%d (%d/%d), pthread %d.\n", client, port, local_node->api_context->conns_count, local_node->api_context->max_conns, i+1);
+		libp2p_logger_debug("api", "API for %s: Accept connection %s:%d (%d/%d), pthread %d.\n", local_node->identity->peer->id, client, port, local_node->api_context->conns_count, local_node->api_context->max_conns, i+1);
 		pthread_mutex_unlock(&local_node->api_context->conns_lock);
+		libp2p_logger_debug("api", "api_listen_thread:Api connection cleanup unlock successful.\n");
 	}
 	api_connections_cleanup (local_node);
 	return NULL;
@@ -708,6 +719,7 @@ struct ApiContext* api_context_new() {
 		context->port = 0;
 		context->socket = 0;
 		context->timeout = 0;
+		pthread_mutex_init(&context->conns_lock, NULL);
 	}
 	return context;
 }
