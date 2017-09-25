@@ -572,13 +572,14 @@ void *api_connection_thread (void *ptr)
 				snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
 				"Content-Type: application/json\r\n"
 				"Server: c-ipfs/0.0.0-dev\r\n"
-				//"X-Chunked-Output: 1\r\n"
+				"X-Chunked-Output: 1\r\n"
 				"Connection: close\r\n"
-				//"Transfer-Encoding: chunked\r\n"
+				"Transfer-Encoding: chunked\r\n"
 				"\r\n"
+				"%d\r\n"
 				"%s\r\n"
-				//"0\r\n"
-				,req.buf + req.http_ver, response_text);
+				"0\r\n"
+				,req.buf + req.http_ver, strlen(response_text), response_text);
 				if (response_text != NULL)
 					free(response_text);
 				write_str (s, resp);
