@@ -691,7 +691,7 @@ void *api_listen_thread (void *ptr)
 		} else {
 			local_node->api_context->conns_count++;
 		}
-		libp2p_logger_error("api", "API for %s: Accept connection %s:%d (%d/%d), pthread %d.\n", client, port, local_node->api_context->conns_count, local_node->api_context->max_conns, i+1);
+		libp2p_logger_debug("api", "API for %s: Accept connection %s:%d (%d/%d), pthread %d.\n", client, port, local_node->api_context->conns_count, local_node->api_context->max_conns, i+1);
 		pthread_mutex_unlock(&local_node->api_context->conns_lock);
 	}
 	api_connections_cleanup (local_node);
@@ -755,8 +755,6 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 		return 0;
 	}
 	memset(local_node->api_context->conns, 0, alloc_size);
-
-	local_node->api_context = (struct ApiContext*) malloc(sizeof(struct ApiContext));
 
 	if (pthread_create(&local_node->api_context->api_thread, NULL, api_listen_thread, (void*)local_node)) {
 		close (s);

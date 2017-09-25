@@ -12,12 +12,15 @@ int test_core_api_startup_shutdown() {
 	char* repo_path = "/tmp/ipfs_1";
 	char* peer_id = NULL;
 	int retVal = 0;
+	pthread_t daemon_thread;
+
+	//libp2p_logger_add_class("api");
 
 	if (!drop_and_build_repository(repo_path, 4001, NULL, &peer_id))
 		goto exit;
 
 	// this should start the api
-	test_daemon_start(repo_path);
+	pthread_create(&daemon_thread, NULL, test_daemon_start, repo_path);
 	sleep(3);
 
 	// make a client to the api
@@ -25,14 +28,18 @@ int test_core_api_startup_shutdown() {
 	if (!ipfs_node_offline_new(repo_path, &client_node)) {
 		goto exit;
 	}
+
 	// test to see if it is working
-	if (client_node->mode == MODE_API_AVAILABLE)
+	if (client_node->mode != MODE_API_AVAILABLE) {
+		libp2p_logger_error("test_api", "API Not available.\n");
 		goto exit;
+	}
 
 	retVal = 1;
 	// cleanup
 	exit:
 	ipfs_daemon_stop();
+	pthread_join(daemon_thread, NULL);
 	if (peer_id != NULL)
 		free(peer_id);
 
@@ -146,7 +153,7 @@ int test_core_api_name_resolve() {
 	char* resolve_args[] = {"ipfs", "--config", ipfs_path2, "name", "resolve", peer_id1 };
 	struct CliArguments* args = NULL;
 
-	libp2p_logger_add_class("api");
+	//libp2p_logger_add_class("api");
 
 	// build 2 repos... repo 1
 	if (!drop_build_open_repo(ipfs_path1, &fs_repo, config_file1)) {
