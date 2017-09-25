@@ -191,7 +191,6 @@ int ipfs_exporter_to_console(const unsigned char* hash, struct IpfsNode *local_n
  */
 int ipfs_exporter_object_get(int argc, char** argv) {
 	char* repo_path = NULL;
-	pthread_t api_pth = 0;
 
 	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
 		fprintf(stderr, "Unable to open repository: %s\n", repo_path);
@@ -199,13 +198,13 @@ int ipfs_exporter_object_get(int argc, char** argv) {
 	}
 
 	struct IpfsNode* local_node = NULL;
-	if (!ipfs_node_online_new(&api_pth, repo_path, &local_node))
+	if (!ipfs_node_online_new(repo_path, &local_node))
 		return 0;
 
 	// find hash
 	int retVal = ipfs_exporter_to_console((unsigned char*)argv[3], local_node);
 
-	ipfs_node_free(&api_pth, local_node);
+	ipfs_node_free(local_node);
 
 	return retVal;
 }

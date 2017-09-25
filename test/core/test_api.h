@@ -98,12 +98,11 @@ int test_core_api_object_cat() {
 	struct HashtableNode* node;
 	size_t bytes_written;
 	struct IpfsNode *local_node = NULL;
-	pthread_t api_pth = 0;
 	ipfs_node_offline_new(ipfs_path1, &local_node);
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
 	memset(hash, 0, 256);
 	ipfs_cid_hash_to_base58(node->hash, node->hash_size, (unsigned char*)hash, 256);
-	ipfs_node_free(&api_pth, local_node);
+	ipfs_node_free(local_node);
 	ipfs_hashtable_node_free(node);
 
 	libp2p_logger_debug("test_api", "*** Firing up daemons ***\n");
@@ -146,6 +145,8 @@ int test_core_api_name_resolve() {
 	char* resolve_args[] = {"ipfs", "--config", ipfs_path2, "name", "resolve", peer_id1 };
 	struct CliArguments* args = NULL;
 
+	libp2p_logger_add_class("api");
+
 	// build 2 repos... repo 1
 	if (!drop_build_open_repo(ipfs_path1, &fs_repo, config_file1)) {
 		ipfs_repo_fsrepo_free(fs_repo);
@@ -170,20 +171,19 @@ int test_core_api_name_resolve() {
 	struct HashtableNode* node;
 	size_t bytes_written;
 	struct IpfsNode *local_node = NULL;
-	pthread_t api_pth = 0;
 	ipfs_node_offline_new(ipfs_path1, &local_node);
 	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
 	memset(hash, 0, 256);
 	ipfs_cid_hash_to_base58(node->hash, node->hash_size, (unsigned char*)hash, 256);
-	ipfs_node_free(&api_pth, local_node);
+	ipfs_node_free(local_node);
 	ipfs_hashtable_node_free(node);
 
 	libp2p_logger_debug("test_api", "*** Firing up daemons ***\n");
 	pthread_create(&daemon_thread1, NULL, test_daemon_start, (void*)ipfs_path1);
 	thread_started1 = 1;
+	sleep(3);
 	pthread_create(&daemon_thread2, NULL, test_daemon_start, (void*)ipfs_path2);
 	thread_started2 = 1;
-
 	sleep(3);
 
 	// publish name on server 1

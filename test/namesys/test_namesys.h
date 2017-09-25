@@ -27,7 +27,7 @@ int test_namesys_publisher_publish() {
 
 	retVal = 1;
 	exit:
-	ipfs_node_free(NULL, local_node);
+	ipfs_node_free(local_node);
 	return retVal;
 }
 
@@ -72,7 +72,7 @@ int test_namesys_resolver_resolve() {
 
 	retVal = 1;
 	exit:
-	ipfs_node_free(NULL, local_node);
+	ipfs_node_free(local_node);
 	if (result != NULL)
 		free(result);
 	return retVal;

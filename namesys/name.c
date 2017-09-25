@@ -83,7 +83,7 @@ int ipfs_name(struct CliArguments* args) {
 
 	exit:
 	// shut everything down
-	ipfs_node_free(NULL, client_node);
+	ipfs_node_free(client_node);
 
 	return retVal;
 }

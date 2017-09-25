@@ -20,10 +20,10 @@
 #include "ipfs/importer/exporter.h"
 #include "ipfs/core/http_request.h"
 
-pthread_mutex_t conns_lock;
-int conns_count;
+//pthread_mutex_t conns_lock;
+//int conns_count;
 
-struct s_list api_list;
+//struct ApiContext api_list;
 
 /**
  * Write two strings on one write.
@@ -401,8 +401,8 @@ void *api_connection_thread (void *ptr)
 
 	buf[MAX_READ] = '\0';
 
-	s = api_list.conns[params->index]->socket;
-	timeout = api_list.timeout;
+	s = params->this_node->api_context->conns[params->index]->socket;
+	timeout = params->this_node->api_context->timeout;
 
 	if (socket_read_select4(s, timeout) <= 0) {
 		libp2p_logger_error("api", "Client connection timeout.\n");
@@ -592,15 +592,15 @@ void *api_connection_thread (void *ptr)
 quit:
 	if (req.buf)
 		free(req.buf);
-	if (inet_ntop(AF_INET, &(api_list.conns[params->index]->ipv4), client, INET_ADDRSTRLEN) == NULL)
+	if (inet_ntop(AF_INET, &( params->this_node->api_context->conns[params->index]->ipv4), client, INET_ADDRSTRLEN) == NULL)
 		strcpy(client, "UNKNOW");
-	libp2p_logger_error("api", "Closing client connection %s:%d (%d).\n", client, api_list.conns[params->index]->port, params->index+1);
-	pthread_mutex_lock(&conns_lock);
+	libp2p_logger_error("api", "Closing client connection %s:%d (%d).\n", client, params->this_node->api_context->conns[params->index]->port, params->index+1);
+	pthread_mutex_lock(&params->this_node->api_context->conns_lock);
 	close(s);
-	free (api_list.conns[params->index]);
-	api_list.conns[params->index] = NULL;
-	conns_count--;
-	pthread_mutex_unlock(&conns_lock);
+	free ( params->this_node->api_context->conns[params->index]);
+	params->this_node->api_context->conns[params->index] = NULL;
+	params->this_node->api_context->conns_count--;
+	pthread_mutex_unlock(&params->this_node->api_context->conns_lock);
 	free(params);
 	return NULL;
 }
@@ -608,27 +608,27 @@ quit:
 /**
  * Close all connections stopping respectives pthreads and free allocated memory.
  */
-void api_connections_cleanup (void)
+void api_connections_cleanup (struct IpfsNode* local_node)
 {
 	int i;
 
-	pthread_mutex_lock(&conns_lock);
-	if (conns_count > 0 && api_list.conns) {
-		for (i = 0 ; i < api_list.max_conns ; i++) {
-			if (api_list.conns[i]->pthread) {
-				pthread_cancel (api_list.conns[i]->pthread);
-				close (api_list.conns[i]->socket);
-				free (api_list.conns[i]);
-				api_list.conns[i] = NULL;
+	pthread_mutex_lock(&local_node->api_context->conns_lock);
+	if (local_node->api_context->conns_count > 0 && local_node->api_context->conns) {
+		for (i = 0 ; i < local_node->api_context->max_conns ; i++) {
+			if (local_node->api_context->conns[i]->pthread) {
+				pthread_cancel (local_node->api_context->conns[i]->pthread);
+				close (local_node->api_context->conns[i]->socket);
+				free (local_node->api_context->conns[i]);
+				local_node->api_context->conns[i] = NULL;
 			}
 		}
-		conns_count = 0;
+		local_node->api_context->conns_count = 0;
 	}
-	if (api_list.conns) {
-		free (api_list.conns);
-		api_list.conns = NULL;
+	if (local_node->api_context->conns) {
+		free (local_node->api_context->conns);
+		local_node->api_context->conns = NULL;
 	}
-	pthread_mutex_unlock(&conns_lock);
+	pthread_mutex_unlock(&local_node->api_context->conns_lock);
 }
 
 /**
@@ -645,56 +645,56 @@ void *api_listen_thread (void *ptr)
 	char client[INET_ADDRSTRLEN];
 	struct IpfsNode* local_node = (struct IpfsNode*)ptr;
 
-	conns_count = 0;
+	local_node->api_context->conns_count = 0;
 
 	for (;;) {
-		s = socket_accept4(api_list.socket, &ipv4, &port);
+		s = socket_accept4(local_node->api_context->socket, &ipv4, &port);
 		if (s <= 0) {
 			break;
 		}
-		if (conns_count >= api_list.max_conns) { // limit reached.
-			libp2p_logger_error("api", "Limit of connections reached (%d).\n", api_list.max_conns);
+		if (local_node->api_context->conns_count >= local_node->api_context->max_conns) { // limit reached.
+			libp2p_logger_error("api", "Limit of connections reached (%d).\n", local_node->api_context->max_conns);
 			close (s);
 			continue;
 		}
 
-		pthread_mutex_lock(&conns_lock);
-		for (i = 0 ; i < api_list.max_conns && api_list.conns[i] ; i++);
-		api_list.conns[i] = malloc (sizeof (struct s_conns));
-		if (!api_list.conns[i]) {
+		pthread_mutex_lock(&local_node->api_context->conns_lock);
+		for (i = 0 ; i < local_node->api_context->max_conns && local_node->api_context->conns[i] ; i++);
+		local_node->api_context->conns[i] = malloc (sizeof (struct s_conns));
+		if (!local_node->api_context->conns[i]) {
 			libp2p_logger_error("api", "Fail to allocate memory to accept connection.\n");
-			pthread_mutex_unlock(&conns_lock);
+			pthread_mutex_unlock(&local_node->api_context->conns_lock);
 			close (s);
 			continue;
 		}
 		if (inet_ntop(AF_INET, &ipv4, client, INET_ADDRSTRLEN) == NULL)
 			strcpy(client, "UNKNOW");
-		api_list.conns[i]->socket = s;
-		api_list.conns[i]->ipv4   = ipv4;
-		api_list.conns[i]->port   = port;
+		local_node->api_context->conns[i]->socket = s;
+		local_node->api_context->conns[i]->ipv4   = ipv4;
+		local_node->api_context->conns[i]->port   = port;
 		// create a struct, which the thread is responsible to destroy
 		struct ApiConnectionParam* connection_param = (struct ApiConnectionParam*) malloc(sizeof(struct ApiConnectionParam));
 		if (connection_param == NULL) {
 			libp2p_logger_error("api", "api_listen_thread: Unable to allocate memory.\n");
-			pthread_mutex_unlock(&conns_lock);
+			pthread_mutex_unlock(&local_node->api_context->conns_lock);
 			close (s);
 			continue;
 		}
 		connection_param->index = i;
 		connection_param->this_node = local_node;
-		if (pthread_create(&(api_list.conns[i]->pthread), NULL, api_connection_thread, (void*)connection_param)) {
+		if (pthread_create(&(local_node->api_context->conns[i]->pthread), NULL, api_connection_thread, (void*)connection_param)) {
 			libp2p_logger_error("api", "Create pthread fail.\n");
-			free (api_list.conns[i]);
-			api_list.conns[i] = NULL;
-			conns_count--;
+			free (local_node->api_context->conns[i]);
+			local_node->api_context->conns[i] = NULL;
+			local_node->api_context->conns_count--;
 			close(s);
 		} else {
-			conns_count++;
+			local_node->api_context->conns_count++;
 		}
-		libp2p_logger_error("api", "Accept connection %s:%d (%d/%d), pthread %d.\n", client, port, conns_count, api_list.max_conns, i+1);
-		pthread_mutex_unlock(&conns_lock);
+		libp2p_logger_error("api", "API for %s: Accept connection %s:%d (%d/%d), pthread %d.\n", client, port, local_node->api_context->conns_count, local_node->api_context->max_conns, i+1);
+		pthread_mutex_unlock(&local_node->api_context->conns_lock);
 	}
-	api_connections_cleanup ();
+	api_connections_cleanup (local_node);
 	return NULL;
 }
 
@@ -705,7 +705,7 @@ void *api_listen_thread (void *ptr)
  * @param timeout time out of client connection.
  * @returns 0 when failure or 1 if success.
  */
-int api_start (pthread_t *scope_pth, struct IpfsNode* local_node, int max_conns, int timeout)
+int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 {
 	int s;
 	size_t alloc_size = sizeof(void*) * max_conns;
@@ -716,35 +716,38 @@ int api_start (pthread_t *scope_pth, struct IpfsNode* local_node, int max_conns,
 	multiaddress_get_ip_address(my_address, &ip);
 	int port = multiaddress_get_ip_port(my_address);
 
-	api_list.ipv4 = hostname_to_ip(ip); // api is listening only on loopback.
-	api_list.port = port;
+	local_node->api_context->ipv4 = hostname_to_ip(ip); // api is listening only on loopback.
+	local_node->api_context->port = port;
 
-	if ((s = socket_listen(socket_tcp4(), &(api_list.ipv4), &(api_list.port))) <= 0) {
+	if ((s = socket_listen(socket_tcp4(), &(local_node->api_context->ipv4), &(local_node->api_context->port))) <= 0) {
 		libp2p_logger_error("api", "Failed to init API. port: %d\n", port);
 		return 0;
 	}
 
-	api_list.socket = s;
-	api_list.max_conns = max_conns;
-	api_list.timeout = timeout;
+	local_node->api_context->socket = s;
+	local_node->api_context->max_conns = max_conns;
+	local_node->api_context->timeout = timeout;
 
-	api_list.conns = malloc (alloc_size);
-	if (!api_list.conns) {
+	local_node->api_context->conns = malloc (alloc_size);
+	if (!local_node->api_context->conns) {
 		close (s);
 		libp2p_logger_error("api", "Error allocating memory.\n");
 		return 0;
 	}
-	memset(api_list.conns, 0, alloc_size);
+	memset(local_node->api_context->conns, 0, alloc_size);
 
-	if (pthread_create(scope_pth, NULL, api_listen_thread, (void*)local_node)) {
+	local_node->api_context = (struct ApiContext*) malloc(sizeof(struct ApiContext));
+
+	if (pthread_create(&local_node->api_context->api_thread, NULL, api_listen_thread, (void*)local_node)) {
 		close (s);
-		free (api_list.conns);
-		api_list.conns = NULL;
-		*scope_pth = 0;
+		free (local_node->api_context->conns);
+		local_node->api_context->conns = NULL;
+		local_node->api_context->api_thread = 0;
 		libp2p_logger_error("api", "Error creating thread for API.\n");
 		return 0;
 	}
 
+	libp2p_logger_debug("api", "Started API on localhost port %d.\n", port);
 	return 1;
 }
 
@@ -752,14 +755,14 @@ int api_start (pthread_t *scope_pth, struct IpfsNode* local_node, int max_conns,
  * Stop API.
  * @returns 0 when failure or 1 if success.
  */
-int api_stop (pthread_t *scope_pth)
+int api_stop (struct IpfsNode *local_node)
 {
-	if (*scope_pth == 0) return 0;
-	pthread_cancel(*scope_pth);
+	if (local_node->api_context->api_thread == 0) return 0;
+	pthread_cancel(local_node->api_context->api_thread);
 
-	api_connections_cleanup ();
+	api_connections_cleanup (local_node);
 
-	*scope_pth = 0;
+	local_node->api_context->api_thread = 0;
 
 	return 1;
 }

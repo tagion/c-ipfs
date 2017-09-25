@@ -32,11 +32,10 @@ int test_null_add_provider() {
 	// add a file, to prime the connection to peer 1
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
-	pthread_t api_pth = 0;
-	ipfs_node_online_new(&api_pth, ipfs_path, &local_node2);
+	ipfs_node_online_new(ipfs_path, &local_node2);
 	struct HashtableNode* node = NULL;
 	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
-	ipfs_node_free(&api_pth, local_node2);
+	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
 	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0)
 		goto exit;
@@ -50,7 +49,7 @@ int test_null_add_provider() {
 	retVal = 1;
 	exit:
 	if (local_node2 != NULL)
-		ipfs_node_free(&api_pth, local_node2);
+		ipfs_node_free(local_node2);
 	if (ma_peer1 != NULL)
 		multiaddress_free(ma_peer1);
 	ipfs_daemon_stop();

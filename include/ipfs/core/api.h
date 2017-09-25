@@ -11,7 +11,7 @@
 
 #define MAX_READ (32*1024) // 32k
 
-struct s_list {
+struct ApiContext {
 	int socket;
 	uint32_t ipv4;
 	uint16_t port;
@@ -23,6 +23,9 @@ struct s_list {
 		uint16_t port;
 		pthread_t pthread;
 	} **conns;
+	pthread_mutex_t conns_lock;
+	int conns_count;
+	pthread_t api_thread;
 };
 
 struct s_request {
@@ -84,7 +87,7 @@ struct s_request {
 #define strstart(a,b) (memcmp(a,b,strlen(b))==0)
 
 void *api_connection_thread (void *ptr);
-void api_connections_cleanup (void);
+void api_connections_cleanup (struct IpfsNode* node);
 void *api_listen_thread (void *ptr);
-int api_start (pthread_t *scope_pth, struct IpfsNode* local_node, int max_conns, int timeout);
-int api_stop (pthread_t *scope_pth);
+int api_start (struct IpfsNode* local_node, int max_conns, int timeout);
+int api_stop (struct IpfsNode* local_node);

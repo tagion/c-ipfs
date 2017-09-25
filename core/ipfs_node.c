@@ -60,7 +60,7 @@ int ipfs_node_online_protocol_handlers_free(struct Libp2pVector* handlers) {
  * @param node the completed IpfsNode struct
  * @returns true(1) on success
  */
-int ipfs_node_online_new(pthread_t *pth_scope, const char* repo_path, struct IpfsNode** node) {
+int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 	struct FSRepo* fs_repo = NULL;
 
 	*node = ipfs_node_new();
@@ -71,13 +71,13 @@ int ipfs_node_online_new(pthread_t *pth_scope, const char* repo_path, struct Ipf
 
 	// build the struct
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
-		ipfs_node_free(pth_scope, local_node);
+		ipfs_node_free(local_node);
 		*node = NULL;
 		return 0;
 	}
 	// open the repo
 	if (!ipfs_repo_fsrepo_open(fs_repo)) {
-		ipfs_node_free(pth_scope, local_node);
+		ipfs_node_free(local_node);
 		*node = NULL;
 		return 0;
 	}
@@ -94,7 +94,7 @@ int ipfs_node_online_new(pthread_t *pth_scope, const char* repo_path, struct Ipf
 	local_node->exchange = ipfs_bitswap_new(local_node);
 
 	// fire up the API
-	api_start(pth_scope, local_node, 10, 5);
+	api_start(local_node, 10, 5);
 
 	return 1;
 }
@@ -116,13 +116,13 @@ int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
 
 	// build the struct
 	if (!ipfs_repo_fsrepo_new(repo_path, NULL, &fs_repo)) {
-		ipfs_node_free(NULL, local_node);
+		ipfs_node_free(local_node);
 		*node = NULL;
 		return 0;
 	}
 	// open the repo
 	if (!ipfs_repo_fsrepo_open(fs_repo)) {
-		ipfs_node_free(NULL, local_node);
+		ipfs_node_free(local_node);
 		*node = NULL;
 		return 0;
 	}
@@ -149,10 +149,10 @@ int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
  * @param node the node to free
  * @returns true(1)
  */
-int ipfs_node_free(pthread_t *pth_scope, struct IpfsNode* node) {
+int ipfs_node_free(struct IpfsNode* node) {
 	if (node != NULL) {
-		if (pth_scope != NULL)
-			api_stop(pth_scope);
+		if (node->api_context->api_thread != NULL)
+			api_stop(node);
 		if (node->exchange != NULL) {
 			node->exchange->Close(node->exchange);
 		}
