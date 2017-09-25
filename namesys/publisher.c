@@ -223,6 +223,7 @@ int ipfs_namesys_publisher_publish(struct IpfsNode* local_node, char* path) {
 		libp2p_message_free(msg);
 		return 0;
 	}
+	msg->message_type = MESSAGE_TYPE_PUT_VALUE;
 	msg->provider_peer_head = libp2p_utils_linked_list_new();
 	msg->provider_peer_head->item = libp2p_peer_copy(local_node->identity->peer);
 	// msg->Libp2pRecord

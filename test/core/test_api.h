@@ -12,7 +12,8 @@ int test_core_api_startup_shutdown() {
 	char* repo_path = "/tmp/ipfs_1";
 	char* peer_id = NULL;
 	int retVal = 0;
-	pthread_t daemon_thread;
+	pthread_t daemon_thread = 0;
+	struct IpfsNode* client_node = NULL;
 
 	//libp2p_logger_add_class("api");
 
@@ -24,7 +25,6 @@ int test_core_api_startup_shutdown() {
 	sleep(3);
 
 	// make a client to the api
-	struct IpfsNode* client_node = NULL;
 	if (!ipfs_node_offline_new(repo_path, &client_node)) {
 		goto exit;
 	}
@@ -234,6 +234,7 @@ int test_core_api_name_resolve_1() {
 
 	libp2p_logger_add_class("api");
 	libp2p_logger_add_class("test_api");
+	libp2p_logger_add_class("protocol");
 
 	// repo 1
 	if (!drop_build_open_repo(ipfs_path1, &fs_repo, config_file1)) {
@@ -285,12 +286,14 @@ int test_core_api_name_resolve_2() {
 	char* ipfs_path2 = "/tmp/ipfs_2";
 	char* config_file2 = "config.test2.wo_journal";
 	struct FSRepo* fs_repo = NULL;
-	char peer_id1[256] = "QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4";
+	char peer_id1[256] = "/ipns/QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4";
 	char* resolve_args[] = {"ipfs", "--config", ipfs_path2, "name", "resolve", peer_id1 };
 	struct CliArguments* args = NULL;
 
 	libp2p_logger_add_class("test_api");
 	libp2p_logger_add_class("api");
+	libp2p_logger_add_class("bitswap_engine");
+	libp2p_logger_add_class("dht_protocol");
 
 	// build 2 repos... repo 2
 	if (!drop_build_open_repo(ipfs_path2, &fs_repo, config_file2)) {

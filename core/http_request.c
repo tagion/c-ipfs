@@ -251,7 +251,6 @@ size_t curl_cb(void* ptr, size_t size, size_t nmemb, struct curl_string* str) {
 		str->ptr[new_len] = '\0';
 		str->len = new_len;
 	}
-	libp2p_logger_debug("http_request", "curl_cb received %s.\n", str->ptr);
 	return size * nmemb;
 }
 
