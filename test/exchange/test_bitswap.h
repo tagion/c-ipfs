@@ -317,7 +317,7 @@ int test_bitswap_retrieve_file_known_remote() {
     if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hello_world_hash, strlen(hello_world_hash), &cid))
     		goto exit;
 
-    sleep(300);
+    sleep(3);
 
     // this does the heavy lifting...
     if (!ipfs_node2->exchange->GetBlock(ipfs_node2->exchange, cid, &result)) {

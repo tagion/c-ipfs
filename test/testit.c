@@ -29,12 +29,12 @@
 #include "namesys/test_namesys.h"
  		 
 int testit(const char* name, int (*func)(void)) {
-	printf("TESTING %s...\n", name);
+	fprintf(stderr, "TESTING %s...\n", name);
 	int retVal = func();
 	if (retVal)
-		printf("%s success!\n", name);
+		fprintf(stderr, "%s success!\n", name);
 	else
-		printf("** Uh oh! %s failed.**\n", name);
+		fprintf(stderr, "** Uh oh! %s failed.**\n", name);
 	return retVal == 0;
 }
 
@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
 	int array_length = sizeof(funcs) / sizeof(funcs[0]);
 	int array2_length = sizeof(names) / sizeof(names[0]);
 	if (array_length != array2_length) {
-		printf("Test arrays are not of the same length. Funcs: %d, Names: %d\n", array_length, array2_length);
+		fprintf(stderr, "Test arrays are not of the same length. Funcs: %d, Names: %d\n", array_length, array2_length);
 	}
 	test_wanted = get_test(argc, argv, current_test_arg);
 	while (!certain_tests || test_wanted != NULL) {
@@ -240,12 +240,12 @@ int main(int argc, char** argv) {
 		test_wanted = get_test(argc, argv, ++current_test_arg);
 	}
 	if (tests_ran == 0)
-		printf("***** No tests found *****\n");
+		fprintf(stderr, "***** No tests found *****\n");
 	else {
 		if (counter > 0) {
-			printf("***** There were %d failed (out of %d) test(s) *****\n", counter, tests_ran);
+			fprintf(stderr, "***** There were %d failed (out of %d) test(s) *****\n", counter, tests_ran);
 		} else {
-			printf("All %d tests passed\n", tests_ran);
+			fprintf(stderr, "All %d tests passed\n", tests_ran);
 		}
 	}
 	libp2p_logger_free();

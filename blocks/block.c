@@ -123,6 +123,7 @@ struct Block* ipfs_block_new() {
 		return 0;
 	block->data = NULL;
 	block->data_length = 0;
+	block->cid = NULL;
 
 	return block;
 }
@@ -158,7 +159,8 @@ int ipfs_blocks_block_add_data(const unsigned char* data, size_t data_size, stru
  */
 int ipfs_block_free(struct Block* block) {
 	if (block != NULL) {
-		ipfs_cid_free(block->cid);
+		if (block->cid != NULL)
+			ipfs_cid_free(block->cid);
 		if (block->data != NULL)
 			free(block->data);
 		free(block);

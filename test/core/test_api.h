@@ -189,10 +189,10 @@ int test_core_api_name_resolve() {
 	libp2p_logger_debug("test_api", "*** Firing up daemons ***\n");
 	pthread_create(&daemon_thread1, NULL, test_daemon_start, (void*)ipfs_path1);
 	thread_started1 = 1;
-	sleep(3);
+	sleep(5);
 	pthread_create(&daemon_thread2, NULL, test_daemon_start, (void*)ipfs_path2);
 	thread_started2 = 1;
-	sleep(3);
+	sleep(10);
 
 	// publish name on server 1
 	args = cli_arguments_new(6, publish_args);
@@ -200,11 +200,15 @@ int test_core_api_name_resolve() {
 	cli_arguments_free(args);
 	args = NULL;
 
+	sleep(3);
+
 	// use a client of server2 to to ask for the "name resolve" on server 1
 	args = cli_arguments_new(6, resolve_args);
 	if (ipfs_name(args) == 0) {
 		goto exit;
 	}
+
+	sleep(5);
 
 	retVal = 1;
 	exit:

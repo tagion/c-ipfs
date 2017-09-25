@@ -43,8 +43,17 @@ void* ipfs_bitswap_engine_wantlist_processor_start(void* ctx) {
 	while (!context->bitswap_engine->shutting_down) {
 		struct WantListQueueEntry* item = ipfs_bitswap_wantlist_queue_pop(context->localWantlist);
 		if (item != NULL) {
-			// if there is something on the queue process it.
-			ipfs_bitswap_wantlist_process_entry(context, item);
+			if (item->attempts > 10) {
+				// we have tried too many times
+				for (int i = 0; i < item->sessionsRequesting->total; i++) {
+					struct WantListSession* curr_session = (struct WantListSession*) libp2p_utils_vector_get(item->sessionsRequesting, i);
+					ipfs_bitswap_wantlist_queue_remove(context->localWantlist, item->cid, curr_session);
+				}
+
+			} else {
+				// if there is something on the queue process it.
+				ipfs_bitswap_wantlist_process_entry(context, item);
+			}
 		} else {
 			// if there is nothing on the queue, wait...
 			sleep(2);
