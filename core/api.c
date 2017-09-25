@@ -16,6 +16,7 @@
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/os/memstream.h"
 #include "libp2p/utils/logger.h"
+#include "libp2p/utils/urlencode.h"
 #include "ipfs/core/api.h"
 #include "ipfs/importer/exporter.h"
 #include "ipfs/core/http_request.h"
@@ -351,9 +352,8 @@ struct HttpRequest* api_build_http_request(struct s_request* req) {
 				request->sub_command = segs; // sub_command can contain another level as filters/add
 			}
 			if (req->query) {
-				segs = malloc (strlen(req->buf + req->query) + 1);
+				segs = libp2p_utils_url_decode(req->buf + req->query);
 				if (segs) {
-					strcpy(segs, req->buf + req->query);
 					while (segs) {
 						char *value, *name = segs;
 						segs = strchr(segs, '&');
