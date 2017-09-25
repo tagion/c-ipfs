@@ -44,9 +44,10 @@ void ipfs_core_http_request_free(struct HttpRequest* request) {
 			libp2p_utils_vector_free(request->params);
 		}
 		if (request->arguments != NULL) {
-			for(int i = 0; i < request->arguments->total; i++) {
-				free((char*)libp2p_utils_vector_get(request->arguments, i));
-			}
+			// arguments should not be dynamically allocated
+			//for(int i = 0; i < request->arguments->total; i++) {
+			//	free((char*)libp2p_utils_vector_get(request->arguments, i));
+			//}
 			libp2p_utils_vector_free(request->arguments);
 		}
 		free(request);

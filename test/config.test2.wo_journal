@@ -72,7 +72,6 @@
   "Announce": 1,
   "AnnounceMinutes": 60,
   "Peers": [
-		"/ip4/127.0.0.1/tcp/4001/ipfs/QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4"
   ]
  }
 }

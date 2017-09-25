@@ -9,7 +9,7 @@
 #include "ipfs/namesys/name.h"
 
 int test_core_api_startup_shutdown() {
-	char* repo_path = "/tmp/ipfs_1/.ipfs";
+	char* repo_path = "/tmp/ipfs_1";
 	char* peer_id = NULL;
 	int retVal = 0;
 
@@ -47,9 +47,9 @@ int test_core_api_object_cat() {
 	pthread_t daemon_thread2;
 	int thread_started1 = 0;
 	int thread_started2 = 0;
-	char* ipfs_path1 = "/tmp/ipfs_1/.ipfs";
+	char* ipfs_path1 = "/tmp/ipfs_1";
 	char* config_file1 = "config.test1";
-	char* ipfs_path2 = "/tmp/ipfs_2/.ipfs";
+	char* ipfs_path2 = "/tmp/ipfs_2";
 	char* config_file2 = "config.test2";
 	struct FSRepo* fs_repo = NULL;
 	char hash[256] = "";
@@ -136,9 +136,9 @@ int test_core_api_name_resolve() {
 	int thread_started1 = 0;
 	int thread_started2 = 0;
 	char* ipfs_path1 = "/tmp/ipfs_1";
-	char* config_file1 = "config.test1";
+	char* config_file1 = "config.test1.wo_journal";
 	char* ipfs_path2 = "/tmp/ipfs_2";
-	char* config_file2 = "config.test2";
+	char* config_file2 = "config.test2.wo_journal";
 	struct FSRepo* fs_repo = NULL;
 	char hash[256] = "";
 	char peer_id1[256] = "";
@@ -178,12 +178,6 @@ int test_core_api_name_resolve() {
 	ipfs_node_free(&api_pth, local_node);
 	ipfs_hashtable_node_free(node);
 
-	// publish name on server 1
-	args = cli_arguments_new(6, publish_args);
-	ipfs_name(args);
-	cli_arguments_free(args);
-	args = NULL;
-
 	libp2p_logger_debug("test_api", "*** Firing up daemons ***\n");
 	pthread_create(&daemon_thread1, NULL, test_daemon_start, (void*)ipfs_path1);
 	thread_started1 = 1;
@@ -191,6 +185,12 @@ int test_core_api_name_resolve() {
 	thread_started2 = 1;
 
 	sleep(3);
+
+	// publish name on server 1
+	args = cli_arguments_new(6, publish_args);
+	ipfs_name(args);
+	cli_arguments_free(args);
+	args = NULL;
 
 	// use a client of server2 to to ask for the "name resolve" on server 1
 	args = cli_arguments_new(6, resolve_args);
