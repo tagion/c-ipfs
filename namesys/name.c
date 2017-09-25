@@ -21,8 +21,10 @@ int ipfs_name_publish(struct IpfsNode* local_node, char* name) {
 	request->sub_command = "publish";
 	libp2p_utils_vector_add(request->arguments, name);
 	int retVal = ipfs_core_http_request_get(local_node, request, &response);
-	if (response != NULL)
+	if (response != NULL) {
+		fprintf(stdout, "%s", response);
 		free(response);
+	}
 	ipfs_core_http_request_free(request);
 	return retVal;
 }
@@ -37,8 +39,10 @@ int ipfs_name_resolve(struct IpfsNode* local_node, char* name) {
 	request->sub_command = "resolve";
 	libp2p_utils_vector_add(request->arguments, name);
 	int retVal = ipfs_core_http_request_get(local_node, request, &response);
-	if (response != NULL)
+	if (response != NULL) {
+		fprintf(stdout, "%s", response);
 		free(response);
+	}
 	ipfs_core_http_request_free(request);
 	return retVal;
 }

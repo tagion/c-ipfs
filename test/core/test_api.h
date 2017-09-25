@@ -333,6 +333,7 @@ int test_core_api_name_resolve_3()
 
 	libp2p_logger_add_class("api");
 	libp2p_logger_add_class("test_api");
+	libp2p_logger_add_class("http_request");
 
 	// publish name on server 1
 	args = cli_arguments_new(6, publish_args);
