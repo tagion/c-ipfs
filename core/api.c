@@ -576,9 +576,9 @@ void *api_connection_thread (void *ptr)
 				"Connection: close\r\n"
 				"Transfer-Encoding: chunked\r\n"
 				"\r\n"
-				"%d\r\n"
+				"%x\r\n"
 				"%s\r\n"
-				"0\r\n"
+				"0\r\n\r\n"
 				,req.buf + req.http_ver, strlen(response_text), response_text);
 				if (response_text != NULL)
 					free(response_text);
