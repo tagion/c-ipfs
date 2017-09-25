@@ -480,7 +480,7 @@ void *api_connection_thread (void *ptr)
 		// once we leave the building of the req struct, do we need to do more? This flag will tell us.
 		int further_processing_necessary = 0;
 
-		if (strncmp(buf + req.method, "GET", 3)==0) {
+		if (strncmp(req.buf + req.method, "GET", 3)==0) {
 			if (strcmp (req.buf + req.path, "/")==0      ||
 			    strcmp (req.buf + req.path, "/webui")==0 ||
 			    strcmp (req.buf + req.path, "/webui/")==0) {
@@ -504,7 +504,7 @@ void *api_connection_thread (void *ptr)
 				// move out of the if to do further processing
 			}
 			// end of GET
-		} else if (strncmp(buf + req.method, "POST", 4)==0) {
+		} else if (strncmp(req.buf + req.method, "POST", 4)==0) {
 			// TODO: Handle gzip/json POST requests.
 
 			p = header_value_cmp(&req, "Content-Type:", "multipart/form-data;");
