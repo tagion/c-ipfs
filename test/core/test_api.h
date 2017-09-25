@@ -20,6 +20,7 @@ int test_core_api_startup_shutdown() {
 	test_daemon_start(repo_path);
 	sleep(3);
 
+	// make a client to the api
 	struct IpfsNode* client_node = NULL;
 	if (!ipfs_node_offline_new(repo_path, &client_node)) {
 		goto exit;

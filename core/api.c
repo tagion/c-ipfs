@@ -698,6 +698,20 @@ void *api_listen_thread (void *ptr)
 	return NULL;
 }
 
+struct ApiContext* api_context_new() {
+	struct ApiContext* context = (struct ApiContext*) malloc(sizeof(struct ApiContext));
+	if (context != NULL) {
+		context->conns = NULL;
+		context->conns_count = 0;
+		context->ipv4 = 0;
+		context->max_conns = 0;
+		context->port = 0;
+		context->socket = 0;
+		context->timeout = 0;
+	}
+	return context;
+}
+
 /**
  * Start API interface daemon.
  * @param local_node the context
@@ -715,6 +729,12 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 	char* ip = NULL;
 	multiaddress_get_ip_address(my_address, &ip);
 	int port = multiaddress_get_ip_port(my_address);
+
+	local_node->api_context = api_context_new();
+	if (local_node->api_context == NULL) {
+		multiaddress_free(my_address);
+		return 0;
+	}
 
 	local_node->api_context->ipv4 = hostname_to_ip(ip); // api is listening only on loopback.
 	local_node->api_context->port = port;

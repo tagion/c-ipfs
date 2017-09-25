@@ -23,6 +23,7 @@ struct IpfsNode* ipfs_node_new() {
 		node->providerstore = NULL;
 		node->repo = NULL;
 		node->routing = NULL;
+		node->api_context = NULL;
 	}
 	return node;
 }
@@ -151,7 +152,7 @@ int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
  */
 int ipfs_node_free(struct IpfsNode* node) {
 	if (node != NULL) {
-		if (node->api_context->api_thread != NULL)
+		if (node->api_context != NULL && node->api_context->api_thread != 0)
 			api_stop(node);
 		if (node->exchange != NULL) {
 			node->exchange->Close(node->exchange);
