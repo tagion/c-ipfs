@@ -1,6 +1,7 @@
 #ifndef __IPFS_IMPORTER_IMPORTER_H__
 #define __IPFS_IMPORTER_IMPORTER_H__
 
+#include "ipfs/cmd/cli.h"
 #include "ipfs/merkledag/node.h"
 #include "ipfs/core/ipfs_node.h"
 
@@ -26,6 +27,6 @@ int ipfs_import_file(const char* root, const char* fileName, struct HashtableNod
  * @param argc the number of arguments
  * @param argv the arguments
  */
-int ipfs_import_files(int argc, char** argv);
+int ipfs_import_files(struct CliArguments* args);
 
 #endif /* INCLUDE_IPFS_IMPORTER_IMPORTER_H_ */

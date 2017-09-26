@@ -63,6 +63,7 @@ int test_core_api_object_cat() {
 	struct FSRepo* fs_repo = NULL;
 	char hash[256] = "";
 	char* args[] = {"ipfs", "--config", ipfs_path2, "cat", hash };
+	struct CliArguments* arguments = NULL;
 
 	// logging
 	libp2p_logger_add_class("test_api");
@@ -126,7 +127,7 @@ int test_core_api_object_cat() {
 	sleep(3);
 
 	// use a client to ask for the file on server 1
-	struct CliArguments* arguments = cli_arguments_new(5, args);
+	arguments = cli_arguments_new(5, args);
 	if (ipfs_exporter_object_cat(arguments) == 0) {
 		libp2p_logger_error("test_api", "ipfs_exporter_object_cat returned false.\n");
 		goto exit;

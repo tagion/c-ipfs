@@ -1,5 +1,6 @@
 #include <pthread.h>
 
+#include "ipfs/cmd/cli.h"
 #include "ipfs/importer/resolver.h"
 #include "libp2p/os/utils.h"
 #include "multiaddr/multiaddr.h"
@@ -15,6 +16,7 @@ int test_resolver_get() {
 	char* argv[argc];
 	const char* work_path = "/tmp";
 	char ipfs_path[12];
+	struct CliArguments* arguments = NULL;
 	sprintf(&ipfs_path[0], "%s/%s", work_path, ".ipfs");
 
 	os_utils_filepath_join(home_dir, "ipfstest", test_dir, strlen(home_dir) + 10);
@@ -30,7 +32,8 @@ int test_resolver_get() {
 	argv[4] = "-c";
 	argv[5] = (char*)work_path;
 
-	ipfs_import_files(argc, (char**)argv);
+	arguments = cli_arguments_new(6, (char**)&argv);
+	ipfs_import_files(arguments);
 
 	ipfs_repo_fsrepo_new(ipfs_path, NULL, &fs_repo);
 	ipfs_repo_fsrepo_open(fs_repo);
@@ -73,6 +76,7 @@ int test_resolver_get() {
 	free(test_dir);
 	ipfs_repo_fsrepo_free(fs_repo);
 	ipfs_hashtable_node_free(result);
+	cli_arguments_free(arguments);
 	return retVal;
 }
 
@@ -87,6 +91,7 @@ int test_resolver_remote_get() {
 	int retVal = 0;
 	struct FSRepo* fs_repo = NULL;
 	struct HashtableNode* result = NULL;
+	struct CliArguments* arguments;
 
 	// this should point to a test directory with files and directories
 	char* home_dir = os_utils_get_homedir();
@@ -99,6 +104,8 @@ int test_resolver_remote_get() {
 	argv[2] = "-r";
 	argv[3] = test_dir;
 
+	arguments = cli_arguments_new(4, (char**)&argv);
+
 	drop_and_build_repository(ipfs_path, 4001, NULL, NULL);
 
 	// start the daemon in a separate thread
@@ -108,7 +115,7 @@ int test_resolver_remote_get() {
 
 	os_utils_filepath_join(home_dir, "ipfstest", test_dir, strlen(home_dir) + 10);
 
-	ipfs_import_files(argc, (char**)argv);
+	ipfs_import_files(arguments);
 
 	ipfs_repo_fsrepo_new(ipfs_path, NULL, &fs_repo);
 	ipfs_repo_fsrepo_open(fs_repo);
@@ -149,6 +156,7 @@ int test_resolver_remote_get() {
 		ipfs_repo_fsrepo_free(fs_repo);
 	if (local_node.peerstore != NULL)
 		libp2p_peerstore_free(local_node.peerstore);
+	cli_arguments_free(arguments);
 	return retVal;
 
 }

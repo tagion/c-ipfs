@@ -8,6 +8,7 @@
 
 #include "multiaddr/multiaddr.h"
 
+#include "ipfs/cmd/cli.h"
 #include "ipfs/core/daemon.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/routing/routing.h"
@@ -32,6 +33,7 @@ int test_routing_put_value() {
 	char* peer_id_consumer = NULL;
 	int consumer_thread_started = 0;
 	struct Libp2pVector* ma_vector = NULL;
+	struct CliArguments* arguments = NULL;
 
 	// fire up the "publisher"
 	drop_and_build_repository(ipfs_path_publisher, 4001, NULL, &peer_id_publisher);
@@ -39,7 +41,8 @@ int test_routing_put_value() {
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_publisher);
 	ma_publisher = multiaddress_new_from_string(multiaddress_string);
 	char* args[] = { "ipfs", "--config", ipfs_path_publisher, "add", "-r", "~/site"};
-	ipfs_import_files(6, args);
+	arguments = cli_arguments_new(6, args);
+	ipfs_import_files(arguments);
 	if (!pthread_create(&thread_publisher, NULL, test_daemon_start, (void*)ipfs_path_publisher)) {
 		goto exit;
 	}
@@ -82,6 +85,7 @@ int test_routing_put_value() {
 		pthread_join(thread_consumer, NULL);
 	}
 	multiaddress_free(ma_publisher);
+	cli_arguments_free(arguments);
 	return retVal;
 }
 

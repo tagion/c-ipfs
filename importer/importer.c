@@ -6,6 +6,7 @@
 #include "ipfs/importer/importer.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "libp2p/os/utils.h"
+#include "ipfs/cmd/cli.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/repo/init.h"
@@ -312,26 +313,17 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Hashtabl
  * @param argv command line parameters
  * @returns a FileList linked list of filenames
  */
-struct FileList* ipfs_import_get_filelist(int argc, char** argv) {
+struct FileList* ipfs_import_get_filelist(struct CliArguments* args) {
 	struct FileList* first = NULL;
 	struct FileList* last = NULL;
-	int skipNext = 0;
 
-	for (int i = 2; i < argc; i++) {
-		if (skipNext) {
-			skipNext = 0;
-			continue;
-		}
-		if (strcmp(argv[i], "-r") == 0) {
-			continue;
-		}
-		if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--config") == 0) {
-			skipNext = 1;
+	for (int i = args->verb_index + 1; i < args->argc; i++) {
+		if (strcmp(args->argv[i], "add") == 0) {
 			continue;
 		}
 		struct FileList* current = (struct FileList*)malloc(sizeof(struct FileList));
 		current->next = NULL;
-		current->file_name = argv[i];
+		current->file_name = args->argv[i];
 		// now wire it in
 		if (first == NULL) {
 			first = current;
@@ -364,7 +356,7 @@ int ipfs_import_is_recursive(int argc, char** argv) {
  * @param argc the number of arguments
  * @param argv the arguments
  */
-int ipfs_import_files(int argc, char** argv) {
+int ipfs_import_files(struct CliArguments* args) {
 	/*
 	 * Param 0: ipfs
 	 * param 1: add
@@ -380,17 +372,17 @@ int ipfs_import_files(int argc, char** argv) {
 	char* filename = NULL;
 	struct HashtableNode* directory_entry = NULL;
 
-	int recursive = ipfs_import_is_recursive(argc, argv);
+	int recursive = ipfs_import_is_recursive(args->argc, args->argv);
 
 	// parse the command line
-	first = ipfs_import_get_filelist(argc, argv);
+	first = ipfs_import_get_filelist(args);
 
 	// open the repo
-	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
+	if (!ipfs_repo_get_directory(args->argc, args->argv, &repo_path)) {
 		fprintf(stderr, "Repo does not exist: %s\n", repo_path);
 		goto exit;
 	}
-	ipfs_node_online_new(repo_path, &local_node);
+	ipfs_node_offline_new(repo_path, &local_node);
 
 
 	// import the file(s)
@@ -434,8 +426,8 @@ int ipfs_import_files(int argc, char** argv) {
 		free(filename);
 	if (directory_entry != NULL)
 		ipfs_hashtable_node_free(directory_entry);
-	if (repo_path != NULL)
-		free(repo_path);
+	//if (repo_path != NULL)
+	//	free(repo_path);
 	return retVal;
 }
 
