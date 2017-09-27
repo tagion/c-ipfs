@@ -3,7 +3,9 @@
 #include <ipfs/routing/routing.h>
 #include <ipfs/util/errs.h>
 #include "libp2p/crypto/rsa.h"
+#include "libp2p/utils/logger.h"
 #include "libp2p/record/record.h"
+#include "ipfs/core/http_request.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "ipfs/merkledag/merkledag.h"
 #include "ipfs/routing/routing.h"
@@ -86,9 +88,38 @@ int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, const unsigned
     return ErrOffline;
 }
 
-int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, const unsigned char *cid, size_t cid_size)
+/**
+ * Attempt to publish that this node can provide a value
+ * @param offlineRouting the context
+ * @param incoming_hash the hash (in binary form)
+ * @param incoming_hash_size the length of the hash array
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, const unsigned char *incoming_hash, size_t incoming_hash_size)
 {
-    return ErrOffline;
+	if (offlineRouting->local_node->mode == MODE_API_AVAILABLE) {
+		//TODO: publish this through the api
+		unsigned char buffer[256];
+		if (!ipfs_cid_hash_to_base58(incoming_hash, incoming_hash_size, &buffer[0], 256)) {
+			libp2p_logger_error("offline", "Unable to convert hash to its Base58 representation.\n");
+			return 0;
+		}
+
+		char* response;
+		struct HttpRequest* request = ipfs_core_http_request_new();
+		request->command = "dht";
+		request->sub_command = "provide";
+		request->arguments = libp2p_utils_vector_new(1);
+		libp2p_utils_vector_add(request->arguments, buffer);
+		if (!ipfs_core_http_request_get(offlineRouting->local_node, request, &response)) {
+			libp2p_logger_error("offline", "Unable to call API for dht publish.\n");
+			return 0;
+		}
+		fprintf(stdout, "%s", response);
+		return 1;
+	}
+
+    return 0;
 }
 
 int ipfs_routing_offline_ping (ipfs_routing* offlineRouting, struct Libp2pPeer* peer)

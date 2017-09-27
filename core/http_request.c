@@ -143,6 +143,68 @@ int ipfs_core_http_process_object(struct IpfsNode* local_node, struct HttpReques
 }
 
 /***
+ * process dht commands
+ * @param local_node the context
+ * @param request the request
+ * @param response where to put the results
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_core_http_process_dht(struct IpfsNode* local_node, struct HttpRequest* request, char** response) {
+	int failedCount = 0;
+	if (strcmp(request->sub_command, "provide") == 0) {
+		// do a dht provide
+		for (int i = 0; i < request->arguments->total; i++) {
+			char* hash = (char*)libp2p_utils_vector_get(request->arguments, i);
+			struct Cid* cid;
+			if (!ipfs_cid_decode_hash_from_base58(hash, strlen(hash), &cid)) {
+				failedCount++;
+				continue;
+			}
+			if (!ipfs_routing_online_provide(local_node->routing, cid->hash, cid->hash_length)) {
+				failedCount++;
+				continue;
+			}
+		}
+		if (!failedCount) {
+			// complete success
+			// TODO: do the right thing
+			*response = (char*) malloc(1024);
+			snprintf(*response, 1024,  "{\n\t\"ID\": \"<string>\"\n" \
+					"\t\"Type\": \"<int>\"\n"
+					"\t\"Responses\": [\n"
+					"\t\t{\n"
+					"\t\t\t\"ID\": \"<string>\"\n"
+					"\t\t\t\"Addrs\": [\n"
+					"\t\t\t\t\"<object>\"\n"
+					"\t\t\t]\n"
+					"\t\t}\n"
+					"\t]\n"
+					"\t\"Extra\": \"<string>\"\n"
+					"}\n"
+					);
+		} else {
+			// at least some failed
+			// TODO: do the right thing
+			*response = (char*) malloc(1024);
+			snprintf(*response, 1024,  "{\n\t\"ID\": \"<string>\",\n" \
+					"\t\"Type\": \"<int>\",\n"
+					"\t\"Responses\": [\n"
+					"\t\t{\n"
+					"\t\t\t\"ID\": \"<string>\",\n"
+					"\t\t\t\"Addrs\": [\n"
+					"\t\t\t\t\"<object>\"\n"
+					"\t\t\t]\n"
+					"\t\t}\n"
+					"\t],\n"
+					"\t\"Extra\": \"<string>\"\n"
+					"}\n"
+					);
+		}
+	}
+	return failedCount < request->arguments->total;
+}
+
+/***
  * Process the parameters passed in from an http request
  * @param local_node the context
  * @param request the request
@@ -158,6 +220,8 @@ int ipfs_core_http_request_process(struct IpfsNode* local_node, struct HttpReque
 		retVal = ipfs_core_http_process_name(local_node, request, response);
 	} else if (strcmp(request->command, "object") == 0) {
 		retVal = ipfs_core_http_process_object(local_node, request, response);
+	} else if (strcmp(request->command, "dht") == 0) {
+		retVal = ipfs_core_http_process_dht(local_node, request, response);
 	}
 	return retVal;
 }

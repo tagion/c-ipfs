@@ -271,64 +271,6 @@ size_t boundary_size(char *str, char *boundary, size_t limit)
 	return 0;
 }
 
-/**
- * function to find and read the object.
- * @param path is the ipfs address, obj is a pointer to be allocated and will be the return of the data, size is a pointer to return the data length.
- * @returns 1 when success is 0 when failure.
- */
-int get_object(struct IpfsNode* local_node, char *path, unsigned char **obj, size_t *size)
-{
-	FILE* memstream_file = NULL;
-	char* memstream_char = NULL;
-	size_t memstream_size = 0;
-	struct Cid* cid = NULL;
-
-	// convert hash to cid
-	if ( ipfs_cid_decode_hash_from_base58((unsigned char*)path, strlen(path), &cid) == 0) {
-		return 0;
-	}
-
-	// find block
-	struct HashtableNode* read_node = NULL;
-	if (!ipfs_exporter_get_node(local_node, cid->hash, cid->hash_length, &read_node)) {
-		ipfs_cid_free(cid);
-		return 0;
-	}
-
-	// open a memory stream
-	memstream_file = open_memstream(&memstream_char, &memstream_size);
-	if (memstream_file == NULL) {
-		libp2p_logger_error("api", "get_object: Unable to open a memory stream.\n");
-		ipfs_cid_free(cid);
-		return 0;
-	}
-
-	// throw everything (including links) into the memory stream
-	ipfs_exporter_cat_node(read_node, local_node, memstream_file);
-
-	fclose(memstream_file);
-
-	// no longer need these
-	ipfs_cid_free(cid);
-	ipfs_hashtable_node_free(read_node);
-
-	*size = memstream_size;
-	*obj = (unsigned char*)memstream_char;
-
-	return 1;
-}
-
-/**
- * send object data as an http response.
- * @param socket, object pointer and size.
- * @returns 1 when success is 0 when failure.
- */
-int send_object(int socket, unsigned char *obj, size_t size)
-{
-	// TODO: implement.
-	return 0; // fail.
-}
-
 struct ApiConnectionParam {
 	int index;
 	struct IpfsNode* this_node;

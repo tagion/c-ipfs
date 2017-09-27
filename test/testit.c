@@ -88,23 +88,24 @@ const char* names[] = {
 		"test_merkledag_get_data",
 		"test_merkledag_add_node",
 		"test_merkledag_add_node_with_links",
+		// 50 below
 		"test_namesys_publisher_publish",
 		"test_namesys_resolver_resolve",
 		"test_resolver_get",
 		"test_routing_find_peer",
-		"test_routing_provide" /*,
+		"test_routing_provide",
 		"test_routing_find_providers",
 		"test_routing_supernode_get_value",
 		"test_routing_supernode_get_remote_value",
 		"test_routing_retrieve_file_third_party",
 		"test_routing_retrieve_large_file",
+		// 60 below
 		"test_unixfs_encode_decode",
 		"test_unixfs_encode_smallfile",
 		"test_ping",
 		"test_ping_remote",
 		"test_null_add_provider",
 		"test_resolver_remote_get"
-		*/
 };
 
 int (*funcs[])(void) = {
@@ -157,24 +158,24 @@ int (*funcs[])(void) = {
 		test_merkledag_get_data,
 		test_merkledag_add_node,
 		test_merkledag_add_node_with_links,
+		// 50 below
 		test_namesys_publisher_publish,
 		test_namesys_resolver_resolve,
 		test_resolver_get,
 		test_routing_find_peer,
-		test_routing_provide /*,
-		test_routing_find_providers,
 		test_routing_provide,
+		test_routing_find_providers,
 		test_routing_supernode_get_value,
 		test_routing_supernode_get_remote_value,
 		test_routing_retrieve_file_third_party,
 		test_routing_retrieve_large_file,
+		// 60 below
 		test_unixfs_encode_decode,
 		test_unixfs_encode_smallfile,
 		test_ping,
 		test_ping_remote,
 		test_null_add_provider,
 		test_resolver_remote_get
-		*/
 };
 
 /**
