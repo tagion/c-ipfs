@@ -1,5 +1,10 @@
 #!/bin/bash
 
+####
+# Attempt to start a deamon and have an api client do a object get
+#
+####
+
 source ./test_helpers.sh
 
 IPFS="../../main/ipfs --config /tmp/ipfs_1"
@@ -20,8 +25,15 @@ function body {
 	eval "$IPFS" add hello.txt
 	check_failure "add hello.txt" $?
 	
+	#start the daemon
+	eval "../../main/ipfs --config /tmp/ipfs_1 daemon &"
+	daemon_id=$!
+	sleep 5
+	
 	eval "$IPFS" cat QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH
 	check_failure "cat hello.txt" $?
+	
+	kill -9 $daemon_id
 }
 
 
