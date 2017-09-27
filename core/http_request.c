@@ -9,6 +9,7 @@
 #include "ipfs/importer/exporter.h"
 #include "ipfs/namesys/resolver.h"
 #include "ipfs/namesys/publisher.h"
+#include "ipfs/routing/routing.h"
 
 /**
  * Handles HttpRequest and HttpParam
@@ -57,6 +58,24 @@ void ipfs_core_http_request_free(struct HttpRequest* request) {
 	}
 }
 
+struct HttpResponse* ipfs_core_http_response_new() {
+	struct HttpResponse* response = (struct HttpResponse*) malloc(sizeof(struct HttpResponse));
+	if (response != NULL) {
+		response->content_type = NULL;
+		response->bytes = NULL;
+	}
+	return response;
+}
+
+void ipfs_core_http_response_free(struct HttpResponse* response) {
+	if (response != NULL) {
+		// NOTE: content_type should not be dynamically allocated
+		if (response->bytes != NULL)
+			free(response->bytes);
+		free(response);
+	}
+}
+
 /***
  * Build a new HttpParam
  * @returns a newly allocated HttpParam struct
@@ -91,7 +110,7 @@ void ipfs_core_http_param_free(struct HttpParam* param) {
  * @param response the response
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_core_http_process_name(struct IpfsNode* local_node, struct HttpRequest* request, char** response) {
+int ipfs_core_http_process_name(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** response) {
 	int retVal = 0;
 	char* path = NULL;
 	char* result = NULL;
@@ -103,15 +122,23 @@ int ipfs_core_http_process_name(struct IpfsNode* local_node, struct HttpRequest*
 	if (strcmp(request->sub_command, "resolve") == 0) {
 		retVal = ipfs_namesys_resolver_resolve(local_node, path, 1, &result);
 		if (retVal) {
-			*response = (char*) malloc(strlen(result) + 20);
-			sprintf(*response, "{ \"Path\": \"%s\" }", result);
+			*response = ipfs_core_http_response_new();
+			struct HttpResponse* res = *response;
+			res->content_type = "application/json";
+			res->bytes = (uint8_t*) malloc(strlen(local_node->identity->peer->id) + strlen(path) + 30);
+			sprintf((char*)res->bytes, "{ \"Path\": \"%s\" }", result);
+			res->bytes_size = strlen((char*)res->bytes);
 		}
 		free(result);
 	} else if (strcmp(request->sub_command, "publish") == 0) {
 		retVal = ipfs_namesys_publisher_publish(local_node, path);
 		if (retVal) {
-			*response = (char*) malloc(strlen(local_node->identity->peer->id) + strlen(path) + 30);
-			sprintf(*response, "{ \"Name\": \"%s\"\n \"Value\": \"%s\" }", local_node->identity->peer->id, path);
+			*response = ipfs_core_http_response_new();
+			struct HttpResponse* res = *response;
+			res->content_type = "application/json";
+			res->bytes = (uint8_t*) malloc(strlen(local_node->identity->peer->id) + strlen(path) + 30);
+			sprintf((char*)res->bytes, "{ \"Name\": \"%s\"\n \"Value\": \"%s\" }", local_node->identity->peer->id, path);
+			res->bytes_size = strlen((char*)res->bytes);
 		}
 	}
 	return retVal;
@@ -124,22 +151,105 @@ int ipfs_core_http_process_name(struct IpfsNode* local_node, struct HttpRequest*
  * @param response the response
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_core_http_process_object(struct IpfsNode* local_node, struct HttpRequest* request, char** response) {
+int ipfs_core_http_process_object(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** response) {
 	int retVal = 0;
 	if (strcmp(request->sub_command, "get") == 0) {
 		// do an object_get
 		if (request->arguments->total == 1) {
 			char* hash = (char*)libp2p_utils_vector_get(request->arguments, 0);
 			struct Cid* cid;
-			ipfs_cid_decode_hash_from_base58(hash, strlen(hash), &cid);
-			size_t size;
-			FILE* response_file = open_memstream(response, &size);
+			ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid);
+			*response = ipfs_core_http_response_new();
+			struct HttpResponse* res = *response;
+			res->content_type = "application/json";
+			FILE* response_file = open_memstream((char**)&res->bytes, &res->bytes_size);
 			retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, response_file);
 			ipfs_cid_free(cid);
 			fclose(response_file);
 		}
 	}
 	return retVal;
+}
+
+int ipfs_core_http_process_dht_provide(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** response) {
+	int failedCount = 0;
+	for (int i = 0; i < request->arguments->total; i++) {
+		char* hash = (char*)libp2p_utils_vector_get(request->arguments, i);
+		struct Cid* cid;
+		if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid)) {
+			failedCount++;
+			continue;
+		}
+		if (!local_node->routing->Provide(local_node->routing, cid->hash, cid->hash_length)) {
+			failedCount++;
+			continue;
+		}
+	}
+	*response = ipfs_core_http_response_new();
+	struct HttpResponse* res = *response;
+	res->content_type = "application/json";
+	res->bytes = (uint8_t*) malloc(1024);
+	if (!failedCount) {
+		// complete success
+		// TODO: do the right thing
+		snprintf((char*)res->bytes, 1024,  "{\n\t\"ID\": \"<string>\"\n" \
+				"\t\"Type\": \"<int>\"\n"
+				"\t\"Responses\": [\n"
+				"\t\t{\n"
+				"\t\t\t\"ID\": \"<string>\"\n"
+				"\t\t\t\"Addrs\": [\n"
+				"\t\t\t\t\"<object>\"\n"
+				"\t\t\t]\n"
+				"\t\t}\n"
+				"\t]\n"
+				"\t\"Extra\": \"<string>\"\n"
+				"}\n"
+				);
+	} else {
+		// at least some failed
+		// TODO: do the right thing
+		snprintf((char*)res->bytes, 1024,  "{\n\t\"ID\": \"<string>\",\n" \
+				"\t\"Type\": \"<int>\",\n"
+				"\t\"Responses\": [\n"
+				"\t\t{\n"
+				"\t\t\t\"ID\": \"<string>\",\n"
+				"\t\t\t\"Addrs\": [\n"
+				"\t\t\t\t\"<object>\"\n"
+				"\t\t\t]\n"
+				"\t\t}\n"
+				"\t],\n"
+				"\t\"Extra\": \"<string>\"\n"
+				"}\n"
+				);
+	}
+	res->bytes_size = strlen((char*)res->bytes);
+	return failedCount < request->arguments->total;
+}
+
+int ipfs_core_http_process_dht_get(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** response) {
+	int failedCount = 0;
+	// for now, we can only handle 1 argument at a time
+	if (request->arguments != NULL && request->arguments->total != 1)
+		return 0;
+
+	*response = ipfs_core_http_response_new();
+	struct HttpResponse* res = *response;
+	res->content_type = "application/octet-stream";
+
+	for (int i = 0; i < request->arguments->total; i++) {
+		char* hash = (char*)libp2p_utils_vector_get(request->arguments, i);
+		struct Cid* cid;
+		if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid)) {
+			failedCount++;
+			continue;
+		}
+		if (!local_node->routing->GetValue(local_node->routing, cid->hash, cid->hash_length, (void**)&res->bytes, &res->bytes_size)) {
+			failedCount++;
+			continue;
+		}
+		//TODO: we need to handle multiple arguments
+	}
+	return failedCount < request->arguments->total;
 }
 
 /***
@@ -149,59 +259,16 @@ int ipfs_core_http_process_object(struct IpfsNode* local_node, struct HttpReques
  * @param response where to put the results
  * @returns true(1) on success, false(0) otherwise
  */
-int ipfs_core_http_process_dht(struct IpfsNode* local_node, struct HttpRequest* request, char** response) {
-	int failedCount = 0;
+int ipfs_core_http_process_dht(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** response) {
+	int retVal = 0;
 	if (strcmp(request->sub_command, "provide") == 0) {
 		// do a dht provide
-		for (int i = 0; i < request->arguments->total; i++) {
-			char* hash = (char*)libp2p_utils_vector_get(request->arguments, i);
-			struct Cid* cid;
-			if (!ipfs_cid_decode_hash_from_base58(hash, strlen(hash), &cid)) {
-				failedCount++;
-				continue;
-			}
-			if (!ipfs_routing_online_provide(local_node->routing, cid->hash, cid->hash_length)) {
-				failedCount++;
-				continue;
-			}
-		}
-		if (!failedCount) {
-			// complete success
-			// TODO: do the right thing
-			*response = (char*) malloc(1024);
-			snprintf(*response, 1024,  "{\n\t\"ID\": \"<string>\"\n" \
-					"\t\"Type\": \"<int>\"\n"
-					"\t\"Responses\": [\n"
-					"\t\t{\n"
-					"\t\t\t\"ID\": \"<string>\"\n"
-					"\t\t\t\"Addrs\": [\n"
-					"\t\t\t\t\"<object>\"\n"
-					"\t\t\t]\n"
-					"\t\t}\n"
-					"\t]\n"
-					"\t\"Extra\": \"<string>\"\n"
-					"}\n"
-					);
-		} else {
-			// at least some failed
-			// TODO: do the right thing
-			*response = (char*) malloc(1024);
-			snprintf(*response, 1024,  "{\n\t\"ID\": \"<string>\",\n" \
-					"\t\"Type\": \"<int>\",\n"
-					"\t\"Responses\": [\n"
-					"\t\t{\n"
-					"\t\t\t\"ID\": \"<string>\",\n"
-					"\t\t\t\"Addrs\": [\n"
-					"\t\t\t\t\"<object>\"\n"
-					"\t\t\t]\n"
-					"\t\t}\n"
-					"\t],\n"
-					"\t\"Extra\": \"<string>\"\n"
-					"}\n"
-					);
-		}
+		retVal = ipfs_core_http_process_dht_provide(local_node, request, response);
+	} else if (strcmp(request->sub_command, "get") == 0) {
+		// do a dht get
+		retVal = ipfs_core_http_process_dht_get(local_node, request, response);
 	}
-	return failedCount < request->arguments->total;
+	return retVal;
 }
 
 /***
@@ -211,7 +278,7 @@ int ipfs_core_http_process_dht(struct IpfsNode* local_node, struct HttpRequest* 
  * @param response the response
  * @returns true(1) on success, false(0) otherwise.
  */
-int ipfs_core_http_request_process(struct IpfsNode* local_node, struct HttpRequest* request, char** response) {
+int ipfs_core_http_request_process(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** response) {
 	if (request == NULL)
 		return 0;
 	int retVal = 0;

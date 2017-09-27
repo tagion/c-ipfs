@@ -407,8 +407,11 @@ int test_routing_provide() {
 	// add a file, to prime the connection to peer 1
 	//TODO: Find a better way to do this...
 	size_t bytes_written = 0;
-	ipfs_node_online_new(ipfs_path, &local_node2);
-	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
+	ipfs_node_offline_new(ipfs_path, &local_node2);
+	uint8_t *bytes = (unsigned char*)"hello, world!\n";
+	char* filename = "test1.txt";
+	create_file(filename, bytes, strlen((char*)bytes));
+	ipfs_import_file(NULL, filename, &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 	// start the daemon in a separate thread
 	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
@@ -418,7 +421,6 @@ int test_routing_provide() {
 	thread2_started = 1;
 
     // wait for everything to start up
-    // JMJ debugging =
     sleep(3);
 
 	retVal = 1;

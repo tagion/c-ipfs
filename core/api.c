@@ -505,26 +505,24 @@ void *api_connection_thread (void *ptr)
 			// now do something with the request we have built
 			struct HttpRequest* http_request = api_build_http_request(&req);
 			if (http_request != NULL) {
-				char* response_text = NULL;
-				if (!ipfs_core_http_request_process(params->this_node, http_request, &response_text)) {
+				struct HttpResponse* http_response = NULL;
+				if (!ipfs_core_http_request_process(params->this_node, http_request, &http_response)) {
 					libp2p_logger_error("api", "ipfs_core_http_request_process returned false.\n");
 					// 404
 					write_str(s, HTTP_404);
 				} else {
-					// now send the results
 					snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
-					"Content-Type: application/json\r\n"
-					"Server: c-ipfs/0.0.0-dev\r\n"
-					"X-Chunked-Output: 1\r\n"
-					"Connection: close\r\n"
-					"Transfer-Encoding: chunked\r\n"
-					"\r\n"
-					"%x\r\n"
-					"%s\r\n"
-					"0\r\n\r\n"
-					,req.buf + req.http_ver, strlen(response_text), response_text);
-					if (response_text != NULL)
-						free(response_text);
+						"Content-Type: %s\r\n"
+						"Server: c-ipfs/0.0.0-dev\r\n"
+						"X-Chunked-Output: 1\r\n"
+						"Connection: close\r\n"
+						"Transfer-Encoding: chunked\r\n"
+						"\r\n"
+						"%x\r\n"
+						"%s\r\n"
+						"0\r\n\r\n"
+						,req.buf + req.http_ver, http_response->content_type, (unsigned int)http_response->bytes_size, http_response->bytes);
+					ipfs_core_http_response_free(http_response);
 					write_str (s, resp);
 					libp2p_logger_debug("api", "resp = {\n%s\n}\n", resp);
 				}

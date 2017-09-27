@@ -51,29 +51,52 @@ int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, const unsigned
  */
 int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *key, size_t key_size, void **val, size_t *vlen)
 {
-    struct HashtableNode* node = NULL;
-    *val = NULL;
-    int retVal = 0;
+	int retVal = 0;
 
-    if (!ipfs_merkledag_get(key, key_size, &node, routing->local_node->repo)) {
-		goto exit;
-	}
+	if (routing->local_node->mode == MODE_API_AVAILABLE) {
+		unsigned char buffer[256];
+		if (!ipfs_cid_hash_to_base58(key, key_size, &buffer[0], 256)) {
+			libp2p_logger_error("offline", "Unable to convert hash to its Base58 representation.\n");
+			return 0;
+		}
 
-    // protobuf the node
-    int protobuf_size = ipfs_hashtable_node_protobuf_encode_size(node);
-    *val = malloc(protobuf_size);
+		char* response;
+		struct HttpRequest* req = ipfs_core_http_request_new();
+		req->command = "dht";
+		req->sub_command = "get";
+		req->arguments = libp2p_utils_vector_new(1);
+		libp2p_utils_vector_add(req->arguments, buffer);
+		if (!ipfs_core_http_request_get(routing->local_node, req, &response)) {
+			libp2p_logger_error("offline", "Unable to call API for dht get.\n");
+			return 0;
+		}
+		//TODO: put results in val
+		fprintf(stdout, "%s", response);
+		return 1;
+	} else {
+	    struct HashtableNode* node = NULL;
+	    *val = NULL;
 
-    if (ipfs_hashtable_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0) {
-    		goto exit;
-    }
+	    if (!ipfs_merkledag_get(key, key_size, &node, routing->local_node->repo)) {
+			goto exit;
+		}
 
-    retVal = 1;
-    exit:
-	if (node != NULL)
-		ipfs_hashtable_node_free(node);
-	if (retVal != 1 && *val != NULL) {
-		free(*val);
-		*val = NULL;
+	    // protobuf the node
+	    int protobuf_size = ipfs_hashtable_node_protobuf_encode_size(node);
+	    *val = malloc(protobuf_size);
+
+	    if (ipfs_hashtable_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0) {
+	    		goto exit;
+	    }
+
+	    retVal = 1;
+	    exit:
+		if (node != NULL)
+			ipfs_hashtable_node_free(node);
+		if (retVal != 1 && *val != NULL) {
+			free(*val);
+			*val = NULL;
+		}
 	}
     return retVal;
 }

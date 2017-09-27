@@ -21,6 +21,15 @@ struct HttpRequest {
 };
 
 /***
+ * A struct to hold the response to be sent via http
+ */
+struct HttpResponse {
+	char* content_type; // a const char, not dynamically allocated
+	uint8_t* bytes; // dynamically allocated
+	size_t bytes_size;
+};
+
+/***
  * Build a new HttpRequest
  * @returns the newly allocated HttpRequest struct
  */
@@ -31,6 +40,10 @@ struct HttpRequest* ipfs_core_http_request_new();
  * @param request the struct to destroy
  */
 void ipfs_core_http_request_free(struct HttpRequest* request);
+
+struct HttpResponse* ipfs_core_http_response_new();
+
+void ipfs_core_http_response_free(struct HttpResponse* response);
 
 /***
  * Build a new HttpParam
@@ -51,7 +64,7 @@ void ipfs_core_http_param_free(struct HttpParam* param);
  * @param response the response
  * @returns true(1) on success, false(0) otherwise.
  */
-int ipfs_core_http_request_process(struct IpfsNode* local_node, struct HttpRequest* request, char** response);
+int ipfs_core_http_request_process(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** response);
 
 /**
  * Do an HTTP Get to the local API
