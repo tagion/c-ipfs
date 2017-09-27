@@ -31,15 +31,15 @@ int ipfs_exporter_get_node(struct IpfsNode* local_node, const unsigned char* has
 	int retVal = 0;
 	struct KademliaMessage* msg = NULL;
 
-	if (local_node->routing->GetValue(local_node->routing, hash, hash_size, (void**)&buffer, &buffer_size)) {
-		libp2p_logger_debug("exporter", "get_node got a value. Converting it to a HashtableNode\n");
-		// unprotobuf
-		if (!ipfs_hashtable_node_protobuf_decode(buffer, buffer_size, result)) {
-			libp2p_logger_debug("exporter", "Conversion to HashtableNode not successful\n");
-			goto exit;
-		}
-	} else {
+	if (!local_node->routing->GetValue(local_node->routing, hash, hash_size, (void**)&buffer, &buffer_size)) {
 		libp2p_logger_debug("exporter", "get_node got no value. Returning false.\n");
+		goto exit;
+	}
+
+	libp2p_logger_debug("exporter", "get_node got a value. Converting it to a HashtableNode\n");
+	// unprotobuf
+	if (!ipfs_hashtable_node_protobuf_decode(buffer, buffer_size, result)) {
+		libp2p_logger_debug("exporter", "Conversion to HashtableNode not successful\n");
 		goto exit;
 	}
 

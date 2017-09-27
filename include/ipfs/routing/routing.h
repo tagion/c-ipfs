@@ -30,6 +30,7 @@ struct IpfsRouting {
 	 * @param 3 the size of the key
 	 * @param 4 a place to store the value
 	 * @param 5 the size of the value
+	 * @returns true(1) on success, false(0) otherwise
 	 */
 	int (*GetValue)      (struct IpfsRouting*, const unsigned char*, size_t, void**, size_t*);
 	/**

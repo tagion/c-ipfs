@@ -38,11 +38,20 @@ int ipfs_routing_generic_put_value (ipfs_routing* offlineRouting, const unsigned
     return 0; // success.
 }
 
+/***
+ * Get a value from the merkledag
+ * @param routing the context
+ * @param key the key
+ * @param key_size the size of the key
+ * @param val where to put the results
+ * @param vlen the size of the results
+ * @returns true(1) on success, false(0) otherwise
+ */
 int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *key, size_t key_size, void **val, size_t *vlen)
 {
     struct HashtableNode* node = NULL;
     *val = NULL;
-    int retVal = -1;
+    int retVal = 0;
 
     if (!ipfs_merkledag_get(key, key_size, &node, routing->local_node->repo)) {
 		goto exit;
@@ -53,14 +62,14 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
     *val = malloc(protobuf_size);
 
     if (ipfs_hashtable_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0) {
-    	goto exit;
+    		goto exit;
     }
 
-    retVal = 0;
+    retVal = 1;
     exit:
 	if (node != NULL)
 		ipfs_hashtable_node_free(node);
-	if (retVal != 0 && *val != NULL) {
+	if (retVal != 1 && *val != NULL) {
 		free(*val);
 		*val = NULL;
 	}

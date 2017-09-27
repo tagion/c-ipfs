@@ -150,40 +150,40 @@ int parse_arguments(int argc, char** argv) {
  * The beginning
  */
 int main(int argc, char** argv) {
-
+	int retVal = 0;
 	strip_quotes(argc, argv);
 	// CliArguments is the new way to do it. Eventually, all will use this structure
 	struct CliArguments* args = cli_arguments_new(argc, argv);
 	if (args != NULL) {
 		// until then, use the old way
-		int retVal = parse_arguments(argc, argv);
-		switch (retVal) {
+		int cmd = parse_arguments(argc, argv);
+		switch (cmd) {
 			case (INIT):
-				return ipfs_repo_init(argc, argv);
+				retVal = ipfs_repo_init(argc, argv);
 				break;
 			case (ADD):
-				ipfs_import_files(args);
+				retVal = ipfs_import_files(args);
 				break;
 			case (OBJECT_GET):
-				ipfs_exporter_object_get(argc, argv);
+				retVal = ipfs_exporter_object_get(argc, argv);
 				break;
 			case(GET):
 				//ipfs_exporter_get(argc, argv);
 				//break;
 			case (CAT):
-				ipfs_exporter_object_cat(args);
+				retVal = ipfs_exporter_object_cat(args);
 				break;
 			case (DNS):
-				ipfs_dns(argc, argv);
+				retVal = ipfs_dns(argc, argv);
 				break;
 			case (DAEMON):
-				ipfs_daemon(argc, argv);
+				retVal = ipfs_daemon(argc, argv);
 				break;
 			case (PING):
-				ipfs_ping(argc, argv);
+				retVal = ipfs_ping(argc, argv);
 				break;
 			case (NAME):
-				ipfs_name(args);
+				retVal = ipfs_name(args);
 				break;
 			default:
 				libp2p_logger_error("main", "Invalid command line arguments.\n");
@@ -192,4 +192,5 @@ int main(int argc, char** argv) {
 		cli_arguments_free(args);
 	}
 	libp2p_logger_free();
+	exit(retVal == 1 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

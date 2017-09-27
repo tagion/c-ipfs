@@ -363,6 +363,7 @@ int ipfs_routing_online_get_peer_value(ipfs_routing* routing, const struct Libp2
  * @param key_size the size of the key
  * @param buffer where to put the results
  * @param buffer_size the length of the buffer
+ * @returns true(1) on success, false(0) otherwise
  */
 int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *key, size_t key_size, void **buffer, size_t *buffer_size)
 {
