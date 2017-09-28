@@ -139,7 +139,7 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 		return 0;
 
 	// swarm addresses
-	char* addr1 = malloc(27);
+	char* addr1 = malloc(64);
 	sprintf(addr1, "/ip4/0.0.0.0/tcp/%d", swarm_port);
 	config->addresses->swarm_head = libp2p_utils_linked_list_new();
 	config->addresses->swarm_head->item = malloc(strlen(addr1) + 1);
@@ -155,7 +155,7 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 	config->addresses->api = malloc(strlen(addr1)+1);
 	strcpy(config->addresses->api, addr1);
 	sprintf(addr1, "/ip4/127.0.0.1/tcp/%d", 8080 + port_adder);
-	config->addresses->gateway = malloc(strlen(addr1+1));
+	config->addresses->gateway = malloc(strlen(addr1)+1);
 	strcpy(config->addresses->gateway, addr1);
 	free(addr1);
 

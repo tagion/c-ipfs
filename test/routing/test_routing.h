@@ -65,8 +65,8 @@ int test_routing_put_value() {
 
 	// see if we have what we should...
 	libp2p_logger_debug("test_routing", "About to ask for the server to resolve the publisher.\n");
-	char* args3[] = {"ipfs", "--config", ipfs_path_publisher, "resolve", peer_id_publisher};
-	arguments = cli_arguments_new(5, args3);
+	char* args3[] = {"ipfs", "--config", ipfs_path_publisher, "name", "resolve", peer_id_publisher};
+	arguments = cli_arguments_new(6, args3);
 	if (!ipfs_name(arguments))
 		goto exit;
 
