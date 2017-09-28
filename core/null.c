@@ -52,6 +52,8 @@ void ipfs_null_connection (void *ptr) {
     session->default_stream = session->insecure_stream;
     session->datastore = connection_param->local_node->repo->config->datastore;
     session->filestore = connection_param->local_node->repo->config->filestore;
+    session->host = connection_param->ip;
+    session->port = connection_param->port;
 
     libp2p_logger_info("null", "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 

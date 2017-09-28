@@ -12,6 +12,12 @@ int test_namesys_publisher_publish() {
 	struct IpfsNode* local_node = NULL;
 	char* hash_text = "/ipns/QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD";
 	char* repo_path = "/tmp/ipfs_1";
+	char* peer_id = NULL;
+
+	if (!drop_and_build_repository(repo_path, 4001, NULL, &peer_id)) {
+		libp2p_logger_error("test_publisher", "Unable to build repository at %s.\n", repo_path);
+		goto exit;
+	}
 
 	// get a local node
 	if (!ipfs_node_offline_new(repo_path, &local_node)) {

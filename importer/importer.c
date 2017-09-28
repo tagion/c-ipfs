@@ -280,6 +280,8 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Hashtabl
 	} else {
 		// process this file
 		FILE* file = fopen(fileName, "rb");
+		if (file == 0)
+			return 0;
 		retVal = ipfs_hashtable_node_new(parent_node);
 		if (retVal == 0) {
 			return 0;
@@ -388,23 +390,25 @@ int ipfs_import_files(struct CliArguments* args) {
 	// import the file(s)
 	current = first;
 	while (current != NULL) {
-		os_utils_split_filename(current->file_name, &path, &filename);
-		size_t bytes_written = 0;
-		if (!ipfs_import_file(NULL, current->file_name, &directory_entry, local_node, &bytes_written, recursive))
-			goto exit;
-		ipfs_import_print_node_results(directory_entry, filename);
-		// cleanup
-		if (path != NULL) {
-			free(path);
-			path = NULL;
-		}
-		if (filename != NULL) {
-			free(filename);
-			filename = NULL;
-		}
-		if (directory_entry != NULL) {
-			ipfs_hashtable_node_free(directory_entry);
-			directory_entry = NULL;
+		if (current->file_name[0] != '-') { // not a switch
+			os_utils_split_filename(current->file_name, &path, &filename);
+			size_t bytes_written = 0;
+			if (!ipfs_import_file(NULL, current->file_name, &directory_entry, local_node, &bytes_written, recursive))
+				goto exit;
+			ipfs_import_print_node_results(directory_entry, filename);
+			// cleanup
+			if (path != NULL) {
+				free(path);
+				path = NULL;
+			}
+			if (filename != NULL) {
+				free(filename);
+				filename = NULL;
+			}
+			if (directory_entry != NULL) {
+				ipfs_hashtable_node_free(directory_entry);
+				directory_entry = NULL;
+			}
 		}
 		current = current->next;
 	}

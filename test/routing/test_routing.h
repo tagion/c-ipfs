@@ -17,11 +17,74 @@
 
 #include "../test_helper.h"
 
-
 /***
  * "publish" a hash to the datastore (for ipns)
  */
 int test_routing_put_value() {
+	int retVal = 0;
+	char* ipfs_path_publisher = "/tmp/ipfs_1";
+	char* peer_id_publisher = NULL;
+	struct MultiAddress* ma_publisher = NULL;
+	pthread_t thread_publisher;
+	int publisher_thread_started = 0;
+	struct CliArguments* arguments = NULL;
+
+	libp2p_logger_add_class("test_routing");
+
+	// fire up the "publisher"
+	if (!drop_and_build_repository(ipfs_path_publisher, 4001, NULL, &peer_id_publisher)) {
+		libp2p_logger_error("test_routing", "Unable to drop and build repository.\n");
+		goto exit;
+	}
+
+	char multiaddress_string[255];
+	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_publisher);
+	ma_publisher = multiaddress_new_from_string(multiaddress_string);
+	if (pthread_create(&thread_publisher, NULL, test_daemon_start, (void*)ipfs_path_publisher) < 0) {
+		libp2p_logger_error("test_routing", "Unable to start first daemon.\n");
+		goto exit;
+	}
+	publisher_thread_started = 1;
+
+	sleep(3);
+
+	// import the file into the "publisher"
+	char* args[] = { "ipfs", "--config", ipfs_path_publisher, "add", "-r", "~/site"};
+	arguments = cli_arguments_new(6, args);
+	ipfs_import_files(arguments);
+	cli_arguments_free(arguments);
+
+	// now "publish" to publisher
+	libp2p_logger_debug("test_routing", "About to publish to publisher.\n");
+	char* args2[] = {"ipfs", "--config", ipfs_path_publisher, "name", "publish", "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD" };
+	arguments = cli_arguments_new(6, args2);
+	if (!ipfs_name(arguments))
+		goto exit;
+	cli_arguments_free(arguments);
+	arguments = NULL;
+
+	// see if we have what we should...
+	libp2p_logger_debug("test_routing", "About to ask for the server to resolve the publisher.\n");
+	char* args3[] = {"ipfs", "--config", ipfs_path_publisher, "resolve", peer_id_publisher};
+	arguments = cli_arguments_new(5, args3);
+	if (!ipfs_name(arguments))
+		goto exit;
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (publisher_thread_started) {
+		pthread_join(thread_publisher, NULL);
+	}
+	multiaddress_free(ma_publisher);
+	cli_arguments_free(arguments);
+	return retVal;
+}
+
+/***
+ * "publish" a hash to the datastore (for ipns)
+ */
+int test_routing_put_value_and_resolve() {
 	int retVal = 0;
 	char* ipfs_path_publisher = "/tmp/ipfs_1";
 	char* peer_id_publisher = NULL;
@@ -35,18 +98,30 @@ int test_routing_put_value() {
 	struct Libp2pVector* ma_vector = NULL;
 	struct CliArguments* arguments = NULL;
 
+	libp2p_logger_add_class("test_routing");
+
 	// fire up the "publisher"
-	drop_and_build_repository(ipfs_path_publisher, 4001, NULL, &peer_id_publisher);
+	if (!drop_and_build_repository(ipfs_path_publisher, 4001, NULL, &peer_id_publisher)) {
+		libp2p_logger_error("test_routing", "Unable to drop and build repository.\n");
+		goto exit;
+	}
+
 	char multiaddress_string[255];
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_publisher);
 	ma_publisher = multiaddress_new_from_string(multiaddress_string);
-	char* args[] = { "ipfs", "--config", ipfs_path_publisher, "add", "-r", "~/site"};
-	arguments = cli_arguments_new(6, args);
-	ipfs_import_files(arguments);
-	if (!pthread_create(&thread_publisher, NULL, test_daemon_start, (void*)ipfs_path_publisher)) {
+	if (pthread_create(&thread_publisher, NULL, test_daemon_start, (void*)ipfs_path_publisher) < 0) {
+		libp2p_logger_error("test_routing", "Unable to start first daemon.\n");
 		goto exit;
 	}
 	publisher_thread_started = 1;
+
+	sleep(3);
+
+	// import the file into the "publisher"
+	char* args[] = { "ipfs", "--config", ipfs_path_publisher, "add", "-r", "~/site"};
+	arguments = cli_arguments_new(6, args);
+	ipfs_import_files(arguments);
+	cli_arguments_free(arguments);
 
 	// fire up the "consumer"
 	ma_vector = libp2p_utils_vector_new(1);
@@ -55,25 +130,25 @@ int test_routing_put_value() {
 	if (pthread_create(&thread_consumer, NULL, test_daemon_start, (void*)ipfs_path_consumer) < 0)
 		goto exit;
 	consumer_thread_started = 1;
-
 	// wait for everything to fire up
-	sleep(5);
-
-	/* this area is for when we get the command line interface closer to completion... So skip for now
-
-	// now "publish" to publisher, and verify that "consumer" receives the message
-	char* args2[] = {"ipfs" "--config", ipfs_path_publisher, "name", "publish", "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD" };
-	//ipfs_name_publish(6, args2);
-
-	// wait for everything to settle in
 	sleep(3);
 
-	// see if we have what we should...
-	char* args3[] = {"ipfs", "--config", ipfs_path_consumer, "resolve", peer_id_publisher};
-	char* results = NULL;
-	//ipfs_resolve(5, args3, &results);
-	 */
+	// now "publish" to publisher
+	libp2p_logger_debug("test_routing", "About to publish to publisher.\n");
+	char* args2[] = {"ipfs", "--config", ipfs_path_publisher, "name", "publish", "QmZtAEqmnXMZkwVPKdyMGxUoo35cQMzNhmq6CN3DvgRwAD" };
+	arguments = cli_arguments_new(6, args2);
+	if (!ipfs_name(arguments))
+		goto exit;
+	cli_arguments_free(arguments);
+	arguments = NULL;
 
+	// see if we have what we should...
+	libp2p_logger_debug("test_routing", "About to ask for the server to resolve the publisher.\n");
+	char* args3[] = {"ipfs", "--config", ipfs_path_consumer, "resolve", peer_id_publisher};
+	//char* results = NULL;
+	arguments = cli_arguments_new(5, args3);
+	if (!ipfs_name(arguments))
+		goto exit;
 
 	retVal = 1;
 	exit:
@@ -91,20 +166,25 @@ int test_routing_put_value() {
 
 int test_routing_find_peer() {
 	int retVal = 0;
-	char* ipfs_path = "/tmp/test1";
+	char* ipfs_path1 = "/tmp/ipfs_1";
+	char* ipfs_path2 = "/tmp/ipfs_2";
+	char* ipfs_path3 = "/tmp/ipfs_3";
 	pthread_t thread1;
 	pthread_t thread2;
-	int thread1_started = 0, thread2_started = 0;
+	pthread_t thread3;
+	int thread1_started = 0, thread2_started = 0, thread3_started = 0;
 	char* peer_id_1 = NULL;
 	char* peer_id_2 = NULL;
 	char* peer_id_3 = NULL;
-    struct IpfsNode local_node;
-	struct IpfsNode *local_node2;
+    struct IpfsNode* local_node = NULL;
+	struct IpfsNode* local_node2 = NULL;
+	struct IpfsNode* local_node3 = NULL;
 	struct FSRepo* fs_repo = NULL;
 	struct MultiAddress* ma_peer1;
 	struct Libp2pVector *ma_vector = NULL;
     struct Libp2pPeer* result = NULL;
     struct HashtableNode *node = NULL;
+    struct Libp2pVector* peers = NULL;
 
     //libp2p_logger_add_class("online");
     //libp2p_logger_add_class("null");
@@ -113,61 +193,51 @@ int test_routing_find_peer() {
     //libp2p_logger_add_class("peerstore");
 
 	// create peer 1
-	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
-	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
+	drop_and_build_repository(ipfs_path1, 4001, NULL, &peer_id_1);
 	char multiaddress_string[255];
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0)
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path2) < 0)
 		goto exit;
 	thread1_started = 1;
 
 	sleep(3);
 
 	// create peer 2
-	ipfs_path = "/tmp/test2";
-	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
 	ma_vector = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(ma_vector, ma_peer1);
-	drop_and_build_repository(ipfs_path, 4002, ma_vector, &peer_id_2);
-	// add a file, to prime the connection to peer 1
-	//TODO: Find a better way to do this...
-	size_t bytes_written = 0;
-	ipfs_node_online_new(ipfs_path, &local_node2);
-	local_node2->routing->Bootstrap(local_node2->routing);
-	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
-	ipfs_node_free(local_node2);
+	drop_and_build_repository(ipfs_path2, 4002, ma_vector, &peer_id_2);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0)
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path2) < 0)
 		goto exit;
 	thread2_started = 1;
 
-    // JMJ wait for everything to start up
+
+	// JMJ wait for everything to start up
     sleep(3);
 
+	// add a file to peer 2
+	size_t bytes_written = 0;
+	ipfs_node_offline_new(ipfs_path2, &local_node2);
+	ipfs_import_file(NULL, "hello.txt", &node, local_node2, &bytes_written, 0);
+	ipfs_node_free(local_node2);
+
     // create my peer, peer 3
-	ipfs_path = "/tmp/test3";
-	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
 	libp2p_utils_vector_add(ma_vector, ma_peer1);
-	drop_and_build_repository(ipfs_path, 4003, ma_vector, &peer_id_3);
+	drop_and_build_repository(ipfs_path3, 4003, ma_vector, &peer_id_3);
+	// start the daemon in a separate thread
+	if (pthread_create(&thread3, NULL, test_daemon_start, (void*)ipfs_path3) < 0)
+		goto exit;
+	thread3_started = 1;
 
-	ipfs_repo_fsrepo_new(ipfs_path, NULL, &fs_repo);
-	ipfs_repo_fsrepo_open(fs_repo);
+	sleep(3);
 
-	// We know peer 1, try to find peer 2
-    local_node.mode = MODE_ONLINE;
-    local_node.peerstore = libp2p_peerstore_new(fs_repo->config->identity->peer);
-    local_node.providerstore = NULL;
-    local_node.repo = fs_repo;
-    local_node.identity = fs_repo->config->identity;
-    local_node.routing = ipfs_routing_new_online(&local_node, &fs_repo->config->identity->private_key);
+	ipfs_node_offline_new(ipfs_path3, &local_node3);
 
-    local_node.routing->Bootstrap(local_node.routing);
-
-    if (!local_node.routing->FindPeer(local_node.routing, (unsigned char*)peer_id_2, strlen(peer_id_2), &result)) {
-    	fprintf(stderr, "Unable to find peer %s by asking %s\n", peer_id_2, peer_id_1);
-    	goto exit;
+    if (!local_node3->routing->FindProviders(local_node->routing, (unsigned char*)peer_id_2, strlen(peer_id_2), &peers)) {
+    		fprintf(stderr, "Unable to find peer %s by asking %s\n", peer_id_2, peer_id_1);
+    		goto exit;
     }
 
 	if (result == NULL) {
@@ -199,10 +269,8 @@ int test_routing_find_peer() {
 		libp2p_utils_vector_free(ma_vector);
 	if (node != NULL)
 		ipfs_hashtable_node_free(node);
-	if (local_node.peerstore != NULL)
-		libp2p_peerstore_free(local_node.peerstore);
-	if (local_node.routing != NULL)
-		ipfs_routing_online_free(local_node.routing);
+	if (local_node != NULL)
+		ipfs_node_free(local_node);
 	if (result != NULL)
 		libp2p_peer_free(result);
 
@@ -212,51 +280,46 @@ int test_routing_find_peer() {
 
 int test_routing_find_providers() {
 	int retVal = 0;
-	// clean out repository
-	char* ipfs_path = "/tmp/test1";
-	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
+	char* ipfs_path1 = "/tmp/ipfs_1";
+	char* ipfs_path2 = "/tmp/ipfs_2";
+	char* ipfs_path3 = "/tmp/ipfs_3";
 	char* peer_id_1 = NULL;
 	char* peer_id_2 = NULL;
-	struct IpfsNode *local_node2 = NULL;;
 	char* peer_id_3 = NULL;
+	//struct IpfsNode *local_node1 = NULL;
+	struct IpfsNode *local_node2 = NULL;
+	struct IpfsNode *local_node3 = NULL;
 	char* remote_peer_id = NULL;
 	pthread_t thread1, thread2;
 	int thread1_started = 0, thread2_started = 0;
 	struct MultiAddress* ma_peer1 = NULL;
 	struct Libp2pVector* ma_vector2 = NULL, *ma_vector3 = NULL;
-    struct IpfsNode local_node;
     struct FSRepo* fs_repo = NULL;
     struct HashtableNode* node = NULL;
     struct Libp2pVector* result = NULL;
 
 	// create peer 1
-	drop_and_build_repository(ipfs_path, 4001, NULL, &peer_id_1);
+	drop_and_build_repository(ipfs_path1, 4001, NULL, &peer_id_1);
 	char multiaddress_string[255];
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path1) < 0) {
 		fprintf(stderr, "Unable to start thread 1\n");
 		goto exit;
 	}
 	thread1_started = 1;
 
+	sleep(3);
+
 	// create peer 2
-	ipfs_path = "/tmp/test2";
-	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
 	// create a vector to hold peer1's multiaddress so we can connect as a peer
 	ma_vector2 = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(ma_vector2, ma_peer1);
 	// note: this destroys some things, as it frees the fs_repo:
-	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
-	// add a file, to prime the connection to peer 1
-	//TODO: Find a better way to do this...
-	size_t bytes_written = 0;
-	ipfs_node_online_new(ipfs_path, &local_node2);
-	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
-	ipfs_node_free(local_node2);
+	drop_and_build_repository(ipfs_path2, 4002, ma_vector2, &peer_id_2);
 	// start the daemon in a separate thread
-	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path2) < 0) {
 		fprintf(stderr, "Unable to start thread 2\n");
 		goto exit;
 	}
@@ -266,30 +329,23 @@ int test_routing_find_providers() {
     // JMJ debugging =
     sleep(3);
 
-    // create my peer, peer 3
-	ipfs_path = "/tmp/test3";
-	os_utils_setenv("IPFS_PATH", ipfs_path, 1);
+	// add a file, to prime the connection to peer 1
+	size_t bytes_written = 0;
+	ipfs_node_offline_new(ipfs_path2, &local_node2);
+	ipfs_import_file(NULL, "/home/parallels/ipfstest/hello_world.txt", &node, local_node2, &bytes_written, 0);
+	ipfs_node_free(local_node2);
+
+	// create my peer, peer 3
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	ma_vector3 = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(ma_vector3, ma_peer1);
-	drop_and_build_repository(ipfs_path, 4003, ma_vector3, &peer_id_3);
+	drop_and_build_repository(ipfs_path3, 4003, ma_vector3, &peer_id_3);
 
-	ipfs_repo_fsrepo_new(ipfs_path, NULL, &fs_repo);
-	ipfs_repo_fsrepo_open(fs_repo);
+	ipfs_node_offline_new(ipfs_path3, &local_node3);
 
-	// We know peer 1, try to find peer 2
-    local_node.mode = MODE_ONLINE;
-    local_node.peerstore = libp2p_peerstore_new(fs_repo->config->identity->peer);
-    local_node.providerstore = libp2p_providerstore_new(fs_repo->config->datastore, fs_repo->config->identity->peer);
-    local_node.repo = fs_repo;
-    local_node.identity = fs_repo->config->identity;
-    local_node.routing = ipfs_routing_new_online(&local_node, &fs_repo->config->identity->private_key);
-
-    local_node.routing->Bootstrap(local_node.routing);
-
-    if (!local_node.routing->FindProviders(local_node.routing, node->hash, node->hash_size, &result)) {
-    	fprintf(stderr, "Unable to find a provider\n");
-    	goto exit;
+    if (!local_node3->routing->FindProviders(local_node3->routing, node->hash, node->hash_size, &result)) {
+    		fprintf(stderr, "Unable to find a provider\n");
+    		goto exit;
     }
 
 	if (result == NULL) {
@@ -301,7 +357,8 @@ int test_routing_find_providers() {
 	struct Libp2pPeer *remote_peer = NULL;
 	for(int i = 0; i < result->total; i++) {
 		remote_peer = (struct Libp2pPeer*)libp2p_utils_vector_get(result, i);
-		if (remote_peer->connection_type == CONNECTION_TYPE_CONNECTED || libp2p_peer_connect(&local_node.identity->private_key, remote_peer, local_node.peerstore, local_node.repo->config->datastore, 5)) {
+		if (remote_peer->connection_type == CONNECTION_TYPE_CONNECTED
+				|| libp2p_peer_connect(&local_node3->identity->private_key, remote_peer, local_node3->peerstore, local_node3->repo->config->datastore, 5)) {
 			break;
 		}
 		remote_peer = NULL;
@@ -340,13 +397,8 @@ int test_routing_find_providers() {
 	if (ma_vector3 != NULL) {
 		libp2p_utils_vector_free(ma_vector3);
 	}
-	if (local_node.providerstore != NULL)
-		libp2p_providerstore_free(local_node.providerstore);
-	if (local_node.peerstore != NULL) {
-		libp2p_peerstore_free(local_node.peerstore);
-	}
-	if (local_node.routing != NULL) {
-		ipfs_routing_online_free(local_node.routing);
+	if (local_node3 != NULL) {
+		ipfs_node_free(local_node3);
 	}
 	if (node != NULL)
 		ipfs_hashtable_node_free(node);
@@ -472,6 +524,7 @@ int test_routing_retrieve_file_third_party() {
 	libp2p_logger_add_class("peer");
 	libp2p_logger_add_class("test_routing");
 	libp2p_logger_add_class("api");
+	libp2p_logger_add_class("secio");
 
 	// clean out repository
 
@@ -481,7 +534,7 @@ int test_routing_retrieve_file_third_party() {
 	sprintf(multiaddress_string, "/ip4/127.0.0.1/tcp/4001/ipfs/%s", peer_id_1);
 	ma_peer1 = multiaddress_new_from_string(multiaddress_string);
 	// start the daemon in a separate thread
-	libp2p_logger_debug("test_routing", "Firing up daemon 1.\n");
+	libp2p_logger_debug("test_routing", "Firing up daemon 1, our central server. Named: %s.\n", peer_id_1);
 	if (pthread_create(&thread1, NULL, test_daemon_start, (void*)ipfs_path_1) < 0) {
 		libp2p_logger_error("test_routing", "Unable to start thread 1\n");
 		goto exit;
@@ -496,7 +549,7 @@ int test_routing_retrieve_file_third_party() {
 	drop_and_build_repository(ipfs_path_2, 4002, ma_vector2, &peer_id_2);
 	multiaddress_free(ma_peer1);
 	// start the daemon in a separate thread
-	libp2p_logger_debug("test_routing", "Firing up daemon 2.\n");
+	libp2p_logger_debug("test_routing", "Firing up daemon 2, which will host the file. Named %s.\n", peer_id_2);
 	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path_2) < 0) {
 		libp2p_logger_error("test_routing", "Unable to start thread 2.\n");
 		goto exit;
@@ -515,7 +568,7 @@ int test_routing_retrieve_file_third_party() {
 	ipfs_import_file(NULL, filename, &node, ipfs_node2, &bytes_written, 0);
 	memset(hash, 0, 256);
 	ipfs_cid_hash_to_base58(node->hash, node->hash_size, (unsigned char*)hash, 256);
-	libp2p_logger_debug("test_routing", "Inserted file with hash %s.\n", hash);
+	libp2p_logger_debug("test_routing", "Inserted file with hash %s into server %s.\n", hash, peer_id_2);
 	ipfs_node_free(ipfs_node2);
 
     // wait for everything to start up
@@ -527,7 +580,7 @@ int test_routing_retrieve_file_third_party() {
 	libp2p_utils_vector_add(ma_vector3, ma_peer1);
 	drop_and_build_repository(ipfs_path_3, 4003, ma_vector3, &peer_id_3);
 	multiaddress_free(ma_peer1);
-	libp2p_logger_debug("test_routing", "Firing up daemon 3.\n");
+	libp2p_logger_debug("test_routing", "Firing up daemon 3, which is our leech. Named: %s.\n", peer_id_3);
 	if (pthread_create(&thread3, NULL, test_daemon_start, (void*)ipfs_path_3) < 0) {
 		libp2p_logger_error("test_routing", "Unable to start thread 3.\n");
 		goto exit;
@@ -539,7 +592,7 @@ int test_routing_retrieve_file_third_party() {
 	//now have peer 3 ask for a file that is on peer 2, but peer 3 only knows of peer 1
 	ipfs_node_offline_new(ipfs_path_3, &ipfs_node3);
 
-	libp2p_logger_debug("test_routing", "Attempting to look for %s.\n", hash);
+	libp2p_logger_debug("test_routing", "Client of daemon 3 will now attempt to look for %s.\n", hash);
 
     if (!ipfs_exporter_get_node(ipfs_node3, node->hash, node->hash_size, &result_node)) {
     		libp2p_logger_error("test_routing", "Get_Node returned false\n");

@@ -429,6 +429,7 @@ int fs_repo_open_config(struct FSRepo* repo) {
 	swarm_pos++;
 	repo->config->addresses->swarm_head = NULL;
 	struct Libp2pLinkedList* last = NULL;
+	struct Libp2pLinkedList* current_ma_pos = repo->config->identity->peer->addr_head;
 	for(int i = 0; i < swarm_size; i++) {
 		struct Libp2pLinkedList* current = libp2p_utils_linked_list_new();
 		if (!_get_json_string_value(data, tokens, num_tokens, swarm_pos + i, NULL, (char**)&current->item))
@@ -439,6 +440,19 @@ int fs_repo_open_config(struct FSRepo* repo) {
 			last->next = current;
 		}
 		last = current;
+		// add current to peer too
+		struct MultiAddress* ma = multiaddress_new_from_string(current->item);
+		if (ma != NULL) {
+			if (current_ma_pos == NULL) {
+				repo->config->identity->peer->addr_head = libp2p_utils_linked_list_new();
+				current_ma_pos = repo->config->identity->peer->addr_head;
+			} else {
+				struct Libp2pLinkedList* next_ma_pos = libp2p_utils_linked_list_new();
+				current_ma_pos->next = next_ma_pos;
+				current_ma_pos = next_ma_pos;
+			}
+			current_ma_pos->item = ma;
+		}
 	}
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "API", &repo->config->addresses->api);
 	_get_json_string_value(data, tokens, num_tokens, curr_pos, "Gateway", &repo->config->addresses->gateway);

@@ -160,8 +160,11 @@ int repo_fsrepo_lmdb_get(const unsigned char* key, size_t key_size, struct Datas
  */
 int lmdb_datastore_create_transaction(struct lmdb_context *db_context, MDB_txn **mdb_txn) {
 	// open transaction
-	if (mdb_txn_begin(db_context->db_environment, db_context->current_transaction, 0, mdb_txn) != 0)
+	int retVal = mdb_txn_begin(db_context->db_environment, db_context->current_transaction, 0, mdb_txn);
+	if (retVal != 0) {
+		libp2p_logger_error("lmdb_datastore", "Unable to create transaction. Error code %d.\n", retVal);
 		return 0;
+	}
 	return 1;
 }
 
