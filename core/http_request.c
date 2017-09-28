@@ -448,6 +448,8 @@ int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* 
 			res = -1;
 	} else {
 		libp2p_logger_error("http_request", "Results of [%s] returned failure. Return value: %d.\n", url, res);
+		if (s.ptr != NULL)
+			free(s.ptr);
 	}
 	return res == CURLE_OK;
 }

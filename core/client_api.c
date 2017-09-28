@@ -28,16 +28,21 @@ int api_running(struct IpfsNode* local_node) {
 	portno = multiaddress_get_ip_port(my_multiaddress);
 	multiaddress_get_ip_address(my_multiaddress, &ip);
 
+	if (ip == NULL)
+		return 0;
+
 	int sockfd;
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
+		free(ip);
 		return 0;
 	}
 
     server = gethostbyname(ip);
+    free(ip);
 
 	if (server == NULL) {
 		return 0;
