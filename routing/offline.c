@@ -70,8 +70,10 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
 		libp2p_utils_vector_add(req->arguments, buffer);
 		if (!ipfs_core_http_request_get(routing->local_node, req, &response)) {
 			libp2p_logger_error("offline", "Unable to call API for dht get.\n");
+			ipfs_core_http_request_free(req);
 			return 0;
 		}
+		ipfs_core_http_request_free(req);
 		*vlen = strlen(response);
 		if (*vlen > 0) {
 			*val = malloc(*vlen + 1);
@@ -142,12 +144,13 @@ int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, const unsigned c
 		struct HttpRequest* request = ipfs_core_http_request_new();
 		request->command = "dht";
 		request->sub_command = "provide";
-		request->arguments = libp2p_utils_vector_new(1);
 		libp2p_utils_vector_add(request->arguments, buffer);
 		if (!ipfs_core_http_request_get(offlineRouting->local_node, request, &response)) {
 			libp2p_logger_error("offline", "Unable to call API for dht publish.\n");
+			ipfs_core_http_request_free(request);
 			return 0;
 		}
+		ipfs_core_http_request_free(request);
 		fprintf(stdout, "%s", response);
 		return 1;
 	} else {

@@ -48,10 +48,9 @@ void ipfs_core_http_request_free(struct HttpRequest* request) {
 			libp2p_utils_vector_free(request->params);
 		}
 		if (request->arguments != NULL) {
-			// arguments should not be dynamically allocated
-			//for(int i = 0; i < request->arguments->total; i++) {
-			//	free((char*)libp2p_utils_vector_get(request->arguments, i));
-			//}
+			for(int i = 0; i < request->arguments->total; i++) {
+				free((char*)libp2p_utils_vector_get(request->arguments, i));
+			}
 			libp2p_utils_vector_free(request->arguments);
 		}
 		free(request);
@@ -178,13 +177,18 @@ int ipfs_core_http_process_dht_provide(struct IpfsNode* local_node, struct HttpR
 		char* hash = (char*)libp2p_utils_vector_get(request->arguments, i);
 		struct Cid* cid;
 		if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid)) {
+			ipfs_cid_free(cid);
+			cid = NULL;
 			failedCount++;
 			continue;
 		}
 		if (!local_node->routing->Provide(local_node->routing, cid->hash, cid->hash_length)) {
+			ipfs_cid_free(cid);
+			cid = NULL;
 			failedCount++;
 			continue;
 		}
+		ipfs_cid_free(cid);
 	}
 	*response = ipfs_core_http_response_new();
 	struct HttpResponse* res = *response;
@@ -241,13 +245,18 @@ int ipfs_core_http_process_dht_get(struct IpfsNode* local_node, struct HttpReque
 		char* hash = (char*)libp2p_utils_vector_get(request->arguments, i);
 		struct Cid* cid;
 		if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid)) {
+			ipfs_cid_free(cid);
+			cid = NULL;
 			failedCount++;
 			continue;
 		}
 		if (!local_node->routing->GetValue(local_node->routing, cid->hash, cid->hash_length, (void**)&res->bytes, &res->bytes_size)) {
+			ipfs_cid_free(cid);
+			cid = NULL;
 			failedCount++;
 			continue;
 		}
+		ipfs_cid_free(cid);
 		//TODO: we need to handle multiple arguments
 	}
 	return failedCount < request->arguments->total;

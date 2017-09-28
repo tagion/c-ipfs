@@ -28,6 +28,8 @@ int api_running(struct IpfsNode* local_node) {
 	portno = multiaddress_get_ip_port(my_multiaddress);
 	multiaddress_get_ip_address(my_multiaddress, &ip);
 
+	multiaddress_free(my_multiaddress);
+
 	if (ip == NULL)
 		return 0;
 

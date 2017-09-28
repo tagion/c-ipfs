@@ -511,7 +511,7 @@ void *api_connection_thread (void *ptr)
 					// 404
 					write_str(s, HTTP_404);
 				} else {
-					snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
+					snprintf(resp, MAX_READ+1, "%s 200 OK\r\n" \
 						"Content-Type: %s\r\n"
 						"Server: c-ipfs/0.0.0-dev\r\n"
 						"X-Chunked-Output: 1\r\n"
@@ -522,11 +522,11 @@ void *api_connection_thread (void *ptr)
 						"%s\r\n"
 						"0\r\n\r\n"
 						,req.buf + req.http_ver, http_response->content_type, (unsigned int)http_response->bytes_size, http_response->bytes);
-					ipfs_core_http_response_free(http_response);
 					write_str (s, resp);
 					libp2p_logger_debug("api", "resp = {\n%s\n}\n", resp);
 				}
 				ipfs_core_http_request_free(http_request);
+				ipfs_core_http_response_free(http_response);
 			} else {
 				// uh oh... something went wrong converting to the HttpRequest struct
 				libp2p_logger_error("api", "Unable to build HttpRequest struct.\n");
@@ -686,6 +686,8 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 	}
 
 	local_node->api_context->ipv4 = hostname_to_ip(ip); // api is listening only on loopback.
+	if (ip != NULL)
+		free(ip);
 	local_node->api_context->port = port;
 
 	if ((s = socket_listen(socket_tcp4(), &(local_node->api_context->ipv4), &(local_node->api_context->port))) <= 0) {

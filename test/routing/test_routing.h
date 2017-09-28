@@ -257,6 +257,8 @@ int test_routing_find_peer() {
 		pthread_join(thread1, NULL);
 	if (thread2_started)
 		pthread_join(thread2, NULL);
+	if (thread3_started)
+		pthread_join(thread3, NULL);
 	if (peer_id_1 != NULL)
 		free(peer_id_1);
 	if (peer_id_2 != NULL)
