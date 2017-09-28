@@ -72,9 +72,17 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
 			libp2p_logger_error("offline", "Unable to call API for dht get.\n");
 			return 0;
 		}
-		//TODO: put results in val
-		fprintf(stdout, "%s", response);
-		return 1;
+		*vlen = strlen(response);
+		if (*vlen > 0) {
+			*val = malloc(*vlen + 1);
+			uint8_t* ptr = (uint8_t*)*val;
+			if (ptr == NULL) {
+				return 0;
+			}
+			memcpy(ptr, response, *vlen);
+			ptr[*vlen] = 0;
+			retVal = 1;
+		}
 	} else {
 	    struct HashtableNode* node = NULL;
 	    *val = NULL;

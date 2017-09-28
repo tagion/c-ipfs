@@ -373,6 +373,9 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 	struct Libp2pVector *peers = NULL;
 	int retVal = 0;
 
+	// just to be sure
+	*buffer_size = 0;
+
 	// find a provider
 	routing->FindProviders(routing, key, key_size, &peers);
 	if (peers == NULL) {
@@ -423,6 +426,8 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 				}
 			}
 		}
+		if (buffer_size == 0)
+			goto exit;
 	}
 
 	retVal = 1;

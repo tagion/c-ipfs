@@ -63,6 +63,7 @@ struct HttpResponse* ipfs_core_http_response_new() {
 	if (response != NULL) {
 		response->content_type = NULL;
 		response->bytes = NULL;
+		response->bytes_size = 0;
 	}
 	return response;
 }
