@@ -60,6 +60,8 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
 			return 0;
 		}
 
+		libp2p_logger_debug("offline", "Attempting to ask API for dht get %s.\n", buffer);
+
 		char* response;
 		struct HttpRequest* req = ipfs_core_http_request_new();
 		req->command = "dht";
@@ -140,6 +142,8 @@ int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, const unsigned c
 		}
 		fprintf(stdout, "%s", response);
 		return 1;
+	} else {
+		libp2p_logger_debug("offline", "Unable to announce that I can provide the hash, as API not available.\n");
 	}
 
     return 0;

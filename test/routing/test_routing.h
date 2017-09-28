@@ -462,6 +462,7 @@ int test_routing_retrieve_file_third_party() {
 	char hash[256] = "";
 
 	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("offline");
 	libp2p_logger_add_class("multistream");
 	libp2p_logger_add_class("null");
 	libp2p_logger_add_class("dht_protocol");
@@ -470,6 +471,7 @@ int test_routing_retrieve_file_third_party() {
 	libp2p_logger_add_class("exporter");
 	libp2p_logger_add_class("peer");
 	libp2p_logger_add_class("test_routing");
+	libp2p_logger_add_class("api");
 
 	// clean out repository
 
@@ -486,9 +488,6 @@ int test_routing_retrieve_file_third_party() {
 	}
 	thread1_started = 1;
 
-    // wait for everything to start up
-    sleep(3);
-
     // create peer 2, that will host the file
 	// create a vector to hold peer1's multiaddress so we can connect as a peer
 	ma_vector2 = libp2p_utils_vector_new(1);
@@ -504,6 +503,9 @@ int test_routing_retrieve_file_third_party() {
 	}
 	thread2_started = 1;
 
+    // wait for everything to start up
+    sleep(3);
+
 	//TODO: add a file to server 2
 	uint8_t *bytes = (unsigned char*)"hello, world!\n";
 	char* filename = "test1.txt";
@@ -513,7 +515,7 @@ int test_routing_retrieve_file_third_party() {
 	ipfs_import_file(NULL, filename, &node, ipfs_node2, &bytes_written, 0);
 	memset(hash, 0, 256);
 	ipfs_cid_hash_to_base58(node->hash, node->hash_size, (unsigned char*)hash, 256);
-	libp2p_logger_debug("test_api", "Inserted file with hash %s.\n", hash);
+	libp2p_logger_debug("test_routing", "Inserted file with hash %s.\n", hash);
 	ipfs_node_free(ipfs_node2);
 
     // wait for everything to start up
@@ -525,18 +527,22 @@ int test_routing_retrieve_file_third_party() {
 	libp2p_utils_vector_add(ma_vector3, ma_peer1);
 	drop_and_build_repository(ipfs_path_3, 4003, ma_vector3, &peer_id_3);
 	multiaddress_free(ma_peer1);
-	libp2p_logger_debug("test_routing", "Firing up daemon 2.\n");
+	libp2p_logger_debug("test_routing", "Firing up daemon 3.\n");
 	if (pthread_create(&thread3, NULL, test_daemon_start, (void*)ipfs_path_3) < 0) {
 		libp2p_logger_error("test_routing", "Unable to start thread 3.\n");
 		goto exit;
 	}
 	thread3_started = 1;
 
+	sleep(3);
+
 	//now have peer 3 ask for a file that is on peer 2, but peer 3 only knows of peer 1
 	ipfs_node_offline_new(ipfs_path_3, &ipfs_node3);
 
+	libp2p_logger_debug("test_routing", "Attempting to look for %s.\n", hash);
+
     if (!ipfs_exporter_get_node(ipfs_node3, node->hash, node->hash_size, &result_node)) {
-    		fprintf(stderr, "Get_Node returned false\n");
+    		libp2p_logger_error("test_routing", "Get_Node returned false\n");
     		goto exit;
     }
 

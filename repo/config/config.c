@@ -150,10 +150,11 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 	config->addresses->swarm_head->next->item = malloc(strlen(addr1) + 1);
 	strcpy(config->addresses->swarm_head->next->item, addr1);
 
-	strcpy(addr1, "/ip4/127.0.0.1/tcp/5001");
+	int port_adder = swarm_port - 4001;
+	sprintf(addr1, "/ip4/127.0.0.1/tcp/%d", 5001 + port_adder);
 	config->addresses->api = malloc(strlen(addr1)+1);
 	strcpy(config->addresses->api, addr1);
-	strcpy(addr1, "ip4/127.0.0.1/tcp/8080");
+	sprintf(addr1, "/ip4/127.0.0.1/tcp/%d", 8080 + port_adder);
 	config->addresses->gateway = malloc(strlen(addr1+1));
 	strcpy(config->addresses->gateway, addr1);
 	free(addr1);

@@ -76,7 +76,7 @@ int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const
 					struct Libp2pPeer *current_peer = current_provider_peer_list_item->item;
 					// if we can find the peer in the peerstore, use that one instead
 					struct Libp2pPeer* peerstorePeer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (unsigned char*)current_peer->id, current_peer->id_size);
-					if (peerstorePeer != NULL) {
+					if (peerstorePeer == NULL) {
 						// add it to the peerstore
 						libp2p_peerstore_add_peer(routing->local_node->peerstore, current_peer);
 						peerstorePeer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (unsigned char*)current_peer->id, current_peer->id_size);
@@ -118,18 +118,21 @@ int ipfs_routing_online_find_providers(struct IpfsRouting* routing, const unsign
 
 	// see if we can find the key, and retrieve the peer who has it
 	if (!libp2p_providerstore_get(routing->local_node->providerstore, key, key_size, &peer_id, &peer_id_size)) {
-		libp2p_logger_debug("online", "Unable to find provider locally... Asking network\n");
+		libp2p_logger_debug("online", "%s: Unable to find provider locally... Asking network\n", libp2p_peer_id_to_string(routing->local_node->identity->peer));
 		// we need to look remotely
 		return ipfs_routing_online_find_remote_providers(routing, key, key_size, peers);
 	}
 
-	libp2p_logger_debug("online", "FindProviders: Found provider locally. Searching for peer.\n");
+	libp2p_logger_debug("online", "%s: Found provider locally. Searching for peer.\n", libp2p_peer_id_to_string(routing->local_node->identity->peer));
 	// now translate the peer id into a peer to get the multiaddresses
 	peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, peer_id, peer_id_size);
 	free(peer_id);
 	if (peer == NULL) {
+		libp2p_logger_error("online", "find_providers: We said we had the peer, but then we couldn't find it.\n");
 		return 0;
 	}
+
+	libp2p_logger_debug("online", "%s: Found peer %s.\n", libp2p_peer_id_to_string(routing->local_node->identity->peer), libp2p_peer_id_to_string(peer));
 
 	*peers = libp2p_utils_vector_new(1);
 	libp2p_utils_vector_add(*peers, peer);
@@ -383,11 +386,13 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 		struct Libp2pPeer* current_peer = libp2p_peerstore_get_or_add_peer(routing->local_node->peerstore, libp2p_utils_vector_get(peers, i));
 		if (current_peer->is_local) {
 			// it's a local fetch. Retrieve it
+			libp2p_logger_debug("online", "It is a local fetch. Attempting get_value locally.\n");
 			if (ipfs_routing_generic_get_value(routing, key, key_size, buffer, buffer_size) == 0) {
 				retVal = 1;
 				break;
 			}
 		} else if (libp2p_peer_is_connected(current_peer)) {
+			libp2p_logger_debug("online", "It is a remote fetch to a peer that is already connected. Attemping get_peer_value for peer %s.\n", libp2p_peer_id_to_string(current_peer));
 			// ask a connected peer for the file. If unsuccessful, continue in the loop.
 			if (ipfs_routing_online_get_peer_value(routing, current_peer, key, key_size, buffer, buffer_size)) {
 				retVal = 1;
