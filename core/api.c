@@ -327,6 +327,47 @@ struct HttpRequest* api_build_http_request(struct s_request* req) {
 }
 
 /**
+ * Write bytes into chunks.
+ * @param socket, buffer array, length
+ * @returns 1 when success or 0 if it fails.
+ */
+int api_send_resp_chunks(int fd, void *buf, size_t size)
+{
+	char head[20];
+	size_t s;
+	int l;
+	struct iovec iov[3];
+
+	// will be reused in each write, so defined only once.
+	iov[2].iov_base = "\r\n";
+	iov[2].iov_len = 2;
+
+	while (size > 0) {
+		s = size > MAX_CHUNK ? MAX_CHUNK : size; // write only MAX_CHUNK at once
+		l = snprintf(head, sizeof head, "%x\r\n", (unsigned int)s);
+		if (l <= 0)
+			return 0; // fail at snprintf
+
+		iov[0].iov_base = head;
+		iov[0].iov_len = l; // head length.
+		iov[1].iov_base = buf;
+		iov[1].iov_len = s;
+
+		buf += s;
+		size -= s;
+
+		if (size == 0) { // last chunk
+			iov[2].iov_base = "\r\n0\r\n\r\n";
+			iov[2].iov_len = 7;
+		}
+		libp2p_logger_error("api", "writing chunk block of %d bytes\n", s);
+		if (writev(fd, iov, 3) == -1)
+			return 0; // fail writing.
+	}
+	return 1;
+}
+
+/**
  * Pthread to take care of each client connection.
  * @param ptr an ApiConnectionParam
  * @returns nothing
@@ -518,11 +559,9 @@ void *api_connection_thread (void *ptr)
 						"Connection: close\r\n"
 						"Transfer-Encoding: chunked\r\n"
 						"\r\n"
-						"%x\r\n"
-						"%s\r\n"
-						"0\r\n\r\n"
-						,req.buf + req.http_ver, http_response->content_type, (unsigned int)http_response->bytes_size, http_response->bytes);
+						,req.buf + req.http_ver, http_response->content_type);
 					write_str (s, resp);
+					api_send_resp_chunks(s, http_response->bytes, http_response->bytes_size);
 					libp2p_logger_debug("api", "resp = {\n%s\n}\n", resp);
 				}
 				ipfs_core_http_request_free(http_request);
