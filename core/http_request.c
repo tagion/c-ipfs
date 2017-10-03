@@ -463,3 +463,80 @@ int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* 
 	return res == CURLE_OK;
 }
 
+/**
+ * Do an HTTP Post to the local API
+ * @param local_node the context
+ * @param request the request
+ * @param result the results
+ * @param data the array with post data
+ * @param size the data length
+ * @returns true(1) on success, false(0) on error
+ */
+int ipfs_core_http_request_post(struct IpfsNode* local_node, struct HttpRequest* request, char** result, char *data, size_t size) {
+	if (request == NULL || request->command == NULL || data == NULL)
+		return 0;
+
+	char* url = ipfs_core_http_request_build_url_start(local_node);
+	if (url == NULL)
+		return 0;
+
+	if (!ipfs_core_http_request_add_commands(request, &url)) {
+		free(url);
+		return 0;
+	}
+
+	if (!ipfs_core_http_request_add_parameters(request, &url)) {
+		free(url);
+		return 0;
+	}
+
+	// do the POST using libcurl
+	CURL *curl;
+	CURLcode res;
+	struct curl_string s;
+	s.len = 0;
+	s.ptr = malloc(1);
+	s.ptr[0] = '\0';
+
+	struct curl_httppost *post = NULL, *last = NULL;
+	CURLFORMcode curl_form_ret = curl_formadd(&post,		&last,
+						CURLFORM_COPYNAME,	"filename",
+						CURLFORM_PTRCONTENTS,	data,
+						CURLFORM_CONTENTTYPE,	"application/octet-stream",
+						CURLFORM_FILENAME,	"",
+						CURLFORM_CONTENTSLENGTH,	size,
+						CURLFORM_END);
+
+
+
+	if (CURL_FORMADD_OK != curl_form_ret) {
+		// i'm always getting curl_form_ret == 4 here
+		// it means CURL_FORMADD_UNKNOWN_OPTION
+		// what i'm doing wrong?
+		fprintf(stderr, "curl_form_ret = %d\n", (int)curl_form_ret);
+		return 0;
+	}
+
+	curl = curl_easy_init();
+	if (!curl) {
+		return 0;
+	}
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_cb);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+	curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
+	res = curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
+	if (res == CURLE_OK) {
+		if (strcmp(s.ptr, "404 page not found") != 0)
+			*result = s.ptr;
+		else
+			res = -1;
+	} else {
+		//libp2p_logger_error("http_request", "Results of [%s] returned failure. Return value: %d.\n", url, res);
+		fprintf(stderr, "Results of [%s] returned failure. Return value: %d.\n", url, res);
+		if (s.ptr != NULL)
+			free(s.ptr);
+	}
+	return res == CURLE_OK;
+}

@@ -74,3 +74,14 @@ int ipfs_core_http_request_process(struct IpfsNode* local_node, struct HttpReque
  * @returns true(1) on success, false(0) on error
  */
 int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* request, char** result);
+
+/**
+ * Do an HTTP Post to the local API
+ * @param local_node the context
+ * @param request the request
+ * @param result the results
+ * @param data the array with post data
+ * @param size the data length
+ * @returns true(1) on success, false(0) on error
+ */
+int ipfs_core_http_request_post(struct IpfsNode* local_node, struct HttpRequest* request, char** result, char *data, size_t size);
