@@ -3,6 +3,7 @@
 #include "ipfs/namesys/routing.h"
 #include "ipfs/namesys/pb.h"
 
+/*
 int IpnsEntry_ValidityType_value (char *s)
 {
     int r;
@@ -19,6 +20,7 @@ int IpnsEntry_ValidityType_value (char *s)
 
     return -1; // not found.
 }
+*/
 
 struct ipns_entry* ipfs_namesys_pb_new_ipns_entry ()
 {

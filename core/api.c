@@ -360,7 +360,7 @@ int api_send_resp_chunks(int fd, void *buf, size_t size)
 			iov[2].iov_base = "\r\n0\r\n\r\n";
 			iov[2].iov_len = 7;
 		}
-		libp2p_logger_error("api", "writing chunk block of %d bytes\n", s);
+		libp2p_logger_debug("api", "writing chunk block of %d bytes\n", s);
 		if (writev(fd, iov, 3) == -1)
 			return 0; // fail writing.
 	}

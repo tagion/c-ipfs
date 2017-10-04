@@ -12,6 +12,17 @@ function create_hello_world {
 }
 
 ####
+# Create a binary file
+###
+function create_binary_file {
+	rm hello.bin
+	for byte in `seq 0 256`;
+	do
+		printf "\\$(printf "%o" 0x$byte)" >> hello.bin
+	done
+}
+
+####
 # Checks the return code and displays message if return code is not 0
 # Param $1 name of function
 # Param $2 return code

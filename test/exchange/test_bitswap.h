@@ -492,3 +492,166 @@ int test_bitswap_retrieve_file_third_party() {
 
 }
 
+/***
+ * Attempt to retrieve a file from a known node
+ */
+int test_bitswap_retrieve_file_go_remote() {
+	int retVal = 0;
+	signal(SIGPIPE, SIG_IGN);
+	/***
+	 * This assumes a remote server with the hello_world.txt file already in its database
+	 */
+	int remote_port = 4001;
+	// mac
+	char* remote_peer_id = "QmNgGtj3Dk7RPRFgyp9exmq2WjaUf3gkwhMF1vkmcyXcBD";
+	char* remote_ip = "10.211.55.2";
+	// linux
+	//char* remote_peer_id = "QmRKm1d9kSCRpMFtLYpfhhCQ3DKuSSPJa3qn9wWXfwnWnY";
+	//char* remote_ip = "10.211.55.4";
+	char* hello_world_hash = "QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH";
+
+	/*
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("providerstore");
+	libp2p_logger_add_class("peerstore");
+	libp2p_logger_add_class("exporter");
+	libp2p_logger_add_class("peer");
+	*/
+	libp2p_logger_add_class("test_bitswap");
+	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("multistream");
+	libp2p_logger_add_class("secio");
+	libp2p_logger_add_class("bitswap");
+	libp2p_logger_add_class("bitswap_engine");
+	libp2p_logger_add_class("bitswap_network");
+
+	char* ipfs_path = "/tmp/test1";
+	char peer_ma_1[80] = "", *peer_id_2 = NULL;
+	struct IpfsNode* ipfs_node2 = NULL;
+	struct MultiAddress* ma_peer1 = NULL;
+	struct Libp2pVector* ma_vector2 = NULL;
+	struct Block* result = NULL;
+	struct Cid* cid = NULL;
+
+	// create a MultiAddress of the GO peer (peer 1)
+	sprintf(peer_ma_1, "/ip4/%s/tcp/%d/ipfs/%s", remote_ip, remote_port, remote_peer_id);
+	ma_peer1 = multiaddress_new_from_string(peer_ma_1);
+
+    // create my peer, peer 2
+    libp2p_logger_debug("test_routing", "Firing up the client\n");
+	ipfs_path = "/tmp/test2";
+	ma_vector2 = libp2p_utils_vector_new(1);
+	libp2p_utils_vector_add(ma_vector2, ma_peer1);
+	drop_and_build_repository(ipfs_path, 4002, ma_vector2, &peer_id_2);
+	multiaddress_free(ma_peer1);
+	ipfs_node_online_new(ipfs_path, &ipfs_node2);
+
+    if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hello_world_hash, strlen(hello_world_hash), &cid))
+    		goto exit;
+
+    sleep(3);
+
+    // this does the heavy lifting...
+    if (!ipfs_node2->exchange->GetBlock(ipfs_node2->exchange, cid, &result)) {
+    	libp2p_logger_error("test_bitswap", "GetBlock returned false\n");
+    	goto exit;
+    }
+
+    if (result == NULL) {
+    	libp2p_logger_error("test_bitswap", "GetBlock returned NULL");
+    	goto exit;
+    }
+
+    if (result->cid == NULL) {
+    	libp2p_logger_error("test_bitswap", "GetBlock returned an object with no CID");
+    	goto exit;
+    }
+
+    if (cid->hash_length != result->cid->hash_length) {
+    	libp2p_logger_error("test_bitswap", "Node hash sizes do not match. Should be %lu but is %lu\n", strlen(hello_world_hash), result->cid->hash_length);
+    	goto exit;
+    }
+
+	retVal = 1;
+	exit:
+	if (peer_id_2 != NULL)
+		free(peer_id_2);
+	if (ma_vector2 != NULL) {
+		libp2p_utils_vector_free(ma_vector2);
+	}
+	if (cid != NULL)
+		ipfs_cid_free(cid);
+	ipfs_node_free(ipfs_node2);
+	if (ma_peer1 != NULL)
+		multiaddress_free(ma_peer1);
+	return retVal;
+}
+
+/***
+ * Attempt to retrieve a file from a known node
+ */
+int test_bitswap_serve_file_go_remote() {
+	int retVal = 0;
+	signal(SIGPIPE, SIG_IGN);
+	/***
+	 * This assumes a remote client asking for hello.txt
+	 */
+	// linux
+	//char* remote_peer_id = "QmRKm1d9kSCRpMFtLYpfhhCQ3DKuSSPJa3qn9wWXfwnWnY";
+	//char* remote_ip = "10.211.55.4";
+	//char* hello_world_hash = "QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH";
+
+	/*
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("providerstore");
+	libp2p_logger_add_class("peerstore");
+	libp2p_logger_add_class("exporter");
+	libp2p_logger_add_class("peer");
+	*/
+	libp2p_logger_add_class("test_bitswap");
+	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("multistream");
+	libp2p_logger_add_class("secio");
+	libp2p_logger_add_class("bitswap");
+	libp2p_logger_add_class("bitswap_engine");
+	libp2p_logger_add_class("bitswap_network");
+
+	char* ipfs_path = "/tmp/ipfs_2";
+	char *peer_id_2 = NULL;
+	struct FSRepo* fs_repo;
+	pthread_t thread2;
+
+    // create my peer, peer 2
+    libp2p_logger_debug("test_bitswap", "Firing up the client\n");
+    drop_build_open_repo(ipfs_path, &fs_repo, "config.test2.wo_journal");
+    ipfs_repo_fsrepo_free(fs_repo);
+
+    // add file
+    char* bytes = "Hello, World!";
+    char* filename = "hello.txt";
+    create_file(filename, (unsigned char*)bytes, strlen(bytes));
+    char* argv[] = { "ipfs" , "--config", ipfs_path, "add", filename};
+    struct CliArguments args;
+    args.argc = 5;
+    args.argv = argv;
+    args.config_dir = ipfs_path;
+    args.verb_index = 3;
+    ipfs_import_files(&args);
+
+	if (pthread_create(&thread2, NULL, test_daemon_start, (void*)ipfs_path) < 0) {
+		libp2p_logger_error("test_bitswap", "Unable to start thread 2\n");
+		goto exit;
+	}
+
+    sleep(120);
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (peer_id_2 != NULL)
+		free(peer_id_2);
+	return retVal;
+}
+

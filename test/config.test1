@@ -20,7 +20,7 @@
   "/ip6/::/tcp/4001"
   ],
   "API": "/ip4/127.0.0.1/tcp/5002",
-  "Gateway": "(null)"
+  "Gateway": "/ip4/127.0.0.1/tcp/8080"
  },
   "Mounts": {
   "IPFS": "/ipfs",

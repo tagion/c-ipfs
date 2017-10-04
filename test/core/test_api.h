@@ -144,6 +144,88 @@ int test_core_api_object_cat() {
 	return retVal;
 }
 
+/***
+ * Attempt to get a binary file over the api
+ */
+int test_core_api_object_cat_binary() {
+	int retVal = 0;
+	pthread_t daemon_thread1;
+	int thread_started1 = 0;
+	char* ipfs_path1 = "/tmp/ipfs_1";
+	char* config_file1 = "config.test1.wo_journal";
+	struct FSRepo* fs_repo = NULL;
+	char hash[256] = "";
+	char* args[] = {"ipfs", "--config", ipfs_path1, "cat", hash };
+	struct CliArguments* arguments = NULL;
+
+	// logging
+	libp2p_logger_add_class("test_api");
+	libp2p_logger_add_class("journal");
+	libp2p_logger_add_class("daemon");
+	libp2p_logger_add_class("online");
+	libp2p_logger_add_class("peer");
+	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("replication");
+	libp2p_logger_add_class("fs_repo");
+	libp2p_logger_add_class("lmdb_journalstore");
+	libp2p_logger_add_class("lmdb_datastore");
+	libp2p_logger_add_class("secio");
+	libp2p_logger_add_class("socket");
+	libp2p_logger_add_class("protocol");
+	libp2p_logger_add_class("dht_protocol");
+	libp2p_logger_add_class("resolver");
+	libp2p_logger_add_class("unixfs");
+	libp2p_logger_add_class("bitswap_engine");
+	libp2p_logger_add_class("bitswap_network");
+	libp2p_logger_add_class("exporter");
+
+	// build repo
+	if (!drop_build_open_repo(ipfs_path1, &fs_repo, config_file1)) {
+		ipfs_repo_fsrepo_free(fs_repo);
+		libp2p_logger_error("test_api", "Unable to drop and build repository at %s\n", ipfs_path1);
+		goto exit;
+	}
+	libp2p_logger_debug("test_api", "Changed the server id to %s.\n", fs_repo->config->identity->peer->id);
+	ipfs_repo_fsrepo_free(fs_repo);
+
+	// add a file to the repo
+	uint8_t bytes[256];
+	for(int i = 0; i < 256; i++)
+		bytes[i] = i;
+	char* filename = "test1.txt";
+	create_file(filename, bytes, strlen((char*)bytes));
+	struct HashtableNode* node;
+	size_t bytes_written;
+	struct IpfsNode *local_node = NULL;
+	ipfs_node_offline_new(ipfs_path1, &local_node);
+	ipfs_import_file(NULL, filename, &node, local_node, &bytes_written, 0);
+	memset(hash, 0, 256);
+	ipfs_cid_hash_to_base58(node->hash, node->hash_size, (unsigned char*)hash, 256);
+	libp2p_logger_debug("test_api", "Inserted file with hash %s.\n", hash);
+	ipfs_node_free(local_node);
+	ipfs_hashtable_node_free(node);
+
+	libp2p_logger_debug("test_api", "*** Firing up daemons ***\n");
+	pthread_create(&daemon_thread1, NULL, test_daemon_start, (void*)ipfs_path1);
+	thread_started1 = 1;
+	sleep(3);
+
+	// use a client to ask for the file
+	arguments = cli_arguments_new(5, args);
+	if (ipfs_exporter_object_cat(arguments) == 0) {
+		libp2p_logger_error("test_api", "ipfs_exporter_object_cat returned false.\n");
+		goto exit;
+	}
+
+	retVal = 1;
+	exit:
+	ipfs_daemon_stop();
+	if (thread_started1)
+		pthread_join(daemon_thread1, NULL);
+	cli_arguments_free(arguments);
+	return retVal;
+}
+
 int test_core_api_name_resolve() {
 	int retVal = 0;
 	pthread_t daemon_thread1;
