@@ -394,7 +394,8 @@ void *api_connection_thread (void *ptr)
 	}
 	r = read(s, buf, sizeof buf);
 	if (r <= 0) {
-		libp2p_logger_error("api", "Read from client fail.\n");
+		// this is a common occurrence, so moved from error to debug
+		libp2p_logger_debug("api", "Read from client fail.\n");
 		goto quit;
 	}
 	buf[r] = '\0';

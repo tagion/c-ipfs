@@ -16,9 +16,9 @@ function create_hello_world {
 ###
 function create_binary_file {
 	rm hello.bin
-	for byte in `seq 0 256`;
+	for byte in `seq 0 255`;
 	do
-		printf "\\$(printf "%o" 0x$byte)" >> hello.bin
+		printf "\\$(printf "%o" $byte)" >> hello.bin
 	done
 }
 
@@ -34,4 +34,3 @@ function check_failure() {
 		echo "***Failure*** in $FUNC. The return value was $RESULT";
 	fi
 }
-

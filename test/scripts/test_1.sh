@@ -18,7 +18,8 @@ function pre {
 
 function post {
 	rm -Rf /tmp/ipfs_1;
-#	rm hello.bin;
+	rm hello.bin;
+	rm hello2.bin;
 }
 
 function body {
@@ -31,8 +32,14 @@ function body {
 	daemon_id=$!
 	sleep 5
 	
-	eval "$IPFS" cat QmSsV5T26CnCk3Yt7gtf6Bgyqwe4UtiaLiPbe9uUyr1nHd > hello2.bin
+	eval "$IPFS" cat QmX4zpwaE7CSgZZsULgoB3gXYC6hh7RN19bEfWxw7sL8Xx > hello2.bin
 	check_failure "cat" $?
+	
+	# file size should be 256
+	actualsize=$(wc -c < hello2.bin)
+	if [ $actualsize -ne 256 ]; then
+		echo '*** Failure *** file size incorrect'
+	fi
 	
 	kill -9 $daemon_id
 }
