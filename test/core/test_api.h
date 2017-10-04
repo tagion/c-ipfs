@@ -193,7 +193,7 @@ int test_core_api_object_cat_binary() {
 	for(int i = 0; i < 256; i++)
 		bytes[i] = i;
 	char* filename = "test1.txt";
-	create_file(filename, bytes, strlen((char*)bytes));
+	create_file(filename, bytes, 256);
 	struct HashtableNode* node;
 	size_t bytes_written;
 	struct IpfsNode *local_node = NULL;
