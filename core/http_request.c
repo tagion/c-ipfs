@@ -413,9 +413,10 @@ size_t curl_cb(void* ptr, size_t size, size_t nmemb, struct curl_string* str) {
  * @param local_node the context
  * @param request the request
  * @param result the results
+ * @param result_size the size of the results
  * @returns true(1) on success, false(0) on error
  */
-int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* request, char** result) {
+int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* request, char** result, size_t *result_size) {
 	if (request == NULL || request->command == NULL)
 		return 0;
 
@@ -451,8 +452,10 @@ int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* 
 	res = curl_easy_perform(curl);
 	curl_easy_cleanup(curl);
 	if (res == CURLE_OK) {
-		if (strcmp(s.ptr, "404 page not found") != 0)
+		if (strcmp(s.ptr, "404 page not found") != 0) {
 			*result = s.ptr;
+			*result_size = s.len;
+		}
 		else
 			res = -1;
 	} else {

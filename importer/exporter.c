@@ -290,9 +290,10 @@ int ipfs_exporter_object_cat(struct CliArguments* args) {
 		request->sub_command = "get";
 		request->arguments = libp2p_utils_vector_new(1);
 		libp2p_utils_vector_add(request->arguments, hash);
-		int retVal = ipfs_core_http_request_get(local_node, request, &response);
-		if (response != NULL && strlen(response) > 0) {
-			fprintf(stdout, "%s", response);
+		size_t response_size = 0;
+		int retVal = ipfs_core_http_request_get(local_node, request, &response, &response_size);
+		if (response != NULL && response_size > 0) {
+			fprintf(stdout, response);
 			free(response);
 		} else {
 			retVal = 0;

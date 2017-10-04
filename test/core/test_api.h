@@ -178,6 +178,7 @@ int test_core_api_object_cat_binary() {
 	libp2p_logger_add_class("bitswap_engine");
 	libp2p_logger_add_class("bitswap_network");
 	libp2p_logger_add_class("exporter");
+	libp2p_logger_add_class("api");
 
 	// build repo
 	if (!drop_build_open_repo(ipfs_path1, &fs_repo, config_file1)) {

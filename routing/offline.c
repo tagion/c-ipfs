@@ -68,13 +68,14 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
 		req->sub_command = "get";
 		req->arguments = libp2p_utils_vector_new(1);
 		libp2p_utils_vector_add(req->arguments, buffer);
-		if (!ipfs_core_http_request_get(routing->local_node, req, &response)) {
+		size_t response_size = 0;
+		if (!ipfs_core_http_request_get(routing->local_node, req, &response, &response_size)) {
 			libp2p_logger_error("offline", "Unable to call API for dht get.\n");
 			ipfs_core_http_request_free(req);
 			return 0;
 		}
 		ipfs_core_http_request_free(req);
-		*vlen = strlen(response);
+		*vlen = response_size;
 		if (*vlen > 0) {
 			*val = malloc(*vlen + 1);
 			uint8_t* ptr = (uint8_t*)*val;
@@ -145,13 +146,14 @@ int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, const unsigned c
 		request->command = "dht";
 		request->sub_command = "provide";
 		libp2p_utils_vector_add(request->arguments, buffer);
-		if (!ipfs_core_http_request_get(offlineRouting->local_node, request, &response)) {
+		size_t response_size = 0;
+		if (!ipfs_core_http_request_get(offlineRouting->local_node, request, &response, &response_size)) {
 			libp2p_logger_error("offline", "Unable to call API for dht publish.\n");
 			ipfs_core_http_request_free(request);
 			return 0;
 		}
 		ipfs_core_http_request_free(request);
-		fprintf(stdout, "%s", response);
+		fprintf(stdout, response);
 		return 1;
 	} else {
 		libp2p_logger_debug("offline", "Unable to announce that I can provide the hash, as API not available.\n");
