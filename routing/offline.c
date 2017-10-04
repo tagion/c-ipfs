@@ -153,7 +153,7 @@ int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, const unsigned c
 			return 0;
 		}
 		ipfs_core_http_request_free(request);
-		fprintf(stdout, response);
+		fwrite(response, 1, response_size, stdout);
 		return 1;
 	} else {
 		libp2p_logger_debug("offline", "Unable to announce that I can provide the hash, as API not available.\n");

@@ -23,7 +23,7 @@ int ipfs_name_publish(struct IpfsNode* local_node, char* name) {
 	size_t response_size = 0;
 	int retVal = ipfs_core_http_request_get(local_node, request, &response, &response_size);
 	if (response != NULL && response_size > 0) {
-		fprintf(stdout, response);
+		fwrite(response, 1, response_size, stdout);
 		free(response);
 	}
 	ipfs_core_http_request_free(request);
@@ -42,7 +42,7 @@ int ipfs_name_resolve(struct IpfsNode* local_node, char* name) {
 	size_t response_size = 0;
 	int retVal = ipfs_core_http_request_get(local_node, request, &response, &response_size);
 	if (response != NULL && response_size > 0) {
-		fprintf(stdout, response);
+		fwrite(response, 1, response_size, stdout);
 		free(response);
 	}
 	ipfs_core_http_request_free(request);

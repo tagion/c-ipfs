@@ -1,3 +1,6 @@
+// these two for strdup
+#define _GNU_SOURCE
+#define __USE_GNU
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +11,7 @@
 #include "libp2p/os/utils.h"
 #include "ipfs/cmd/cli.h"
 #include "ipfs/core/ipfs_node.h"
+#include "ipfs/core/http_request.h"
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "ipfs/repo/init.h"
 #include "ipfs/unixfs/unixfs.h"
@@ -386,32 +390,55 @@ int ipfs_import_files(struct CliArguments* args) {
 	}
 	ipfs_node_offline_new(repo_path, &local_node);
 
-
-	// import the file(s)
-	current = first;
-	while (current != NULL) {
-		if (current->file_name[0] != '-') { // not a switch
-			os_utils_split_filename(current->file_name, &path, &filename);
-			size_t bytes_written = 0;
-			if (!ipfs_import_file(NULL, current->file_name, &directory_entry, local_node, &bytes_written, recursive))
-				goto exit;
-			ipfs_import_print_node_results(directory_entry, filename);
-			// cleanup
-			if (path != NULL) {
-				free(path);
-				path = NULL;
-			}
-			if (filename != NULL) {
-				free(filename);
-				filename = NULL;
-			}
-			if (directory_entry != NULL) {
-				ipfs_hashtable_node_free(directory_entry);
-				directory_entry = NULL;
-			}
+	/** disabling for the time being
+	if (local_node->mode == MODE_API_AVAILABLE) {
+		// do this through the API
+		struct HttpRequest* request = ipfs_core_http_request_new();
+		request->command = "add";
+		struct HttpParam* recursive_param = ipfs_core_http_param_new();
+		recursive_param->name = strdup("recursive");
+		recursive_param->value = strdup((recursive ? "true" : "false"));
+		libp2p_utils_vector_add(request->params, recursive_param);
+		current = first;
+		while (current != NULL) {
+			libp2p_utils_vector_add(request->arguments, current->file_name);
+			current = current->next;
 		}
-		current = current->next;
-	}
+		uint8_t* result = NULL;
+		size_t result_size = 0;
+		if (!ipfs_core_http_request_post(local_node, request, &result, &result_size, data, data_size)) {
+
+		}
+
+	} else {
+	*/
+		// No daemon is running. Do this without using the API
+		// import the file(s)
+		current = first;
+		while (current != NULL) {
+			if (current->file_name[0] != '-') { // not a switch
+				os_utils_split_filename(current->file_name, &path, &filename);
+				size_t bytes_written = 0;
+				if (!ipfs_import_file(NULL, current->file_name, &directory_entry, local_node, &bytes_written, recursive))
+					goto exit;
+				ipfs_import_print_node_results(directory_entry, filename);
+				// cleanup
+				if (path != NULL) {
+					free(path);
+					path = NULL;
+				}
+				if (filename != NULL) {
+					free(filename);
+					filename = NULL;
+				}
+				if (directory_entry != NULL) {
+					ipfs_hashtable_node_free(directory_entry);
+					directory_entry = NULL;
+				}
+			}
+			current = current->next;
+		}
+	// } uncomment this line when the api is up and running with file transfer
 
 	retVal = 1;
 	exit:

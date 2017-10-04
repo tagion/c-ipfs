@@ -6,3 +6,4 @@
 ./run_test.sh test_4.sh
 ./run_test.sh test_5.sh
 ./run_test.sh test_6.sh
+./run_test.sh test_7.sh

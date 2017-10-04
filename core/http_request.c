@@ -471,11 +471,12 @@ int ipfs_core_http_request_get(struct IpfsNode* local_node, struct HttpRequest* 
  * @param local_node the context
  * @param request the request
  * @param result the results
+ * @param result_size the size of the results
  * @param data the array with post data
- * @param size the data length
+ * @param data_size the data length
  * @returns true(1) on success, false(0) on error
  */
-int ipfs_core_http_request_post(struct IpfsNode* local_node, struct HttpRequest* request, char** result, char *data, size_t size) {
+int ipfs_core_http_request_post(struct IpfsNode* local_node, struct HttpRequest* request, char** result, size_t* result_size, char *data, size_t data_size) {
 	if (request == NULL || request->command == NULL || data == NULL)
 		return 0;
 
@@ -507,7 +508,7 @@ int ipfs_core_http_request_post(struct IpfsNode* local_node, struct HttpRequest*
 						CURLFORM_PTRCONTENTS,	data,
 						CURLFORM_CONTENTTYPE,	"application/octet-stream",
 						CURLFORM_FILENAME,	"",
-						CURLFORM_CONTENTSLENGTH,	size,
+						CURLFORM_CONTENTSLENGTH,	data_size,
 						CURLFORM_END);
 
 
@@ -531,8 +532,10 @@ int ipfs_core_http_request_post(struct IpfsNode* local_node, struct HttpRequest*
 	res = curl_easy_perform(curl);
 	curl_easy_cleanup(curl);
 	if (res == CURLE_OK) {
-		if (strcmp(s.ptr, "404 page not found") != 0)
+		if (strcmp(s.ptr, "404 page not found") != 0) {
 			*result = s.ptr;
+			*result_size = s.len;
+		}
 		else
 			res = -1;
 	} else {
