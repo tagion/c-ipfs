@@ -390,7 +390,7 @@ int ipfs_routing_online_get_value (ipfs_routing* routing, const unsigned char *k
 		if (current_peer->is_local) {
 			// it's a local fetch. Retrieve it
 			libp2p_logger_debug("online", "It is a local fetch. Attempting get_value locally.\n");
-			if (ipfs_routing_generic_get_value(routing, key, key_size, buffer, buffer_size) == 0) {
+			if (ipfs_routing_generic_get_value(routing, key, key_size, buffer, buffer_size)) {
 				retVal = 1;
 				break;
 			}

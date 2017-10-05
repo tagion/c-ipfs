@@ -31,9 +31,10 @@ int ipfs_exporter_object_get(int argc, char** argv);
  * Called from the command line with ipfs cat [hash]. Retrieves the object pointed to by hash, and displays its block data (links and data elements)
  * @param argc number of arguments
  * @param argv arguments
+ * @param output_file where to stream the results
  * @returns true(1) on success
  */
-int ipfs_exporter_object_cat(struct CliArguments* args);
+int ipfs_exporter_object_cat(struct CliArguments* args, FILE* output_file);
 
 /**
  * Retrieves the object pointed to by hash and displays the raw data

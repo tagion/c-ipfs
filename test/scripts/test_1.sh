@@ -23,7 +23,8 @@ function post {
 }
 
 function body {
-	create_binary_file 512;
+	retVal=0
+	create_binary_file 512000;
 	eval "$IPFS" add hello.bin
 	check_failure_with_exit "add hello.bin" $?
 	
@@ -33,14 +34,15 @@ function body {
 	sleep 5
 	
 	eval "$IPFS" cat QmVGA3bXDJ41xoT621xQNzQgtBMQHj2AYxaunLBJtSoNgg > hello2.bin
-	check_failure_with_exit "cat" $?
+	check_failure "cat" $?
 	
 	# file size should be 512
 	actualsize=$(wc -c < hello2.bin)
 	if [ $actualsize -ne 512 ]; then
 		echo '*** Failure *** file size incorrect'
-		exit 1
+		let retVal=1
 	fi
 	
 	kill -9 $daemon_id
+	exit $retVal
 }

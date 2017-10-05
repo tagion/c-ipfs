@@ -267,7 +267,7 @@ int ipfs_exporter_object_cat_to_file(struct IpfsNode *local_node, unsigned char*
  * @param argv arguments
  * @returns true(1) on success
  */
-int ipfs_exporter_object_cat(struct CliArguments* args) {
+int ipfs_exporter_object_cat(struct CliArguments* args, FILE* output_file) {
 	struct IpfsNode *local_node = NULL;
 	char* repo_dir = NULL;
 
@@ -293,7 +293,7 @@ int ipfs_exporter_object_cat(struct CliArguments* args) {
 		size_t response_size = 0;
 		int retVal = ipfs_core_http_request_get(local_node, request, &response, &response_size);
 		if (response != NULL && response_size > 0) {
-			fwrite(response, 1, response_size, stdout);
+			fwrite(response, 1, response_size, output_file);
 			free(response);
 		} else {
 			retVal = 0;
@@ -308,7 +308,7 @@ int ipfs_exporter_object_cat(struct CliArguments* args) {
 			return 0;
 		}
 
-		int retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, stdout);
+		int retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, output_file);
 		ipfs_cid_free(cid);
 
 		return retVal;
