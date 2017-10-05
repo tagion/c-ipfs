@@ -44,5 +44,5 @@ function body {
 	fi
 	
 	kill -9 $daemon_id
-	exit $retVal
+	return $retVal
 }
