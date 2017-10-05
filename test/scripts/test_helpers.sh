@@ -26,9 +26,9 @@ function create_binary_file {
 		num_bytes=255;
 	fi
 	let num_bytes--
-	for byte in `seq 0 $num_bytes`;
+	for ((byte=0;byte<=$num_bytes;byte++));
 	do
-		remainder=($byte % 255)
+		let remainder=($byte % 255)
 		printf "\\$(printf "%o" $remainder)" >> hello.bin
 	done
 }
