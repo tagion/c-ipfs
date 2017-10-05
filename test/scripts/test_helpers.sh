@@ -1,6 +1,11 @@
 #!/bin/bash
 
 #####
+# global to keep track of failures
+#####
+failure_count=0
+
+#####
 # Functions to help with test scripts
 #####
 
@@ -16,9 +21,15 @@ function create_hello_world {
 ###
 function create_binary_file {
 	rm hello.bin
-	for byte in `seq 0 255`;
+	num_bytes=$1
+	if [ $num_bytes -eq 0 ]; then
+		num_bytes=255;
+	fi
+	let num_bytes--
+	for byte in `seq 0 $num_bytes`;
 	do
-		printf "\\$(printf "%o" $byte)" >> hello.bin
+		remainder=($byte % 255)
+		printf "\\$(printf "%o" $remainder)" >> hello.bin
 	done
 }
 
@@ -33,4 +44,20 @@ function check_failure() {
 	if [ $RESULT -ne 0 ]; then
 		echo "***Failure*** in $FUNC. The return value was $RESULT";
 	fi
+	return $RESULT
+}
+
+####
+# Checks the return code and displays message if return code is not 0
+# Param $1 name of function
+# Param $2 return code
+####
+function check_failure_with_exit() {
+	FUNC=$1;
+	RESULT=$2;
+	if [ $RESULT -ne 0 ]; then
+		echo "***Failure*** in $FUNC. The return value was $RESULT";
+		exit $RESULT
+	fi
+	return $RESULT
 }

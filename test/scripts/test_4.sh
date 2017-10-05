@@ -12,7 +12,7 @@ IPFS="../../main/ipfs --config /tmp/ipfs_1"
 function pre {
 	post
 	eval "$IPFS" init;
-	check_failure "pre" $?
+	check_failure_with_exit "pre" $?
 	cp ../config.test1.wo_journal /tmp/ipfs_1/config
 }
 
@@ -24,7 +24,7 @@ function post {
 function body {
 	create_hello_world;
 	eval "$IPFS" add hello.txt
-	check_failure "add hello.txt" $?
+	check_failure_with_exit "add hello.txt" $?
 	
 	#start the daemon
 	eval "../../main/ipfs --config /tmp/ipfs_1 daemon &"
@@ -32,10 +32,10 @@ function body {
 	sleep 5
 	
 	eval "$IPFS" name publish QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH
-	check_failure "name publish" $?
+	check_failure_with_exit "name publish" $?
 	
 	eval "$IPFS" name resolve /ipns/QmZVoAZGFfinB7MQQiDzB84kWaDPQ95GLuXdemJFM2r9b4
-	check_failure "name resolve" $?
+	check_failure_with_exit "name resolve" $?
 	
 	kill -9 $daemon_id
 }
