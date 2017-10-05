@@ -150,7 +150,8 @@ int ipfs_repo_fsrepo_new(const char* repo_path, struct RepoConfig* config, struc
 	} else {
 		int len = strlen(repo_path) + 1;
 		(*repo)->path = (char*)malloc(len);
-		strncpy((*repo)->path, repo_path, len);
+		if ( (*repo)->path != NULL)
+			strncpy((*repo)->path, repo_path, len);
 	}
 	// allocate other structures
 	if (config != NULL)
@@ -574,10 +575,13 @@ int ipfs_repo_fsrepo_node_get(const unsigned char* hash, size_t hash_length, voi
 	if (retVal == 1) {
 		*node_size = ipfs_hashtable_node_protobuf_encode_size(node);
 		*node_obj = malloc(*node_size);
+		if (*node_obj == NULL) {
+			ipfs_hashtable_node_free(node);
+			return 0;
+		}
 		retVal = ipfs_hashtable_node_protobuf_encode(node, *node_obj, *node_size, node_size);
 	}
-	if (node != NULL)
-		ipfs_hashtable_node_free(node);
+	ipfs_hashtable_node_free(node);
 	return retVal;
 }
 

@@ -41,6 +41,9 @@ void stripit(int argc, char** argv) {
 	char* old_arg = argv[argc];
 	int full_length = strlen(old_arg);
 	char *tmp = (char*) malloc(full_length + 1);
+	if (tmp == NULL) {
+		return;
+	}
 	char* ptr1 = &old_arg[1];
 	strcpy(tmp, ptr1);
 	tmp[strlen(tmp)-1] = 0;

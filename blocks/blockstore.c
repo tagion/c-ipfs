@@ -102,6 +102,8 @@ char* ipfs_blockstore_path_get(const struct FSRepo* fs_repo, const char* filenam
 	}
 	int complete_filename_size = strlen(filepath) + strlen(filename) + 2;
 	char* complete_filename = (char*)malloc(complete_filename_size);
+	if (complete_filename == NULL)
+		return NULL;
 	retVal = os_utils_filepath_join(filepath, filename, complete_filename, complete_filename_size);
 	return complete_filename;
 }

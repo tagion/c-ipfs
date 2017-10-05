@@ -174,6 +174,11 @@ void* ipfs_null_listen (void *ptr)
 				connection_param->local_node = listen_param->local_node;
 				connection_param->port = listen_param->port;
 				connection_param->ip = malloc(INET_ADDRSTRLEN);
+				if (connection_param->ip == NULL) {
+					// we are out of memory
+					free(connection_param);
+					continue;
+				}
 				if (inet_ntop(AF_INET, &(listen_param->ipv4), connection_param->ip, INET_ADDRSTRLEN) == NULL) {
 					free(connection_param->ip);
 					connection_param->ip = NULL;

@@ -29,6 +29,7 @@ enum WireType ipfs_node_link_message_fields[] = { WIRETYPE_LENGTH_DELIMITED, WIR
  * @Param name: The name of the link (char *)
  * @Param size: Size of the link (size_t)
  * @Param ahash: An Qmhash
+ * @returns true(1) on success, false(0) otherwise
  */
 int ipfs_node_link_create(char * name, unsigned char * ahash, size_t hash_size, struct NodeLink** node_link)
 {
@@ -40,12 +41,18 @@ int ipfs_node_link_create(char * name, unsigned char * ahash, size_t hash_size, 
 	// hash
 	link->hash_size = hash_size;
 	link->hash = (unsigned char*)malloc(hash_size);
+	if (link->hash == NULL) {
+		ipfs_node_link_free(link);
+		*node_link = NULL;
+		return 0;
+	}
 	memcpy(link->hash, ahash, hash_size);
 	// name
 	if (name != NULL && strlen(name) > 0) {
 		link->name = malloc(strlen(name) + 1);
 		if ( link->name == NULL) {
-			free(link);
+			ipfs_node_link_free(link);
+			*node_link = NULL;
 			return 0;
 		}
 		strcpy(link->name, name);
@@ -192,6 +199,9 @@ int ipfs_node_link_protobuf_decode(unsigned char* buffer, size_t buffer_length, 
 				}
 				link->hash_size = hash_size - 2;
 				link->hash = (unsigned char*)malloc(link->hash_size);
+				if (link->hash == NULL) {
+					goto exit;
+				}
 				memcpy((char*)link->hash, (char*)&hash[2], link->hash_size);
 				free(hash);
 				pos += bytes_read;
@@ -729,13 +739,18 @@ int Node_Resolve(char ** result, char * input1)
 	char * tr;
 	char * end;
 	tr=strtok_r(input,"/",&end);
+	int retVal = 1;
 	for(int i = 0;tr;i++)
 	{
 		result[i] = (char *) malloc(strlen(tr)+1);
-		strcpy(result[i], tr);
+		if (result[i] != NULL) {
+			strcpy(result[i], tr);
+		} else {
+			retVal = 0;
+		}
 		tr=strtok_r(NULL,"/",&end);
 	}
-	return 1;
+	return retVal;
 }
 
 /*Node_Resolve_Links
@@ -751,6 +766,9 @@ struct Link_Proc * Node_Resolve_Links(struct HashtableNode * N, char * path)
 	}
 	int expected_link_ammount = Node_Resolve_Max_Size(path);
 	struct Link_Proc * LProc = (struct Link_Proc *) malloc(sizeof(struct Link_Proc) + sizeof(struct NodeLink) * expected_link_ammount);
+	if (LProc == NULL) {
+		return NULL;
+	}
 	LProc->ammount = 0;
 	char * linknames[expected_link_ammount];
 	Node_Resolve(linknames, path);
@@ -761,8 +779,10 @@ struct Link_Proc * Node_Resolve_Links(struct HashtableNode * N, char * path)
 		if(proclink)
 		{
 			LProc->links[i] = (struct NodeLink *)malloc(sizeof(struct NodeLink));
-			memcpy(LProc->links[i], proclink, sizeof(struct NodeLink));
-			LProc->ammount++;
+			if (LProc->links[i] == NULL) { // TODO: What should we do if memory wasn't allocated here?
+				memcpy(LProc->links[i], proclink, sizeof(struct NodeLink));
+				LProc->ammount++;
+			}
 			free(proclink);
 		}
 	}

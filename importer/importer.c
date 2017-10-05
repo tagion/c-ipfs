@@ -220,6 +220,12 @@ int ipfs_import_file(const char* root_dir, const char* fileName, struct Hashtabl
 		} else {
 			free(path);
 			path = malloc(strlen(root_dir) + strlen(file) + 2);
+			if (path == NULL) {
+				// memory issue
+				if (file != NULL)
+					free(file);
+				return 0;
+			}
 			os_utils_filepath_join(root_dir, file, path, strlen(root_dir) + strlen(file) + 2);
 			new_root_dir = path;
 		}
@@ -328,6 +334,9 @@ struct FileList* ipfs_import_get_filelist(struct CliArguments* args) {
 			continue;
 		}
 		struct FileList* current = (struct FileList*)malloc(sizeof(struct FileList));
+		if (current == NULL) {
+			return NULL;
+		}
 		current->next = NULL;
 		current->file_name = args->argv[i];
 		// now wire it in

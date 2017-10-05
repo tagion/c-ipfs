@@ -220,6 +220,10 @@ int repo_fsrepo_lmdb_put(struct DatastoreRecord* datastore_record, const struct 
 		journalstore_record = lmdb_journal_record_new();
 		journalstore_record->hash_size = datastore_record->key_size;
 		journalstore_record->hash = malloc(datastore_record->key_size);
+		if (journalstore_record->hash == NULL) {
+			libp2p_logger_error("lmdb_datastore", "put: Unable to allocate memory for key.\n");
+			return 0;
+		}
 		memcpy(journalstore_record->hash, datastore_record->key, datastore_record->key_size);
 		journalstore_record->timestamp = datastore_record->timestamp;
 		// look up the corresponding journalstore record for possible updating
@@ -264,17 +268,23 @@ int repo_fsrepo_lmdb_put(struct DatastoreRecord* datastore_record, const struct 
 			// add it to the journalstore
 			journalstore_record = lmdb_journal_record_new();
 			journalstore_record->hash = (uint8_t*) malloc(datastore_record->key_size);
-			memcpy(journalstore_record->hash, datastore_record->key, datastore_record->key_size);
-			journalstore_record->hash_size = datastore_record->key_size;
-			journalstore_record->timestamp = datastore_record->timestamp;
-			journalstore_record->pending = 1; // TODO: Calculate this correctly
-			journalstore_record->pin = 1;
-			if (!lmdb_journalstore_journal_add(journalstore_cursor, journalstore_record)) {
-				libp2p_logger_error("lmdb_datastore", "Datastore record was added, but problem adding Journalstore record. Continuing.\n");
+			if (journalstore_record->hash == NULL) {
+				libp2p_logger_error("lmdb_datastore", "Unable to allocate memory to add record to journalstore.\n");
+				lmdb_journalstore_cursor_close(journalstore_cursor, 0);
+				lmdb_journal_record_free(journalstore_record);
+			} else {
+				memcpy(journalstore_record->hash, datastore_record->key, datastore_record->key_size);
+				journalstore_record->hash_size = datastore_record->key_size;
+				journalstore_record->timestamp = datastore_record->timestamp;
+				journalstore_record->pending = 1; // TODO: Calculate this correctly
+				journalstore_record->pin = 1;
+				if (!lmdb_journalstore_journal_add(journalstore_cursor, journalstore_record)) {
+					libp2p_logger_error("lmdb_datastore", "Datastore record was added, but problem adding Journalstore record. Continuing.\n");
+				}
+				lmdb_journalstore_cursor_close(journalstore_cursor, 0);
+				lmdb_journal_record_free(journalstore_record);
+				retVal = 1;
 			}
-			lmdb_journalstore_cursor_close(journalstore_cursor, 0);
-			lmdb_journal_record_free(journalstore_record);
-			retVal = 1;
 		}
 	} else {
 		// datastore record was unable to be added.
@@ -321,10 +331,25 @@ int repo_fsrepro_lmdb_open(int argc, char** argv, struct Datastore* datastore) {
 	}
 
 	struct lmdb_context *db_context = (struct lmdb_context *) malloc(sizeof(struct lmdb_context));
+	if (db_context == NULL) {
+		mdb_env_close(mdb_env);
+		return 0;
+	}
 	datastore->datastore_context = (void*) db_context;
 	db_context->db_environment = (void*)mdb_env;
 	db_context->datastore_db = (MDB_dbi*) malloc(sizeof(MDB_dbi));
+	if (db_context->datastore_db == NULL) {
+		mdb_env_close(mdb_env);
+		free(db_context);
+		return 0;
+	}
 	db_context->journal_db = (MDB_dbi*) malloc(sizeof(MDB_dbi));
+	if (db_context->journal_db == NULL) {
+		free(db_context->datastore_db);
+		free(db_context);
+		mdb_env_close(mdb_env);
+		return 0;
+	}
 
 	// open the 2 databases
 	if (mdb_txn_begin(mdb_env, NULL, 0, &db_context->current_transaction) != 0) {

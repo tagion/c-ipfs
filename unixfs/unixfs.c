@@ -139,12 +139,14 @@ int ipfs_unixfs_add_data(unsigned char* data, size_t data_length, struct UnixFS*
 	}
 
 	// debug: display hash
-	size_t b58size = 100;
-	uint8_t *b58key = (uint8_t *) malloc(b58size);
-	if (b58key != NULL) {
-		libp2p_crypto_encoding_base58_encode(unix_fs->hash, unix_fs->hash_length, &b58key, &b58size);
-		libp2p_logger_debug("unixfs", "Saving hash of %s to unixfs object.\n", b58key);
-		free(b58key);
+	if (libp2p_logger_watching_class("unixfs")) {
+		size_t b58size = 100;
+		uint8_t *b58key = (uint8_t *) malloc(b58size);
+		if (b58key != NULL) {
+			libp2p_crypto_encoding_base58_encode(unix_fs->hash, unix_fs->hash_length, &b58key, &b58size);
+			libp2p_logger_debug("unixfs", "Saving hash of %s to unixfs object.\n", b58key);
+			free(b58key);
+		}
 	}
 
 	return 1;
@@ -157,6 +159,9 @@ int ipfs_unixfs_add_blocksize(const struct UnixFSBlockSizeNode* blocksize, struc
 	if (last == NULL) {
 		// we're the first one
 		unix_fs->block_size_head = (struct UnixFSBlockSizeNode*)malloc(sizeof(struct UnixFSBlockSizeNode));
+		if (unix_fs->block_size_head == NULL) {
+			return 0;
+		}
 		unix_fs->block_size_head->block_size = blocksize->block_size;
 		unix_fs->block_size_head->next = NULL;
 	} else {
@@ -165,6 +170,8 @@ int ipfs_unixfs_add_blocksize(const struct UnixFSBlockSizeNode* blocksize, struc
 			last = last->next;
 		}
 		last->next = (struct UnixFSBlockSizeNode*)malloc(sizeof(struct UnixFSBlockSizeNode));
+		if (last->next == NULL)
+			return 0;
 		last->next->block_size = blocksize->block_size;
 		last->next->next = NULL;
 	}

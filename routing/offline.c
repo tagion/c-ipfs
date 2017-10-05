@@ -97,6 +97,8 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
 	    // protobuf the node
 	    int protobuf_size = ipfs_hashtable_node_protobuf_encode_size(node);
 	    *val = malloc(protobuf_size);
+	    if (*val == NULL)
+	    	goto exit;
 
 	    if (ipfs_hashtable_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0) {
 	    		goto exit;

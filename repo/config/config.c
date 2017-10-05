@@ -140,24 +140,34 @@ int ipfs_repo_config_init(struct RepoConfig* config, unsigned int num_bits_for_k
 
 	// swarm addresses
 	char* addr1 = malloc(64);
-	sprintf(addr1, "/ip4/0.0.0.0/tcp/%d", swarm_port);
-	config->addresses->swarm_head = libp2p_utils_linked_list_new();
-	config->addresses->swarm_head->item = malloc(strlen(addr1) + 1);
-	strcpy(config->addresses->swarm_head->item, addr1);
+	if (addr1 != NULL) {
+		sprintf(addr1, "/ip4/0.0.0.0/tcp/%d", swarm_port);
+		config->addresses->swarm_head = libp2p_utils_linked_list_new();
+		if (config->addresses->swarm_head != NULL) {
+			config->addresses->swarm_head->item = malloc(strlen(addr1) + 1);
+			if (config->addresses->swarm_head->item != NULL) {
+				strcpy(config->addresses->swarm_head->item, addr1);
+			}
 
-	sprintf(addr1, "/ip6/::/tcp/%d", swarm_port);
-	config->addresses->swarm_head->next = libp2p_utils_linked_list_new();
-	config->addresses->swarm_head->next->item = malloc(strlen(addr1) + 1);
-	strcpy(config->addresses->swarm_head->next->item, addr1);
-
-	int port_adder = swarm_port - 4001;
-	sprintf(addr1, "/ip4/127.0.0.1/tcp/%d", 5001 + port_adder);
-	config->addresses->api = malloc(strlen(addr1)+1);
-	strcpy(config->addresses->api, addr1);
-	sprintf(addr1, "/ip4/127.0.0.1/tcp/%d", 8080 + port_adder);
-	config->addresses->gateway = malloc(strlen(addr1)+1);
-	strcpy(config->addresses->gateway, addr1);
-	free(addr1);
+			sprintf(addr1, "/ip6/::/tcp/%d", swarm_port);
+			config->addresses->swarm_head->next = libp2p_utils_linked_list_new();
+			if (config->addresses->swarm_head->next != NULL) {
+				config->addresses->swarm_head->next->item = malloc(strlen(addr1) + 1);
+				if (config->addresses->swarm_head->next->item != NULL)
+					strcpy(config->addresses->swarm_head->next->item, addr1);
+			}
+		}
+		int port_adder = swarm_port - 4001;
+		sprintf(addr1, "/ip4/127.0.0.1/tcp/%d", 5001 + port_adder);
+		config->addresses->api = malloc(strlen(addr1)+1);
+		if (config->addresses->api != NULL)
+			strcpy(config->addresses->api, addr1);
+		sprintf(addr1, "/ip4/127.0.0.1/tcp/%d", 8080 + port_adder);
+		config->addresses->gateway = malloc(strlen(addr1)+1);
+		if (config->addresses->gateway != NULL)
+			strcpy(config->addresses->gateway, addr1);
+		free(addr1);
+	}
 
 	config->discovery.mdns.enabled = 1;
 	config->discovery.mdns.interval = 10;

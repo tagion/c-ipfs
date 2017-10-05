@@ -147,6 +147,10 @@ struct Cid* ipfs_cid_copy(const struct Cid* original) {
 		copy->version = original->version;
 		copy->hash_length = original->hash_length;
 		copy->hash = (unsigned char*) malloc(original->hash_length);
+		if (copy->hash == NULL) {
+			ipfs_cid_free(copy);
+			return NULL;
+		}
 		memcpy(copy->hash, original->hash, original->hash_length);
 	}
 	return copy;

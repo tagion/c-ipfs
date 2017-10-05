@@ -50,6 +50,7 @@ int ipfs_routing_kademlia_get_value(struct IpfsRouting* routing, const unsigned 
  * @returns true(1) on success, otherwise false(0)
  */
 int ipfs_routing_kademlia_find_providers(struct IpfsRouting* routing, const unsigned char* key, size_t key_size, struct Libp2pVector** results) {
+	int retVal = 1;
 	*results = libp2p_utils_vector_new(1);
 	struct Libp2pVector* vector = *results;
 	// see if I can provide it
@@ -70,26 +71,30 @@ int ipfs_routing_kademlia_find_providers(struct IpfsRouting* routing, const unsi
 	if (vector->total == 0) {
 		// search requires null terminated key
 		char* key_nt = malloc(key_size + 1);
-		strncpy(key_nt, (char*)key, key_size);
-		key_nt[key_size] = 0;
-		struct MultiAddress** list = search_kademlia(key_nt, 3);
-		free(key_nt);
-		if (list != NULL) {
-			int i = 0;
-			while (list[i] != NULL) {
-				struct MultiAddress* current = list[i];
-				libp2p_utils_vector_add(vector, current);
-				i++;
+		if (key_nt != NULL) {
+			strncpy(key_nt, (char*)key, key_size);
+			key_nt[key_size] = 0;
+			struct MultiAddress** list = search_kademlia(key_nt, 3);
+			free(key_nt);
+			if (list != NULL) {
+				int i = 0;
+				while (list[i] != NULL) {
+					struct MultiAddress* current = list[i];
+					libp2p_utils_vector_add(vector, current);
+					i++;
+				}
 			}
+		} else {
+			retVal = 0;
 		}
 	}
 	if (vector->total == 0) {
 		// we were unable to find it, even on the network
 		libp2p_utils_vector_free(vector);
 		vector = NULL;
-		return 0;
+		retVal = 0;
 	}
-	return 1;
+	return retVal;
 }
 
 /**

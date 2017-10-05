@@ -66,6 +66,10 @@ int ipfs_ping (int argc, char **argv)
 		// perhaps they passed an IP and port
 		if (argc >= 3) {
 			char* str = malloc(strlen(argv[2]) + strlen(argv[3]) + 100);
+			if (str == NULL) {
+				// memory issue
+				goto exit;
+			}
 			sprintf(str, "/ip4/%s/tcp/%s", argv[2], argv[3]);
 			peer_to_ping = libp2p_peer_new();
 			if (peer_to_ping) {

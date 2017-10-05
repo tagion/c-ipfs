@@ -126,6 +126,10 @@ int ipfs_core_http_process_name(struct IpfsNode* local_node, struct HttpRequest*
 			struct HttpResponse* res = *response;
 			res->content_type = "application/json";
 			res->bytes = (uint8_t*) malloc(strlen(local_node->identity->peer->id) + strlen(path) + 30);
+			if (res->bytes == NULL) {
+				free(result);
+				return 0;
+			}
 			sprintf((char*)res->bytes, "{ \"Path\": \"%s\" }", result);
 			res->bytes_size = strlen((char*)res->bytes);
 		}
@@ -137,6 +141,8 @@ int ipfs_core_http_process_name(struct IpfsNode* local_node, struct HttpRequest*
 			struct HttpResponse* res = *response;
 			res->content_type = "application/json";
 			res->bytes = (uint8_t*) malloc(strlen(local_node->identity->peer->id) + strlen(path) + 30);
+			if (res->bytes == NULL)
+				return 0;
 			sprintf((char*)res->bytes, "{ \"Name\": \"%s\"\n \"Value\": \"%s\" }", local_node->identity->peer->id, path);
 			res->bytes_size = strlen((char*)res->bytes);
 		}
@@ -194,40 +200,44 @@ int ipfs_core_http_process_dht_provide(struct IpfsNode* local_node, struct HttpR
 	struct HttpResponse* res = *response;
 	res->content_type = "application/json";
 	res->bytes = (uint8_t*) malloc(1024);
-	if (!failedCount) {
-		// complete success
-		// TODO: do the right thing
-		snprintf((char*)res->bytes, 1024,  "{\n\t\"ID\": \"<string>\"\n" \
-				"\t\"Type\": \"<int>\"\n"
-				"\t\"Responses\": [\n"
-				"\t\t{\n"
-				"\t\t\t\"ID\": \"<string>\"\n"
-				"\t\t\t\"Addrs\": [\n"
-				"\t\t\t\t\"<object>\"\n"
-				"\t\t\t]\n"
-				"\t\t}\n"
-				"\t]\n"
-				"\t\"Extra\": \"<string>\"\n"
-				"}\n"
-				);
+	if (res->bytes == NULL) {
+		res->bytes_size = 0;
 	} else {
-		// at least some failed
-		// TODO: do the right thing
-		snprintf((char*)res->bytes, 1024,  "{\n\t\"ID\": \"<string>\",\n" \
-				"\t\"Type\": \"<int>\",\n"
-				"\t\"Responses\": [\n"
-				"\t\t{\n"
-				"\t\t\t\"ID\": \"<string>\",\n"
-				"\t\t\t\"Addrs\": [\n"
-				"\t\t\t\t\"<object>\"\n"
-				"\t\t\t]\n"
-				"\t\t}\n"
-				"\t],\n"
-				"\t\"Extra\": \"<string>\"\n"
-				"}\n"
-				);
+		if (!failedCount) {
+			// complete success
+			// TODO: do the right thing
+			snprintf((char*)res->bytes, 1024,  "{\n\t\"ID\": \"<string>\"\n" \
+					"\t\"Type\": \"<int>\"\n"
+					"\t\"Responses\": [\n"
+					"\t\t{\n"
+					"\t\t\t\"ID\": \"<string>\"\n"
+					"\t\t\t\"Addrs\": [\n"
+					"\t\t\t\t\"<object>\"\n"
+					"\t\t\t]\n"
+					"\t\t}\n"
+					"\t]\n"
+					"\t\"Extra\": \"<string>\"\n"
+					"}\n"
+					);
+		} else {
+			// at least some failed
+			// TODO: do the right thing
+			snprintf((char*)res->bytes, 1024,  "{\n\t\"ID\": \"<string>\",\n" \
+					"\t\"Type\": \"<int>\",\n"
+					"\t\"Responses\": [\n"
+					"\t\t{\n"
+					"\t\t\t\"ID\": \"<string>\",\n"
+					"\t\t\t\"Addrs\": [\n"
+					"\t\t\t\t\"<object>\"\n"
+					"\t\t\t]\n"
+					"\t\t}\n"
+					"\t],\n"
+					"\t\"Extra\": \"<string>\"\n"
+					"}\n"
+					);
+		}
+		res->bytes_size = strlen((char*)res->bytes);
 	}
-	res->bytes_size = strlen((char*)res->bytes);
 	return failedCount < request->arguments->total;
 }
 
@@ -322,7 +332,9 @@ char* ipfs_core_http_request_build_url_start(struct IpfsNode* local_node) {
 	sprintf(port, "%d", portInt);
 	int len = 18 + strlen(host) + strlen(port);
 	char* retVal = malloc(len);
-	sprintf(retVal, "http://%s:%s/api/v0", host, port);
+	if (retVal != NULL) {
+		sprintf(retVal, "http://%s:%s/api/v0", host, port);
+	}
 	free(host);
 	multiaddress_free(ma);
 	return retVal;
@@ -338,18 +350,20 @@ int ipfs_core_http_request_add_commands(struct HttpRequest* request, char** url)
 	// command
 	int addl_length = strlen(request->command) + 2;
 	char* string1 = (char*) malloc(strlen(*url) + addl_length);
-	sprintf(string1, "%s/%s", *url, request->command);
-	free(*url);
-	*url = string1;
-	// sub_command
-	if (request->sub_command != NULL) {
-		addl_length = strlen(request->sub_command) + 2;
-		string1 = (char*) malloc(strlen(*url) + addl_length);
-		sprintf(string1, "%s/%s", *url, request->sub_command);
+	if (string1 != NULL) {
+		sprintf(string1, "%s/%s", *url, request->command);
 		free(*url);
 		*url = string1;
+		// sub_command
+		if (request->sub_command != NULL) {
+			addl_length = strlen(request->sub_command) + 2;
+			string1 = (char*) malloc(strlen(*url) + addl_length);
+			sprintf(string1, "%s/%s", *url, request->sub_command);
+			free(*url);
+			*url = string1;
+		}
 	}
-	return 1;
+	return string1 != NULL;
 }
 
 /***

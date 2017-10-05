@@ -175,9 +175,19 @@ int ipfs_block_free(struct Block* block) {
  */
 struct Block* ipfs_block_copy(struct Block* original) {
 	struct Block* copy = ipfs_block_new();
-	copy->data_length = original->data_length;
-	copy->data = (unsigned char*) malloc(original->data_length);
-	memcpy(copy->data, original->data, original->data_length);
-	copy->cid = ipfs_cid_copy(original->cid);
+	if (copy != NULL) {
+		copy->data_length = original->data_length;
+		copy->data = (unsigned char*) malloc(original->data_length);
+		if (copy->data == NULL) {
+			ipfs_block_free(copy);
+			return NULL;
+		}
+		memcpy(copy->data, original->data, original->data_length);
+		copy->cid = ipfs_cid_copy(original->cid);
+		if (copy->cid == NULL) {
+			ipfs_block_free(copy);
+			return NULL;
+		}
+	}
 	return copy;
 }
