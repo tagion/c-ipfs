@@ -25,12 +25,7 @@ function create_binary_file {
 	if [ $num_bytes -eq 0 ]; then
 		num_bytes=255;
 	fi
-	let num_bytes--
-	for ((byte=0;byte<=$num_bytes;byte++));
-	do
-		let remainder=($byte % 255)
-		printf "\\$(printf "%o" $remainder)" >> hello.bin
-	done
+	exec ./generate_file hello.bin $num_bytes
 }
 
 ####
