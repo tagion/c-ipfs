@@ -381,8 +381,9 @@ int test_bitswap_retrieve_file_third_party() {
 	libp2p_logger_add_class("providerstore");
 	libp2p_logger_add_class("peerstore");
 	libp2p_logger_add_class("exporter");
-	libp2p_logger_add_class("peer");
 	*/
+	libp2p_logger_add_class("peer");
+	libp2p_logger_add_class("bitswap_network");
 	libp2p_logger_add_class("test_bitswap");
 	libp2p_logger_add_class("null");
 	libp2p_logger_add_class("online");
@@ -398,6 +399,7 @@ int test_bitswap_retrieve_file_third_party() {
 	struct Libp2pVector* ma_vector2 = NULL, *ma_vector3 = NULL;
 	struct HashtableNode* node = NULL;
 	struct Block* result = NULL;
+	struct HashtableNode* result_node = NULL;
 	struct Cid* cid = NULL;
 
 	// create peer 1
@@ -468,7 +470,8 @@ int test_bitswap_retrieve_file_third_party() {
     	goto exit;
     }
 
-    if (node->data_size != result->data_length) {
+    ipfs_merkledag_convert_block_to_node(result, &result_node);
+    if (node->data_size != result_node->data_size) {
     	libp2p_logger_error("test_bitswap", "Result sizes do not match. Should be %lu but is %lu\n", node->data_size, result->data_length);
     	goto exit;
     }
@@ -498,6 +501,8 @@ int test_bitswap_retrieve_file_third_party() {
 		ipfs_hashtable_node_free(node);
 	if (result != NULL)
 		ipfs_block_free(result);
+	if (result_node != NULL)
+		ipfs_hashtable_node_free(result_node);
 	if (cid != NULL)
 		ipfs_cid_free(cid);
 	return retVal;

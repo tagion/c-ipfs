@@ -183,7 +183,7 @@ int ipfs_bitswap_get_block(struct Exchange* exchange, struct Cid* cid, struct Bl
 			// loop waiting for it to fill
 			while(1) {
 				if (want_entry->block != NULL) {
-					*block = want_entry->block;
+					*block = ipfs_block_copy(want_entry->block);
 					// error or not, we no longer need the block (decrement reference count)
 					ipfs_bitswap_want_manager_remove(bitswapContext, cid);
 					if (*block == NULL) {

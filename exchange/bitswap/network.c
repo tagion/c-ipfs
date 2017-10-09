@@ -20,7 +20,7 @@
 int ipfs_bitswap_network_send_message(const struct BitswapContext* context, struct Libp2pPeer* peer, const struct BitswapMessage* message) {
 	libp2p_logger_debug("bitswap_network", "Sending bitswap message to %s.\n", libp2p_peer_id_to_string(peer));
 	// get a connection to the peer
-	if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
+	if (peer->connection_type != CONNECTION_TYPE_CONNECTED || peer->sessionContext == NULL) {
 		libp2p_peer_connect(&context->ipfsNode->identity->private_key, peer, context->ipfsNode->peerstore, context->ipfsNode->repo->config->datastore, 10);
 		if(peer->connection_type != CONNECTION_TYPE_CONNECTED)
 			return 0;
