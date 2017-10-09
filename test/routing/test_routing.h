@@ -30,7 +30,7 @@ int test_routing_put_value() {
 	struct CliArguments* arguments = NULL;
 
 	libp2p_logger_add_class("test_routing");
-
+	libp2p_logger_add_class("api");
 	// fire up the "publisher"
 	if (!drop_and_build_repository(ipfs_path_publisher, 4001, NULL, &peer_id_publisher)) {
 		libp2p_logger_error("test_routing", "Unable to drop and build repository.\n");
@@ -65,8 +65,10 @@ int test_routing_put_value() {
 
 	// see if we have what we should...
 	libp2p_logger_debug("test_routing", "About to ask for the server to resolve the publisher.\n");
-	char* args3[] = {"ipfs", "--config", ipfs_path_publisher, "resolve", peer_id_publisher};
-	arguments = cli_arguments_new(5, args3);
+	char ipns[126];
+	sprintf(ipns, "/ipns/%s", peer_id_publisher);
+	char* args3[] = {"ipfs", "--config", ipfs_path_publisher, "name", "resolve", ipns};
+	arguments = cli_arguments_new(6, args3);
 	if (!ipfs_name(arguments))
 		goto exit;
 
@@ -255,6 +257,8 @@ int test_routing_find_peer() {
 		pthread_join(thread1, NULL);
 	if (thread2_started)
 		pthread_join(thread2, NULL);
+	if (thread3_started)
+		pthread_join(thread3, NULL);
 	if (peer_id_1 != NULL)
 		free(peer_id_1);
 	if (peer_id_2 != NULL)
@@ -513,6 +517,7 @@ int test_routing_retrieve_file_third_party() {
 	char multiaddress_string[255] = "";
 	char hash[256] = "";
 
+	/*
 	libp2p_logger_add_class("online");
 	libp2p_logger_add_class("offline");
 	libp2p_logger_add_class("multistream");
@@ -525,6 +530,7 @@ int test_routing_retrieve_file_third_party() {
 	libp2p_logger_add_class("test_routing");
 	libp2p_logger_add_class("api");
 	libp2p_logger_add_class("secio");
+	*/
 
 	// clean out repository
 

@@ -21,10 +21,12 @@ struct namesys_pb {
 // setting an EOL says "this record is valid until..."
 const static IpnsEntry_ValidityType IpnsEntry_EOL = 0;
 
+/*
 static char *IpnsEntry_ValidityType_name[] = {
     "EOL",
     NULL
 };
+*/
 
 int IpnsEntry_ValidityType_value (char *s);
 struct ipns_entry* ipfs_namesys_pb_new_ipns_entry ();

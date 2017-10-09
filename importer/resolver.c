@@ -28,9 +28,16 @@ int ipfs_resolver_next_path(const char* path, char** next_part) {
 			char* pos = strchr(&path[i+1], '/');
 			if (pos == NULL) {
 				*next_part = (char*)malloc(strlen(path) + 1);
+				if ( *next_part == NULL) {
+					// memory issue
+					return 0;
+				}
 				strcpy(*next_part, path);
 			} else {
 				*next_part = (char*)malloc(pos - &path[i] + 1);
+				if (*next_part == NULL) {
+					return 0;
+				}
 				strncpy(*next_part, &path[i], pos-&path[i]);
 				(*next_part)[pos-&path[i]] = 0;
 			}
@@ -145,9 +152,11 @@ struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct Hashtabl
 	message->key_size = strlen(key);
 	size_t b58size = 100;
 	uint8_t *b58key = (uint8_t *) malloc(b58size);
-	libp2p_crypto_encoding_base58_encode((unsigned char*)message->key, message->key_size, (unsigned char**) &b58key, &b58size);
-	libp2p_logger_debug("resolver", "Attempting to use kademlia to get key %s.\n", b58key);
-	free(b58key);
+	if (b58key == NULL) {
+		libp2p_crypto_encoding_base58_encode((unsigned char*)message->key, message->key_size, (unsigned char**) &b58key, &b58size);
+		libp2p_logger_debug("resolver", "Attempting to use kademlia to get key %s.\n", b58key);
+		free(b58key);
+	}
 	size_t message_protobuf_size = libp2p_message_protobuf_encode_size(message);
 	unsigned char message_protobuf[message_protobuf_size];
 	libp2p_message_protobuf_encode(message, message_protobuf, message_protobuf_size, &message_protobuf_size);

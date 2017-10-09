@@ -101,8 +101,12 @@ int lmdb_journalstore_build_record(const struct MDB_val* db_key, const struct MD
 	}
 	rec->hash_size = db_value->mv_size - 2;
 	rec->hash = malloc(rec->hash_size);
-	uint8_t *val = (uint8_t*)db_value->mv_data;
-	memcpy(rec->hash, &val[2], rec->hash_size);
+	if (rec->hash != NULL) {
+		uint8_t *val = (uint8_t*)db_value->mv_data;
+		memcpy(rec->hash, &val[2], rec->hash_size);
+	} else {
+		return 0;
+	}
 
 	return 1;
 }

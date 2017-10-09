@@ -41,6 +41,9 @@ void stripit(int argc, char** argv) {
 	char* old_arg = argv[argc];
 	int full_length = strlen(old_arg);
 	char *tmp = (char*) malloc(full_length + 1);
+	if (tmp == NULL) {
+		return;
+	}
 	char* ptr1 = &old_arg[1];
 	strcpy(tmp, ptr1);
 	tmp[strlen(tmp)-1] = 0;
@@ -171,7 +174,7 @@ int main(int argc, char** argv) {
 				//ipfs_exporter_get(argc, argv);
 				//break;
 			case (CAT):
-				retVal = ipfs_exporter_object_cat(args);
+				retVal = ipfs_exporter_object_cat(args, stdout);
 				break;
 			case (DNS):
 				retVal = ipfs_dns(argc, argv);

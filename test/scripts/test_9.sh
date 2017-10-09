@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ####
-# Attempt to retrieve large binary file from running daemon
+# Attempt to retrieve binary file from running daemon
 #
 ####
 
@@ -23,8 +23,7 @@ function post {
 }
 
 function body {
-	retVal=0
-	create_binary_file 300000;
+	create_binary_file 256;
 	eval "$IPFS" add hello.bin
 	check_failure_with_exit "add hello.bin" $?
 	
@@ -33,16 +32,14 @@ function body {
 	daemon_id=$!
 	sleep 5
 	
-	eval "$IPFS" cat QmQY3qveNvosAgRhcgVVgkPPLZv4fpWuxhL3pfihzgKtTf > hello2.bin
-	check_failure "cat" $?
+	eval "$IPFS" cat QmX4zpwaE7CSgZZsULgoB3gXYC6hh7RN19bEfWxw7sL8Xx > hello2.bin
+	check_failure_with_exit "cat" $?
 	
-	# file size should be 300000
+	# file size should be 256
 	actualsize=$(wc -c < hello2.bin)
-	if [ $actualsize -ne 300000 ]; then
+	if [ $actualsize -ne 256 ]; then
 		echo '*** Failure *** file size incorrect'
-		let retVal=1
 	fi
 	
 	kill -9 $daemon_id
-	return $retVal
 }

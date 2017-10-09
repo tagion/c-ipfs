@@ -7,8 +7,10 @@
 char* alloc_and_copy(char* source) {
 	unsigned long strLen = strlen(source);
 	char* result = malloc(sizeof(char) * (strLen + 1));
-	strncpy(result, source, strLen);
-	result[strLen] = 0;
+	if (result != NULL) {
+		strncpy(result, source, strLen);
+		result[strLen] = 0;
+	}
 	return result;
 }
 

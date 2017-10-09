@@ -49,6 +49,7 @@ int testit(const char* name, int (*func)(void)) {
 	return retVal == 0;
 }
 
+<<<<<<< HEAD
 int add_test(const char* name, int (*func)(void), int part_of_suite) {
 	// create a new test
 	struct test* t = (struct test*) malloc(sizeof(struct test));
@@ -67,7 +68,83 @@ int add_test(const char* name, int (*func)(void), int part_of_suite) {
 		last_test->next = t;
 	}
 	last_test = t;
+=======
+const char* names[] = {
+		"test_bitswap_new_free",
+		"test_bitswap_peer_request_queue_new",
+		"test_bitswap_retrieve_file",
+		"test_bitswap_retrieve_file_go_remote",
+		"test_bitswap_retrieve_file_known_remote",
+		"test_bitswap_retrieve_file_remote",
+		"test_bitswap_retrieve_file_third_party",
+		"test_bitswap_serve_file_go_remote",
+		"test_cid_new_free",
+		"test_cid_cast_multihash",
+		"test_cid_cast_non_multihash",
+		"test_cid_protobuf_encode_decode",
+		"test_core_api_startup_shutdown",
+		"test_core_api_object_cat",
+		"test_core_api_object_cat_binary",
+		"test_core_api_object_cat_large_binary",
+		"test_core_api_name_resolve",
+		"test_core_api_name_resolve_1",
+		"test_core_api_name_resolve_2",
+		"test_core_api_name_resolve_3",
+		"test_daemon_startup_shutdown",
+		"test_datastore_list_journal",
+		"test_journal_db",
+		"test_journal_encode_decode",
+		"test_journal_server_1",
+		"test_journal_server_2",
+		"test_repo_config_new",
+		"test_repo_config_init",
+		"test_repo_config_write",
+		"test_repo_config_identity_new",
+		"test_repo_config_identity_private_key",
+		"test_repo_fsrepo_write_read_block",
+		"test_repo_fsrepo_build",
+		"test_routing_supernode_start",
+		"test_get_init_command",
+		"test_import_small_file",
+		"test_import_large_file",
+		"test_repo_fsrepo_open_config",
+		"test_flatfs_get_directory",
+		"test_flatfs_get_filename",
+		"test_flatfs_get_full_filename",
+		"test_ds_key_from_binary",
+		"test_blocks_new",
+		"test_repo_bootstrap_peers_init",
+		"test_ipfs_datastore_put",
+		"test_node",
+		"test_node_link_encode_decode",
+		"test_node_encode_decode",
+		"test_node_peerstore",
+		"test_merkledag_add_data",
+		"test_merkledag_get_data",
+		"test_merkledag_add_node",
+		"test_merkledag_add_node_with_links",
+		// 50 below
+		"test_namesys_publisher_publish",
+		"test_namesys_resolver_resolve",
+		"test_resolver_get",
+		"test_routing_find_peer",
+		"test_routing_provide",
+		"test_routing_find_providers",
+		"test_routing_put_value",
+		"test_routing_supernode_get_value",
+		"test_routing_supernode_get_remote_value",
+		"test_routing_retrieve_file_third_party",
+		"test_routing_retrieve_large_file",
+		"test_unixfs_encode_decode",
+		"test_unixfs_encode_smallfile",
+		"test_ping",
+		"test_ping_remote",
+		"test_null_add_provider",
+		"test_resolver_remote_get"
+};
+>>>>>>> branch 'master' of https://github.com/Agorise/c-ipfs
 
+<<<<<<< HEAD
 	if (last_test == NULL)
 		return 0;
 	return last_test->index;
@@ -142,6 +219,81 @@ int build_test_collection() {
 	add_test("test_null_add_provider", test_null_add_provider, 1);
 	return add_test("test_resolver_remote_get", test_resolver_remote_get, 1);
 }
+=======
+int (*funcs[])(void) = {
+		test_bitswap_new_free,
+		test_bitswap_peer_request_queue_new,
+		test_bitswap_retrieve_file,
+		test_bitswap_retrieve_file_go_remote,
+		test_bitswap_retrieve_file_known_remote,
+		test_bitswap_retrieve_file_remote,
+		test_bitswap_retrieve_file_third_party,
+		test_bitswap_serve_file_go_remote,
+		test_cid_new_free,
+		test_cid_cast_multihash,
+		test_cid_cast_non_multihash,
+		test_cid_protobuf_encode_decode,
+		test_core_api_startup_shutdown,
+		test_core_api_object_cat,
+		test_core_api_object_cat_binary,
+		test_core_api_object_cat_large_binary,
+		test_core_api_name_resolve,
+		test_core_api_name_resolve_1,
+		test_core_api_name_resolve_2,
+		test_core_api_name_resolve_3,
+		test_daemon_startup_shutdown,
+		test_datastore_list_journal,
+		test_journal_db,
+		test_journal_encode_decode,
+		test_journal_server_1,
+		test_journal_server_2,
+		test_repo_config_new,
+		test_repo_config_init,
+		test_repo_config_write,
+		test_repo_config_identity_new,
+		test_repo_config_identity_private_key,
+		test_repo_fsrepo_write_read_block,
+		test_repo_fsrepo_build,
+		test_routing_supernode_start,
+		test_get_init_command,
+		test_import_small_file,
+		test_import_large_file,
+		test_repo_fsrepo_open_config,
+		test_flatfs_get_directory,
+		test_flatfs_get_filename,
+		test_flatfs_get_full_filename,
+		test_ds_key_from_binary,
+		test_blocks_new,
+		test_repo_bootstrap_peers_init,
+		test_ipfs_datastore_put,
+		test_node,
+		test_node_link_encode_decode,
+		test_node_encode_decode,
+		test_node_peerstore,
+		test_merkledag_add_data,
+		test_merkledag_get_data,
+		test_merkledag_add_node,
+		test_merkledag_add_node_with_links,
+		// 50 below
+		test_namesys_publisher_publish,
+		test_namesys_resolver_resolve,
+		test_resolver_get,
+		test_routing_find_peer,
+		test_routing_provide,
+		test_routing_find_providers,
+		test_routing_put_value,
+		test_routing_supernode_get_value,
+		test_routing_supernode_get_remote_value,
+		test_routing_retrieve_file_third_party,
+		test_routing_retrieve_large_file,
+		test_unixfs_encode_decode,
+		test_unixfs_encode_smallfile,
+		test_ping,
+		test_ping_remote,
+		test_null_add_provider,
+		test_resolver_remote_get
+};
+>>>>>>> branch 'master' of https://github.com/Agorise/c-ipfs
 
 /**
  * Pull the next test name from the command line

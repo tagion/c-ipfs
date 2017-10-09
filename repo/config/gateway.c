@@ -6,8 +6,10 @@
 
 char* alloc_and_fill(char* source) {
 	char* newString = malloc(sizeof(char) * (strlen(source) + 1));
-	strncpy(newString, source, strlen(source));
-	newString[strlen(source)] = 0;
+	if (newString != NULL) {
+		strncpy(newString, source, strlen(source));
+		newString[strlen(source)] = 0;
+	}
 	return newString;
 }
 

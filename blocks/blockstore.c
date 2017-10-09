@@ -102,6 +102,8 @@ char* ipfs_blockstore_path_get(const struct FSRepo* fs_repo, const char* filenam
 	}
 	int complete_filename_size = strlen(filepath) + strlen(filename) + 2;
 	char* complete_filename = (char*)malloc(complete_filename_size);
+	if (complete_filename == NULL)
+		return NULL;
 	retVal = os_utils_filepath_join(filepath, filename, complete_filename, complete_filename_size);
 	return complete_filename;
 }
@@ -343,10 +345,20 @@ int ipfs_blockstore_get_node(const unsigned char* hash, size_t hash_length, stru
 	size_t bytes_read = fread(buffer, 1, file_size, file);
 	fclose(file);
 
-	int retVal = ipfs_hashtable_node_protobuf_decode(buffer, bytes_read, node);
+	// now we have the block, convert it to a node
+	struct Block* block;
+	if (!ipfs_blocks_block_protobuf_decode(buffer, bytes_read, &block)) {
+		free(key);
+		free(filename);
+		ipfs_block_free(block);
+		return 0;
+	}
+
+	int retVal = ipfs_hashtable_node_protobuf_decode(block->data, block->data_length, node);
 
 	free(key);
 	free(filename);
+	ipfs_block_free(block);
 
 	return retVal;
 }

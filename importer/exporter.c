@@ -36,16 +36,20 @@ int ipfs_exporter_get_node(struct IpfsNode* local_node, const unsigned char* has
 		goto exit;
 	}
 
-	libp2p_logger_debug("exporter", "get_node got a value. Converting it to a HashtableNode\n");
 	// unprotobuf
 	if (!ipfs_hashtable_node_protobuf_decode(buffer, buffer_size, result)) {
-		libp2p_logger_debug("exporter", "Conversion to HashtableNode not successful\n");
+		libp2p_logger_error("exporter", "Conversion to HashtableNode not successful\n");
 		goto exit;
 	}
 
 	// copy in the hash
 	(*result)->hash_size = hash_size;
 	(*result)->hash = malloc(hash_size);
+	if ( (*result)->hash == NULL) {
+		// memory issue
+		libp2p_logger_error("exporter", "get_node: Unable to allocate memory.\n");
+		goto exit;
+	}
 	memcpy((*result)->hash, hash, hash_size);
 
 	retVal = 1;
@@ -267,7 +271,7 @@ int ipfs_exporter_object_cat_to_file(struct IpfsNode *local_node, unsigned char*
  * @param argv arguments
  * @returns true(1) on success
  */
-int ipfs_exporter_object_cat(struct CliArguments* args) {
+int ipfs_exporter_object_cat(struct CliArguments* args, FILE* output_file) {
 	struct IpfsNode *local_node = NULL;
 	char* repo_dir = NULL;
 
@@ -290,9 +294,10 @@ int ipfs_exporter_object_cat(struct CliArguments* args) {
 		request->sub_command = "get";
 		request->arguments = libp2p_utils_vector_new(1);
 		libp2p_utils_vector_add(request->arguments, hash);
-		int retVal = ipfs_core_http_request_get(local_node, request, &response);
-		if (response != NULL && strlen(response) > 0) {
-			fprintf(stdout, "%s", response);
+		size_t response_size = 0;
+		int retVal = ipfs_core_http_request_get(local_node, request, &response, &response_size);
+		if (response != NULL && response_size > 0) {
+			fwrite(response, 1, response_size, output_file);
 			free(response);
 		} else {
 			retVal = 0;
@@ -307,7 +312,7 @@ int ipfs_exporter_object_cat(struct CliArguments* args) {
 			return 0;
 		}
 
-		int retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, stdout);
+		int retVal = ipfs_exporter_object_cat_to_file(local_node, cid->hash, cid->hash_length, output_file);
 		ipfs_cid_free(cid);
 
 		return retVal;

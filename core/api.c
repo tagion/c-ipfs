@@ -327,6 +327,47 @@ struct HttpRequest* api_build_http_request(struct s_request* req) {
 }
 
 /**
+ * Write bytes into chunks.
+ * @param socket, buffer array, length
+ * @returns 1 when success or 0 if it fails.
+ */
+int api_send_resp_chunks(int fd, void *buf, size_t size)
+{
+	char head[20];
+	size_t s;
+	int l;
+	struct iovec iov[3];
+
+	// will be reused in each write, so defined only once.
+	iov[2].iov_base = "\r\n";
+	iov[2].iov_len = 2;
+
+	while (size > 0) {
+		s = size > MAX_CHUNK ? MAX_CHUNK : size; // write only MAX_CHUNK at once
+		l = snprintf(head, sizeof head, "%x\r\n", (unsigned int)s);
+		if (l <= 0)
+			return 0; // fail at snprintf
+
+		iov[0].iov_base = head;
+		iov[0].iov_len = l; // head length.
+		iov[1].iov_base = buf;
+		iov[1].iov_len = s;
+
+		buf += s;
+		size -= s;
+
+		if (size == 0) { // last chunk
+			iov[2].iov_base = "\r\n0\r\n\r\n";
+			iov[2].iov_len = 7;
+		}
+		libp2p_logger_debug("api", "writing chunk block of %d bytes\n", s);
+		if (writev(fd, iov, 3) == -1)
+			return 0; // fail writing.
+	}
+	return 1;
+}
+
+/**
  * Pthread to take care of each client connection.
  * @param ptr an ApiConnectionParam
  * @returns nothing
@@ -353,7 +394,8 @@ void *api_connection_thread (void *ptr)
 	}
 	r = read(s, buf, sizeof buf);
 	if (r <= 0) {
-		libp2p_logger_error("api", "Read from client fail.\n");
+		// this is a common occurrence, so moved from error to debug
+		libp2p_logger_debug("api", "Read from client fail.\n");
 		goto quit;
 	}
 	buf[r] = '\0';
@@ -511,22 +553,20 @@ void *api_connection_thread (void *ptr)
 					// 404
 					write_str(s, HTTP_404);
 				} else {
-					snprintf(resp, sizeof(resp), "%s 200 OK\r\n" \
+					snprintf(resp, MAX_READ+1, "%s 200 OK\r\n" \
 						"Content-Type: %s\r\n"
 						"Server: c-ipfs/0.0.0-dev\r\n"
 						"X-Chunked-Output: 1\r\n"
 						"Connection: close\r\n"
 						"Transfer-Encoding: chunked\r\n"
 						"\r\n"
-						"%x\r\n"
-						"%s\r\n"
-						"0\r\n\r\n"
-						,req.buf + req.http_ver, http_response->content_type, (unsigned int)http_response->bytes_size, http_response->bytes);
-					ipfs_core_http_response_free(http_response);
+						,req.buf + req.http_ver, http_response->content_type);
 					write_str (s, resp);
+					api_send_resp_chunks(s, http_response->bytes, http_response->bytes_size);
 					libp2p_logger_debug("api", "resp = {\n%s\n}\n", resp);
 				}
 				ipfs_core_http_request_free(http_request);
+				ipfs_core_http_response_free(http_response);
 			} else {
 				// uh oh... something went wrong converting to the HttpRequest struct
 				libp2p_logger_error("api", "Unable to build HttpRequest struct.\n");
@@ -686,6 +726,8 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 	}
 
 	local_node->api_context->ipv4 = hostname_to_ip(ip); // api is listening only on loopback.
+	if (ip != NULL)
+		free(ip);
 	local_node->api_context->port = port;
 
 	if ((s = socket_listen(socket_tcp4(), &(local_node->api_context->ipv4), &(local_node->api_context->port))) <= 0) {

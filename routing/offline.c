@@ -68,11 +68,14 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
 		req->sub_command = "get";
 		req->arguments = libp2p_utils_vector_new(1);
 		libp2p_utils_vector_add(req->arguments, buffer);
-		if (!ipfs_core_http_request_get(routing->local_node, req, &response)) {
+		size_t response_size = 0;
+		if (!ipfs_core_http_request_get(routing->local_node, req, &response, &response_size)) {
 			libp2p_logger_error("offline", "Unable to call API for dht get.\n");
+			ipfs_core_http_request_free(req);
 			return 0;
 		}
-		*vlen = strlen(response);
+		ipfs_core_http_request_free(req);
+		*vlen = response_size;
 		if (*vlen > 0) {
 			*val = malloc(*vlen + 1);
 			uint8_t* ptr = (uint8_t*)*val;
@@ -94,6 +97,8 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
 	    // protobuf the node
 	    int protobuf_size = ipfs_hashtable_node_protobuf_encode_size(node);
 	    *val = malloc(protobuf_size);
+	    if (*val == NULL)
+	    	goto exit;
 
 	    if (ipfs_hashtable_node_protobuf_encode(node, *val, protobuf_size, vlen) == 0) {
 	    		goto exit;
@@ -174,13 +179,15 @@ int ipfs_routing_offline_provide (ipfs_routing* offlineRouting, const unsigned c
 		struct HttpRequest* request = ipfs_core_http_request_new();
 		request->command = "dht";
 		request->sub_command = "provide";
-		request->arguments = libp2p_utils_vector_new(1);
 		libp2p_utils_vector_add(request->arguments, buffer);
-		if (!ipfs_core_http_request_get(offlineRouting->local_node, request, &response)) {
+		size_t response_size = 0;
+		if (!ipfs_core_http_request_get(offlineRouting->local_node, request, &response, &response_size)) {
 			libp2p_logger_error("offline", "Unable to call API for dht publish.\n");
+			ipfs_core_http_request_free(request);
 			return 0;
 		}
-		fprintf(stdout, "%s", response);
+		ipfs_core_http_request_free(request);
+		fwrite(response, 1, response_size, stdout);
 		return 1;
 	} else {
 		libp2p_logger_debug("offline", "Unable to announce that I can provide the hash, as API not available.\n");

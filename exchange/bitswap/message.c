@@ -519,6 +519,10 @@ int ipfs_bitswap_message_protobuf_encode(const struct BitswapMessage* message, u
 				// protobuf it
 				size_t temp_size = ipfs_blocks_block_protobuf_encode_size(entry);
 				uint8_t* temp = (uint8_t*) malloc(temp_size);
+				if (temp == NULL) {
+					// memory issues
+					return 0;
+				}
 				if (!ipfs_blocks_block_protobuf_encode(entry, temp, temp_size, &temp_size)) {
 					free(temp);
 					return 0;
@@ -536,6 +540,9 @@ int ipfs_bitswap_message_protobuf_encode(const struct BitswapMessage* message, u
 		if (message->wantlist != NULL) {
 			size_t temp_size = ipfs_bitswap_wantlist_protobuf_encode_size(message->wantlist);
 			uint8_t* temp = (uint8_t*) malloc(temp_size);
+			if (temp == NULL) {
+				return 0;
+			}
 			if (!ipfs_bitswap_wantlist_protobuf_encode(message->wantlist, temp, temp_size, &temp_size)) {
 				free(temp);
 				return 0;
@@ -665,6 +672,9 @@ int ipfs_bitswap_message_add_wantlist_items(struct BitswapMessage* message, stru
 		struct WantlistEntry* entry = ipfs_bitswap_wantlist_entry_new();
 		entry->block_size = ipfs_cid_protobuf_encode_size(cidEntry->cid);
 		entry->block = (unsigned char*) malloc(entry->block_size);
+		if (entry->block == NULL) {
+			return 0;
+		}
 		if (!ipfs_cid_protobuf_encode(cidEntry->cid, entry->block, entry->block_size, &entry->block_size)) {
 			// TODO: we should do more than return a half-baked list
 			return 0;

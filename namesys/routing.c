@@ -131,6 +131,8 @@ int ipfs_namesys_hex_string_to_bytes(const unsigned char* hex, unsigned char** b
 	// allocate memory
 	*buffer = (unsigned char*)malloc( hex_size / 2 );
 	unsigned char* ptr = *buffer;
+	if (ptr == NULL)
+		return ErrAllocFailed;
 
 	// convert string
 	for(size_t i = 0; i < hex_size; i++) {

@@ -10,6 +10,7 @@
 #endif
 
 #define MAX_READ (32*1024) // 32k
+#define MAX_CHUNK (32*1024) // 32k
 
 struct ApiContext {
 	int socket;
@@ -86,6 +87,7 @@ struct s_request {
 #define cstrstart(a,b) (memcmp(a,b,sizeof(b)-1)==0)
 #define strstart(a,b) (memcmp(a,b,strlen(b))==0)
 
+int api_send_resp_chunks(int fd, void *buf, size_t size);
 void *api_connection_thread (void *ptr);
 void api_connections_cleanup (struct IpfsNode* node);
 void *api_listen_thread (void *ptr);

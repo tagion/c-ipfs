@@ -41,6 +41,10 @@ int ipfs_namesys_resolver_resolve_once(struct IpfsNode* local_node, const char* 
 	if (local_node->repo->config->datastore->datastore_get(cid->hash, cid->hash_length, &record, local_node->repo->config->datastore)) {
 		// we are able to handle this locally... return the results
 		*results = (char*) malloc(record->value_size + 1);
+		if (*results == NULL) {
+			ipfs_cid_free(cid);
+			return 0;
+		}
 		memset(*results, 0, record->value_size + 1);
 		memcpy(*results, record->value, record->value_size);
 		ipfs_cid_free(cid);
@@ -64,6 +68,9 @@ int ipfs_namesys_resolver_resolve_once(struct IpfsNode* local_node, const char* 
 int ipfs_namesys_resolver_resolve(struct IpfsNode* local_node, const char* path, int recursive, char** results) {
 	char* result = NULL;
 	char* current_path = (char*) malloc(strlen(path) + 1);
+	if (current_path == NULL) {
+		return 0;
+	}
 	strcpy(current_path, path);
 
 	// if we go more than 10 deep, bail
@@ -84,7 +91,8 @@ int ipfs_namesys_resolver_resolve(struct IpfsNode* local_node, const char* path,
 		// result will not be NULL
 		free(current_path);
 		current_path = (char*) malloc(strlen(result)+1);
-		strcpy(current_path, result);
+		if (current_path != NULL)
+			strcpy(current_path, result);
 		free(result);
 		counter++;
 	} while(recursive && is_ipns_string(current_path));

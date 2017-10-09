@@ -92,7 +92,7 @@ int ipfs_merkledag_add(struct HashtableNode* node, struct FSRepo* fs_repo, size_
 		ipfs_block_free(block);
 		return 0;
 	}
-
+	ipfs_block_free(block);
 	// TODO: call HasBlock (unsure why as yet)
 	return 1;
 }
