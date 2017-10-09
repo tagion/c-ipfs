@@ -44,6 +44,16 @@ int ipfs_merkledag_convert_node_to_block(struct HashtableNode* node, struct Bloc
 }
 
 /***
+ * Convert the data within a block to a HashtableNode
+ * @param block the block
+ * @param node_ptr where to put the results
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_merkledag_convert_block_to_node(struct Block* block, struct HashtableNode** node_ptr) {
+	return ipfs_hashtable_node_protobuf_decode(block->data, block->data_length, node_ptr);
+}
+
+/***
  * Adds a node to the dagService and blockService
  * @param node the node to add
  * @param fs_repo the repo to add to

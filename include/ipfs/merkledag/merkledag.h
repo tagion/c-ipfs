@@ -34,4 +34,12 @@ int ipfs_merkledag_get(const unsigned char* hash, size_t hash_size, struct Hasht
  */
 int ipfs_merkledag_get_by_multihash(const unsigned char* multihash, size_t multihash_length, struct HashtableNode** node, const struct FSRepo* fs_repo);
 
+/***
+ * Convert the data within a block to a HashtableNode
+ * @param block the block
+ * @param node_ptr where to put the results
+ * @returns true(1) on success, false(0) otherwise
+ */
+int ipfs_merkledag_convert_block_to_node(struct Block* block, struct HashtableNode** node_ptr);
+
 #endif

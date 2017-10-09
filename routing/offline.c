@@ -111,14 +111,46 @@ int ipfs_routing_generic_get_value (ipfs_routing* routing, const unsigned char *
     return retVal;
 }
 
-int ipfs_routing_offline_find_providers (ipfs_routing* offlineRouting, const unsigned char *key, size_t key_size, struct Libp2pVector** peers)
+// forward declaration
+int ipfs_routing_online_find_remote_providers(struct IpfsRouting* routing, const unsigned char* key, size_t key_size, struct Libp2pVector** peers);
+
+int ipfs_routing_offline_find_providers (ipfs_routing* routing, const unsigned char *key, size_t key_size, struct Libp2pVector** peers)
 {
-    return ErrOffline;
+	//if (routing->local_node->mode == MODE_API_AVAILABLE) {
+		//TODO: we need to ask the api to do this for us
+	//} else
+	//{
+		unsigned char* peer_id;
+		int peer_id_size;
+		struct Libp2pPeer *peer;
+
+		// see if we can find the key, and retrieve the peer who has it
+		if (!libp2p_providerstore_get(routing->local_node->providerstore, key, key_size, &peer_id, &peer_id_size)) {
+			libp2p_logger_debug("offline", "%s: Unable to find provider locally... Asking network\n", libp2p_peer_id_to_string(routing->local_node->identity->peer));
+			// we need to look remotely
+			return ipfs_routing_online_find_remote_providers(routing, key, key_size, peers);
+		}
+
+		libp2p_logger_debug("offline", "%s: Found provider locally. Searching for peer.\n", libp2p_peer_id_to_string(routing->local_node->identity->peer));
+		// now translate the peer id into a peer to get the multiaddresses
+		peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, peer_id, peer_id_size);
+		free(peer_id);
+		if (peer == NULL) {
+			libp2p_logger_error("offline", "find_providers: We said we had the peer, but then we couldn't find it.\n");
+			return 0;
+		}
+
+		libp2p_logger_debug("offline", "%s: Found peer %s.\n", libp2p_peer_id_to_string(routing->local_node->identity->peer), libp2p_peer_id_to_string(peer));
+
+		*peers = libp2p_utils_vector_new(1);
+		libp2p_utils_vector_add(*peers, peer);
+	//}
+	return 1;
 }
 
 int ipfs_routing_offline_find_peer (ipfs_routing* offlineRouting, const unsigned char *peer_id, size_t pid_size, struct Libp2pPeer **result)
 {
-    return ErrOffline;
+    return 0;
 }
 
 /**
@@ -163,13 +195,63 @@ int ipfs_routing_offline_ping (ipfs_routing* offlineRouting, struct Libp2pPeer* 
 }
 
 /**
- * For offline, this does nothing
+ * Attempt to bootstrap, even if there is no API
  * @param offlineRouting the interface
  * @returns 0
  */
-int ipfs_routing_offline_bootstrap (ipfs_routing* offlineRouting)
+int ipfs_routing_offline_bootstrap (ipfs_routing* routing)
 {
-    return 0;
+	if (routing->local_node->mode == MODE_API_AVAILABLE) {
+		// do nothing
+	} else {
+		char* peer_id = NULL;
+		int peer_id_size = 0;
+		struct MultiAddress* address = NULL;
+		struct Libp2pPeer *peer = NULL;
+
+		// for each address in our bootstrap list, add info into the peerstore
+		struct Libp2pVector* bootstrap_peers = routing->local_node->repo->config->bootstrap_peers;
+		for(int i = 0; i < bootstrap_peers->total; i++) {
+			address = (struct MultiAddress*)libp2p_utils_vector_get(bootstrap_peers, i);
+			// attempt to get the peer ID
+			peer_id = multiaddress_get_peer_id(address);
+			if (peer_id != NULL) {
+				peer_id_size = strlen(peer_id);
+				peer = libp2p_peer_new();
+				peer->id_size = peer_id_size;
+				peer->id = malloc(peer->id_size + 1);
+				if (peer->id == NULL) { // out of memory?
+					libp2p_peer_free(peer);
+					free(peer_id);
+					return -1;
+				}
+				memcpy(peer->id, peer_id, peer->id_size);
+				peer->id[peer->id_size] = 0;
+				peer->addr_head = libp2p_utils_linked_list_new();
+				if (peer->addr_head == NULL) { // out of memory?
+					libp2p_peer_free(peer);
+					free(peer_id);
+					return -1;
+				}
+				peer->addr_head->item = multiaddress_copy(address);
+				libp2p_peerstore_add_peer(routing->local_node->peerstore, peer);
+				libp2p_peer_free(peer);
+				// now find it and attempt to connect
+				peer = libp2p_peerstore_get_peer(routing->local_node->peerstore, (const unsigned char*)peer_id, peer_id_size);
+				free(peer_id);
+				if (peer == NULL) {
+					return -1; // this should never happen
+				}
+				if (peer->sessionContext == NULL) { // should always be true unless we added it twice (TODO: we should prevent that earlier)
+					if (!libp2p_peer_connect(&routing->local_node->identity->private_key, peer, routing->local_node->peerstore, routing->local_node->repo->config->datastore, 2)) {
+						libp2p_logger_debug("online", "Attempted to bootstrap and connect to %s but failed. Continuing.\n", libp2p_peer_id_to_string(peer));
+					}
+				}
+			}
+		}
+	}
+
+	return 0;
 }
 
 struct IpfsRouting* ipfs_routing_new_offline (struct IpfsNode* local_node, struct RsaPrivateKey *private_key)
