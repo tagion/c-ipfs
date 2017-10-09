@@ -104,7 +104,7 @@ int test_core_api_object_cat() {
 
 	// add a file to the first repo
 	uint8_t *bytes = (unsigned char*)"hello, world!\n";
-	char* filename = "test1.txt";
+	char* filename = "/tmp/test1.txt";
 	create_file(filename, bytes, strlen((char*)bytes));
 	struct HashtableNode* node;
 	size_t bytes_written;

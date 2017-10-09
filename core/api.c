@@ -24,7 +24,7 @@
 //pthread_mutex_t conns_lock;
 //int conns_count;
 
-//struct ApiContext api_list;
+struct ApiContext api_list;
 
 /**
  * Write two strings on one write.
@@ -767,6 +767,7 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 int api_stop (struct IpfsNode *local_node)
 {
 	if (local_node->api_context->api_thread == 0) return 0;
+	shutdown(local_node->api_context->socket, SHUT_RDWR);
 	pthread_cancel(local_node->api_context->api_thread);
 
 	api_connections_cleanup (local_node);

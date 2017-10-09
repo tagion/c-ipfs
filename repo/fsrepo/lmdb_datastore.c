@@ -288,8 +288,12 @@ int repo_fsrepo_lmdb_put(struct DatastoreRecord* datastore_record, const struct 
 		}
 	} else {
 		// datastore record was unable to be added.
-		libp2p_logger_error("lmdb_datastore", "mdb_put returned %d.\n", retVal);
-		retVal = 0;
+		if (retVal == MDB_KEYEXIST) {
+			// duplicate key.. Is this an error?
+		} else {
+			libp2p_logger_error("lmdb_datastore", "mdb_put returned %d.\n", retVal);
+			retVal = 0;
+		}
 	}
 
 	// cleanup

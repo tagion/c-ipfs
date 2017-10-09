@@ -220,9 +220,11 @@ int test_routing_find_peer() {
     sleep(3);
 
 	// add a file to peer 2
+    char* hello_text = "Hello, World!";
+    create_file("/tmp/hello.txt", (uint8_t*)hello_text, strlen(hello_text));
 	size_t bytes_written = 0;
 	ipfs_node_offline_new(ipfs_path2, &local_node2);
-	ipfs_import_file(NULL, "hello.txt", &node, local_node2, &bytes_written, 0);
+	ipfs_import_file(NULL, "/tmp/hello.txt", &node, local_node2, &bytes_written, 0);
 	ipfs_node_free(local_node2);
 
     // create my peer, peer 3
@@ -236,8 +238,9 @@ int test_routing_find_peer() {
 	sleep(3);
 
 	ipfs_node_offline_new(ipfs_path3, &local_node3);
+	int peer2_len = strlen(peer_id_2);
 
-    if (!local_node3->routing->FindProviders(local_node->routing, (unsigned char*)peer_id_2, strlen(peer_id_2), &peers)) {
+    if (!local_node3->routing->FindProviders(local_node3->routing, (unsigned char*)peer_id_2, peer2_len, &peers)) {
     		fprintf(stderr, "Unable to find peer %s by asking %s\n", peer_id_2, peer_id_1);
     		goto exit;
     }

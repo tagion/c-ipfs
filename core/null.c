@@ -132,6 +132,7 @@ int ipfs_null_do_maintenance(struct IpfsNode* local_node, struct Libp2pPeer* pee
  */
 void* ipfs_null_listen (void *ptr)
 {
+	null_shutting_down = 0;
     int socketfd, s, count = 0;
     threadpool thpool = thpool_init(25);
     struct IpfsNodeListenParams *listen_param;

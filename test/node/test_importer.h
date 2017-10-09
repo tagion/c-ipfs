@@ -15,11 +15,11 @@ int test_import_large_file() {
 	size_t bytes_size = 1000000; //1mb
 	unsigned char file_bytes[bytes_size];
 	const char* fileName = "/tmp/test_import_large.tmp";
-	const char* repo_dir = "/tmp/.ipfs";
+	const char* repo_dir = "/tmp/ipfs_1";
 	struct IpfsNode* local_node = NULL;
 	int retVal = 0;
 	// cid should be the same each time
-	unsigned char cid_test[10] = { 0xc1 ,0x69 ,0x68 ,0x22, 0xfa, 0x47, 0x16, 0xe2, 0x41, 0xa1 };
+	unsigned char cid_test[10] = { 0xc0 ,0x1a ,0x80 ,0x8d, 0x83, 0xc9, 0x96, 0x34, 0x1e, 0xbf };
 	struct HashtableNode* read_node = NULL;
 	struct HashtableNode* write_node = NULL;
 	struct HashtableNode* read_node2 = NULL;
@@ -41,22 +41,26 @@ int test_import_large_file() {
 		goto exit;
 	}
 
-	if (!ipfs_node_online_new(repo_dir, &local_node)) {
+	if (!ipfs_node_offline_new(repo_dir, &local_node)) {
 		fprintf(stderr, "Unable to create new IpfsNode\n");
 		goto exit;
 	}
 
 	// write to ipfs
-	if (ipfs_import_file("/tmp", fileName, &write_node, local_node, &bytes_written, 1) == 0) {
+	if (ipfs_import_file(NULL, fileName, &write_node, local_node, &bytes_written, 1) == 0) {
 		goto exit;
 	}
 
+	int hash_correct = 1;
 	for(int i = 0; i < 10; i++) {
 		if (write_node->hash[i] != cid_test[i]) {
 			printf("Hashes should be the same each time, and do not match at position %d, should be %02x but is %02x\n", i, cid_test[i], write_node->hash[i]);
-			goto exit;
+			hash_correct = 0;
 		}
 	}
+
+	if (!hash_correct)
+		goto exit;
 
 	// make sure all went okay
 	if (ipfs_merkledag_get(write_node->hash, write_node->hash_size, &read_node, local_node->repo) == 0) {
@@ -145,8 +149,9 @@ int test_import_small_file() {
 	size_t bytes_size = 1000;
 	unsigned char file_bytes[bytes_size];
 	const char* fileName = "/tmp/test_import_small.tmp";
-	const char* repo_path = "/tmp/.ipfs";
+	const char* repo_path = "/tmp/ipfs_1";
 	struct IpfsNode *local_node = NULL;
+	int retVal = 0;
 
 	// create the necessary file
 	create_bytes(file_bytes, bytes_size);
@@ -160,7 +165,7 @@ int test_import_small_file() {
 	// write to ipfs
 	struct HashtableNode* write_node;
 	size_t bytes_written;
-	if (ipfs_import_file("/tmp", fileName, &write_node, local_node, &bytes_written, 1) == 0) {
+	if (ipfs_import_file(NULL, fileName, &write_node, local_node, &bytes_written, 1) == 0) {
 		ipfs_node_free(local_node);
 		return 0;
 	}
@@ -209,18 +214,29 @@ int test_import_small_file() {
 	struct lmdb_context *context = (struct lmdb_context*)local_node->repo->config->datastore->datastore_context;
 	struct JournalRecord* record = NULL;
 	struct lmdb_trans_cursor *cursor = lmdb_trans_cursor_new();
+	// get a transaction
+	if (mdb_txn_begin(context->db_environment, context->current_transaction, MDB_RDONLY, &cursor->parent_transaction) != 0) {
+		libp2p_logger_error("test_importer", "Unable to create db transaction.\n");
+		goto exit;
+	}
 	cursor->environment = context->db_environment;
 	cursor->database = context->journal_db;
-	cursor->parent_transaction = context->current_transaction;
-	if (mdb_cursor_open(context->current_transaction, *cursor->database, &cursor->cursor) != 0) {
-		fprintf(stderr, "Unable to open cursor.\n");
+	if (mdb_cursor_open(cursor->parent_transaction, *cursor->database, &cursor->cursor) != 0) {
+		libp2p_logger_error("test_importer", "Unable to open cursor.\n");
+		goto exit;
 	} else if (!lmdb_journalstore_cursor_get(cursor, CURSOR_FIRST, &record)) {
-		fprintf(stderr, "Unable to find any records in the database.\n");
+		libp2p_logger_error("test_importer", "Unable to find any records in the database.\n");
+		goto exit;
 	}
+	mdb_txn_commit(cursor->parent_transaction);
+
+	retVal = 1;
+
+	exit:
 
 	ipfs_node_free(local_node);
 	ipfs_hashtable_node_free(write_node);
 	ipfs_hashtable_node_free(read_node);
 
-	return 1;
+	return retVal;
 }

@@ -19,6 +19,8 @@ int test_daemon_startup_shutdown() {
 
 	pthread_create(&daemon_thread, NULL, test_daemon_start, (void*)ipfs_path);
 
+	sleep(3);
+
 	ipfs_daemon_stop();
 
 	pthread_join(daemon_thread, NULL);
