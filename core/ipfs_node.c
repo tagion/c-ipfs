@@ -5,6 +5,7 @@
 #include "libp2p/utils/vector.h"
 #include "libp2p/secio/secio.h"
 #include "libp2p/routing/dht_protocol.h"
+#include "libp2p/yamux/yamux.h"
 #include "ipfs/core/api.h"
 #include "ipfs/core/client_api.h"
 #include "ipfs/core/ipfs_node.h"
@@ -41,6 +42,8 @@ struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* n
 		libp2p_utils_vector_add(retVal, ipfs_bitswap_build_protocol_handler(node));
 		// multistream
 		libp2p_utils_vector_add(retVal, libp2p_net_multistream_build_protocol_handler(retVal));
+		// yamux
+		libp2p_utils_vector_add(retVal, yamux_build_protocol_handler());
 	}
 	return retVal;
 }
