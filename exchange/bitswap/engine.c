@@ -98,7 +98,6 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 			} else {
 				// check the network to see if there is anything waiting for us (if the stream is idle)
 				if (libp2p_stream_try_lock(current_peer_entry->sessionContext->default_stream)) {
-					libp2p_logger_error("bitswap_engine", "I have the lock for peer %s.\n", libp2p_peer_id_to_string(current_peer_entry));
 					int retVal = current_peer_entry->sessionContext->default_stream->peek(current_peer_entry->sessionContext);
 					if (retVal < 0) {
 						libp2p_logger_debug("bitswap_engine", "We thought we were connected, but Peek reported an error.\n");

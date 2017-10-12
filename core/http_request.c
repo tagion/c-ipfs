@@ -163,7 +163,7 @@ int ipfs_core_http_process_object(struct IpfsNode* local_node, struct HttpReques
 		// do an object_get
 		if (request->arguments->total == 1) {
 			char* hash = (char*)libp2p_utils_vector_get(request->arguments, 0);
-			struct Cid* cid;
+			struct Cid* cid = NULL;
 			ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid);
 			*response = ipfs_core_http_response_new();
 			struct HttpResponse* res = *response;
