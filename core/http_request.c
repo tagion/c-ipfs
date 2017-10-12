@@ -163,8 +163,12 @@ int ipfs_core_http_process_object(struct IpfsNode* local_node, struct HttpReques
 		// do an object_get
 		if (request->arguments->total == 1) {
 			char* hash = (char*)libp2p_utils_vector_get(request->arguments, 0);
-			struct Cid* cid;
-			ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid);
+			struct Cid* cid = NULL;
+			if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid)) {
+				ipfs_cid_free(cid);
+				cid = NULL;
+				return 0;
+			}
 			*response = ipfs_core_http_response_new();
 			struct HttpResponse* res = *response;
 			res->content_type = "application/json";
@@ -181,7 +185,7 @@ int ipfs_core_http_process_dht_provide(struct IpfsNode* local_node, struct HttpR
 	int failedCount = 0;
 	for (int i = 0; i < request->arguments->total; i++) {
 		char* hash = (char*)libp2p_utils_vector_get(request->arguments, i);
-		struct Cid* cid;
+		struct Cid* cid = NULL;
 		if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid)) {
 			ipfs_cid_free(cid);
 			cid = NULL;
@@ -253,7 +257,7 @@ int ipfs_core_http_process_dht_get(struct IpfsNode* local_node, struct HttpReque
 
 	for (int i = 0; i < request->arguments->total; i++) {
 		char* hash = (char*)libp2p_utils_vector_get(request->arguments, i);
-		struct Cid* cid;
+		struct Cid* cid = NULL;
 		if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid)) {
 			ipfs_cid_free(cid);
 			cid = NULL;
