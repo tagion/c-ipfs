@@ -333,7 +333,8 @@ int ipfs_core_http_process_swarm_connect(struct IpfsNode* local_node, struct Htt
 		return 0;
 	}
 	sprintf((char*)response->bytes, json, address);
-	libp2p_peer_free(new_peer);
+	// getting rid of the peer here will close the connection. That's not what we want
+	//libp2p_peer_free(new_peer);
 	multiaddress_free(ma);
 	return 1;
 
