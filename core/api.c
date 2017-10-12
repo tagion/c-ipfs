@@ -462,9 +462,6 @@ void *api_connection_thread (void *ptr)
 			goto quit;
 		}
 
-		// once we leave the building of the req struct, do we need to do more? This flag will tell us.
-		int further_processing_necessary = 0;
-
 		if (strncmp(req.buf + req.method, "GET", 3)==0) {
 			if (strcmp (req.buf + req.path, "/")==0      ||
 			    strcmp (req.buf + req.path, "/webui")==0 ||
@@ -481,10 +478,7 @@ void *api_connection_thread (void *ptr)
 				} else {
 					write_cstr (s, HTTP_500);
 				}
-			} else if (cstrstart(req.buf + req.path, API_V0_START)) {
-				req.request = req.path + sizeof(API_V0_START) - 1;
-				further_processing_necessary = 1;
-			} else {
+			} else if (!cstrstart(req.buf + req.path, API_V0_START)) {
 				// TODO: handle download file here.
 				// move out of the if to do further processing
 			}
@@ -540,10 +534,10 @@ void *api_connection_thread (void *ptr)
 			// Unexpected???
 			libp2p_logger_error("api", "fail unexpected '%s'.\n", req.buf + req.method);
 			write_cstr (s, HTTP_500);
-			further_processing_necessary = 0;
 		}
 
-		if (further_processing_necessary) {
+		if (cstrstart(req.buf + req.path, API_V0_START)) {
+			req.request = req.path + sizeof(API_V0_START) - 1;
 			// now do something with the request we have built
 			struct HttpRequest* http_request = api_build_http_request(&req);
 			if (http_request != NULL) {
