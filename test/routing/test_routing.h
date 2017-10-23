@@ -365,7 +365,7 @@ int test_routing_find_providers() {
 	for(int i = 0; i < result->total; i++) {
 		remote_peer = (struct Libp2pPeer*)libp2p_utils_vector_get(result, i);
 		if (remote_peer->connection_type == CONNECTION_TYPE_CONNECTED
-				|| libp2p_peer_connect(&local_node3->identity->private_key, remote_peer, local_node3->peerstore, local_node3->repo->config->datastore, 5)) {
+				|| libp2p_peer_connect(local_node3->dialer, remote_peer, local_node3->peerstore, local_node3->repo->config->datastore, 5)) {
 			break;
 		}
 		remote_peer = NULL;

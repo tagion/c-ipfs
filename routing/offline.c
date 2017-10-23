@@ -250,7 +250,7 @@ int ipfs_routing_offline_bootstrap (ipfs_routing* routing)
 					return -1; // this should never happen
 				}
 				if (peer->sessionContext == NULL) { // should always be true unless we added it twice (TODO: we should prevent that earlier)
-					if (!libp2p_peer_connect(&routing->local_node->identity->private_key, peer, routing->local_node->peerstore, routing->local_node->repo->config->datastore, 2)) {
+					if (!libp2p_peer_connect(routing->local_node->dialer, peer, routing->local_node->peerstore, routing->local_node->repo->config->datastore, 2)) {
 						libp2p_logger_debug("online", "Attempted to bootstrap and connect to %s but failed. Continuing.\n", libp2p_peer_id_to_string(peer));
 					}
 				}

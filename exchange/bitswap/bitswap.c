@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"
+#include "libp2p/net/stream.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "ipfs/exchange/exchange.h"
@@ -15,9 +16,9 @@
 #include "ipfs/exchange/bitswap/peer_request_queue.h"
 #include "ipfs/exchange/bitswap/want_manager.h"
 
-int ipfs_bitswap_can_handle(const uint8_t* incoming, size_t incoming_size) {
-	char* result = strnstr((char*)incoming, "/ipfs/bitswap", incoming_size);
-	if(result == NULL || result != (char*)incoming)
+int ipfs_bitswap_can_handle(const struct StreamMessage* msg) {
+	char* result = strnstr((char*)msg->data, "/ipfs/bitswap", msg->data_size);
+	if(result == NULL || result != (char*)msg->data)
 		return 0;
 	return 1;
 }
@@ -34,9 +35,9 @@ int ipfs_bitswap_shutdown_handler(void* context) {
  * @param protocol_context the protocol-dependent context
  * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
  */
-int ipfs_bitswap_handle_message(const uint8_t* incoming, size_t incoming_size, struct SessionContext* session_context, void* protocol_context) {
+int ipfs_bitswap_handle_message(const struct StreamMessage* msg, struct SessionContext* session_context, void* protocol_context) {
 	struct IpfsNode* local_node = (struct IpfsNode*)protocol_context;
-	int retVal = ipfs_bitswap_network_handle_message(local_node, session_context, incoming, incoming_size);
+	int retVal = ipfs_bitswap_network_handle_message(local_node, session_context, msg->data, msg->data_size);
 	if (retVal == 0)
 		return -1;
 	return retVal;

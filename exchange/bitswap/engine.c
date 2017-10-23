@@ -108,7 +108,7 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 						if (current_peer_entry->sessionContext->default_stream->read(current_peer_entry->sessionContext, &buffer, 1)) {
 							// handle it
 							libp2p_logger_debug("bitswap_engine", "%lu bytes read, result: [%s].\n", buffer->data_size, buffer->data);
-							int retVal = libp2p_protocol_marshal(buffer->data, buffer->data_size, current_peer_entry->sessionContext, context->ipfsNode->protocol_handlers);
+							int retVal = libp2p_protocol_marshal(buffer, current_peer_entry->sessionContext, context->ipfsNode->protocol_handlers);
 							libp2p_stream_message_free(buffer);
 							did_some_processing = 1;
 							if (retVal == -1) {

@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 
 #include "libp2p/conn/session.h"
+#include "libp2p/net/connectionstream.h"
 #include "libp2p/net/multistream.h"
 #include "libp2p/net/p2pnet.h"
 #include "libp2p/net/protocol.h"
@@ -48,7 +49,7 @@ void ipfs_null_connection (void *ptr) {
 		return;
     }
 
-    session->insecure_stream = libp2p_net_multistream_stream_new(connection_param->file_descriptor, connection_param->ip, connection_param->port);
+    session->insecure_stream = libp2p_net_connection_new(connection_param->file_descriptor, connection_param->ip, connection_param->port);
     session->default_stream = session->insecure_stream;
     session->datastore = connection_param->local_node->repo->config->datastore;
     session->filestore = connection_param->local_node->repo->config->filestore;
@@ -59,20 +60,21 @@ void ipfs_null_connection (void *ptr) {
 
     // try to read from the network
     struct StreamMessage *results = 0;
-    // handle the call
-   	for(;;) {
-   		// immediately attempt to negotiate multistream
-   		if (!libp2p_net_multistream_send_protocol(session))
-   			break;
-   	    if (!session->default_stream->read(session, &results, DEFAULT_NETWORK_TIMEOUT)) {
-   	    		// problem reading;
-   	    		break;
-   	    }
-   		retVal = libp2p_protocol_marshal(results->data, results->data_size, session, connection_param->local_node->protocol_handlers);
-   		libp2p_stream_message_free(results);
-   		// exit the loop on error (or if they ask us to no longer loop by returning 0)
-   		if (retVal <= 0)
-   			break;
+	// immediately attempt to negotiate multistream
+	if (libp2p_net_multistream_send_protocol(session)) {
+		// handle the call
+		for(;;) {
+			// Read from the network
+			if (!session->default_stream->read(session, &results, DEFAULT_NETWORK_TIMEOUT)) {
+				// problem reading;
+   	    			break;
+			}
+			retVal = libp2p_protocol_marshal(results, session, connection_param->local_node->protocol_handlers);
+			libp2p_stream_message_free(results);
+			// exit the loop on error (or if they ask us to no longer loop by returning 0)
+			if (retVal <= 0)
+				break;
+		}
    	}
 
 	(*(connection_param->count))--; // update counter.
@@ -101,7 +103,7 @@ int ipfs_null_do_maintenance(struct IpfsNode* local_node, struct Libp2pPeer* pee
 	if (replication_peer != NULL && local_node->repo->config->replication->announce && announce_secs < 0) {
 		// try to connect if we aren't already
 		if (peer->connection_type != CONNECTION_TYPE_CONNECTED) {
-			if (!libp2p_peer_connect(&local_node->identity->private_key, peer, local_node->peerstore, local_node->repo->config->datastore, 2)) {
+			if (!libp2p_peer_connect(local_node->dialer, peer, local_node->peerstore, local_node->repo->config->datastore, 2)) {
 				return 0;
 			}
 		}

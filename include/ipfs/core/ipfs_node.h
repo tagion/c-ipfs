@@ -38,6 +38,7 @@ struct IpfsNode {
 	struct Exchange* exchange;
 	struct Libp2pVector* protocol_handlers;
 	struct ApiContext* api_context;
+	struct Dialer* dialer;
 	//struct Pinner pinning; // an interface
 	//struct Mount** mounts;
 	// TODO: Add more here

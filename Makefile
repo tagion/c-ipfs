@@ -3,7 +3,7 @@ DEBUG = true
 export DEBUG
 
 all:
-	cd ../c-libp2p; make all;
+	#cd ../c-libp2p; make all;
 	cd blocks; make all;
 	cd cid; make all;
 	cd cmd; make all;

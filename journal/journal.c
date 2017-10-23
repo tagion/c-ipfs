@@ -18,12 +18,12 @@
  * @param incoming_size the size of the incoming message
  * @returns true(1) if the protocol in incoming is something we can handle. False(0) otherwise.
  */
-int ipfs_journal_can_handle(const uint8_t* incoming, size_t incoming_size) {
+int ipfs_journal_can_handle(const struct StreamMessage* msg) {
 	const char* protocol = "/ipfs/journalio/1.0.0";
-	if (incoming_size < 21)
+	if (msg->data_size < 21)
 		return 0;
-	char* result = strnstr((char*)incoming, protocol, incoming_size);
-	if(result == NULL || result != (char*)incoming)
+	char* result = strnstr((char*)msg->data, protocol, msg->data_size);
+	if(result == NULL || result != (char*)msg->data)
 		return 0;
 	libp2p_logger_debug("journal", "Handling incoming message.\n");
 	return 1;
@@ -106,7 +106,7 @@ int ipfs_journal_free_records(struct Libp2pVector* records) {
 
 int ipfs_journal_send_message(struct IpfsNode* node, struct Libp2pPeer* peer, struct JournalMessage* message) {
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED)
-		libp2p_peer_connect(&node->identity->private_key, peer, node->peerstore, node->repo->config->datastore, 10);
+		libp2p_peer_connect(node->dialer, peer, node->peerstore, node->repo->config->datastore, 10);
 	if (peer->connection_type != CONNECTION_TYPE_CONNECTED)
 		return 0;
 	// protobuf the message
@@ -301,23 +301,22 @@ int ipfs_journal_adjust_time(struct JournalToDo* todo, struct IpfsNode* local_no
 
 /***
  * Handles a message
- * @param incoming the message
- * @param incoming_size the size of the message
+ * @param incoming_msg the message
  * @param session_context details of the remote peer
  * @param protocol_context in this case, an IpfsNode
  * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
  */
-int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, struct SessionContext* session_context, void* protocol_context) {
+int ipfs_journal_handle_message(const struct StreamMessage* incoming_msg, struct SessionContext* session_context, void* protocol_context) {
 	struct StreamMessage* msg = NULL;
 	// remove protocol
-	uint8_t *incoming_pos = (uint8_t*) incoming;
-	size_t pos_size = incoming_size;
+	uint8_t *incoming_pos = (uint8_t*) incoming_msg->data;
+	size_t pos_size = incoming_msg->data_size;
 	int second_read = 0;
-	for(int i = 0; i < incoming_size; i++) {
-		if (incoming[i] == '\n') {
-			if (incoming_size > i + 1) {
-				incoming_pos = (uint8_t *)&incoming[i+1];
-				pos_size = incoming_size - i;
+	for(int i = 0; i < incoming_msg->data_size; i++) {
+		if (incoming_msg->data[i] == '\n') {
+			if (incoming_msg->data_size > i + 1) {
+				incoming_pos = (uint8_t *)&incoming_msg->data[i+1];
+				pos_size = incoming_msg->data_size - i;
 				break;
 			} else {
 				// read next segment from network

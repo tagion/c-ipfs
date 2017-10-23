@@ -16,7 +16,7 @@
  * @param incoming_size the size of the incoming message
  * @returns true(1) if the protocol in incoming is something we can handle. False(0) otherwise.
  */
-int ipfs_journal_can_handle(const uint8_t* incoming, size_t incoming_size);
+int ipfs_journal_can_handle(const struct StreamMessage* msg);
 
 /**
  * Clean up resources used by this handler
@@ -33,7 +33,7 @@ int ipfs_journal_shutdown_handler(void* context);
  * @param protocol_context in this case, an IpfsNode
  * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
  */
-int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, struct SessionContext* session_context, void* protocol_context) ;
+int ipfs_journal_handle_message(const struct StreamMessage* msg, struct SessionContext* session_context, void* protocol_context) ;
 
 /***
  * Build the protocol handler struct for the Journal protocol

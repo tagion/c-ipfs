@@ -306,7 +306,7 @@ int ipfs_core_http_process_swarm_connect(struct IpfsNode* local_node, struct Htt
 		return 0;
 	}
 	struct Libp2pPeer* new_peer = libp2p_peer_new_from_multiaddress(ma);
-	if (!libp2p_peer_connect(&local_node->identity->private_key, new_peer, local_node->peerstore, local_node->repo->config->datastore, 30)) {
+	if (!libp2p_peer_connect(local_node->dialer, new_peer, local_node->peerstore, local_node->repo->config->datastore, 30)) {
 		libp2p_logger_error("http_request", "swarm_connect: Unable to connect to peer %s.\n", libp2p_peer_id_to_string(new_peer));
 		libp2p_peer_free(new_peer);
 		multiaddress_free(ma);
