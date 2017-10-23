@@ -40,10 +40,12 @@ function body {
 	
 	#A client of server 2 wants the file at server 1
 	eval "$IPFS2" cat QmYAXgX8ARiriupMQsbGXtKdDyGzWry1YV3sycKw1qqmgH
-	check_failure "cat" $?
+	retVal=$?
+	check_failure "cat" $retVal
 	
 	kill -9 $daemon_id_1
 	kill -9 $daemon_id_2
+	exit $retVal
 }
 
 
