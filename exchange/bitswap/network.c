@@ -38,7 +38,10 @@ int ipfs_bitswap_network_send_message(const struct BitswapContext* context, stru
 	memcpy(buf, "/ipfs/bitswap/1.1.0\n", 20);
 	buf_size += 20;
 	// send it
-	int bytes_written = peer->sessionContext->default_stream->write(peer->sessionContext, buf, buf_size);
+	struct StreamMessage outgoing;
+	outgoing.data = buf;
+	outgoing.data_size = buf_size;
+	int bytes_written = peer->sessionContext->default_stream->write(peer->sessionContext, &outgoing);
 	if (bytes_written <= 0) {
 		free(buf);
 		return 0;

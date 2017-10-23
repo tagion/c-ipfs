@@ -167,7 +167,10 @@ struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct Hashtabl
 	// switch to kademlia
 	if (!libp2p_routing_dht_upgrade_stream(&session_context))
 		return NULL;
-	stream->write(&session_context, message_protobuf, message_protobuf_size);
+	struct StreamMessage outgoing;
+	outgoing.data = message_protobuf;
+	outgoing.data_size = message_protobuf_size;
+	stream->write(&session_context, &outgoing);
 	struct StreamMessage* response;
 	// we should get back a protobuf'd record
 	stream->read(&session_context, &response, 5);

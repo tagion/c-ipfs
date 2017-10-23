@@ -116,10 +116,15 @@ int ipfs_journal_send_message(struct IpfsNode* node, struct Libp2pPeer* peer, st
 		return 0;
 	// send the header
 	char* header = "/ipfs/journalio/1.0.0\n";
-	if (!peer->sessionContext->default_stream->write(peer->sessionContext, (unsigned char*)header, strlen(header)))
+	struct StreamMessage outgoing;
+	outgoing.data = (uint8_t*)header;
+	outgoing.data_size = strlen(header);
+	if (!peer->sessionContext->default_stream->write(peer->sessionContext, &outgoing))
 		return 0;
 	// send the message
-	return peer->sessionContext->default_stream->write(peer->sessionContext, msg, msg_size);
+	outgoing.data = msg;
+	outgoing.data_size = msg_size;
+	return peer->sessionContext->default_stream->write(peer->sessionContext, &outgoing);
 }
 
 /***
