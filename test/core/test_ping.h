@@ -23,11 +23,9 @@ int test_ping() {
     //struct IpfsNode local_node;
     struct Libp2pPeer* remote_peer = NULL;
     struct Dialer* dialer = NULL;
-    struct Connection* conn = NULL;
+    struct Stream* conn = NULL;
     unsigned char* protobuf = NULL;
     size_t protobuf_size = 0;
-    unsigned char* response = NULL;
-    size_t response_size = 0;
 
     // act like this is a normal node
 	drop_build_and_open_repo("/tmp/.ipfs", &fs_repo);
@@ -63,9 +61,13 @@ int test_ping() {
     //TODO: Dialer should know the protocol
 
     // send the record
-    conn->write(conn, (char*)protobuf, protobuf_size);
-    conn->read(conn, (char**)&response, &response_size);
-    libp2p_message_protobuf_decode(response, response_size, &message);
+    struct StreamMessage msg;
+    msg.data = (uint8_t*)protobuf;
+    msg.data_size = protobuf_size;
+    conn->write(conn->stream_context, &msg);
+    struct StreamMessage* incoming_message = NULL;
+    conn->read(conn->stream_context, &incoming_message, 10);
+    libp2p_message_protobuf_decode(incoming_message->data, incoming_message->data_size, &message);
 	// verify the response
     if (message->message_type != MESSAGE_TYPE_PING)
     	goto exit;

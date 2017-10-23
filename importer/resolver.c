@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "ipfs/importer/resolver.h"
 #include "libp2p/utils/logger.h"
@@ -15,6 +16,7 @@
 #include "libp2p/record/message.h"
 #include "multiaddr/multiaddr.h"
 #include "libp2p/record/message.h"
+#include "libp2p/conn/dialer.h"
 
 /**
  * return the next chunk of a path
@@ -138,20 +140,18 @@ struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct Hashtabl
 		//TODO: We don't have the peer address. Ask the swarm for the data related to the hash
 		return NULL;
 	}
-	// connect to the peer
-	struct MultiAddress* address = peer->addr_head->item;
-	char* ip;
-	int port = multiaddress_get_ip_port(address);
-	multiaddress_get_ip_address(address, &ip);
-	struct Stream* stream = libp2p_net_multistream_connect(ip, port);
-	free(ip);
+	if (!libp2p_peer_connect(ipfs_node->dialer, peer, ipfs_node->peerstore, ipfs_node->repo->config->datastore, 10))
+		return NULL;
+	struct Stream* kademlia_stream = libp2p_conn_dialer_get_stream(ipfs_node->dialer, peer, "kademlia");
+	if (kademlia_stream == NULL)
+		return NULL;
 	// build the request
 	struct KademliaMessage* message = libp2p_message_new();
 	message->message_type = MESSAGE_TYPE_GET_VALUE;
 	message->key = key;
 	message->key_size = strlen(key);
 	size_t b58size = 100;
-	uint8_t *b58key = (uint8_t *) malloc(b58size);
+	uint8_t *b58key = (uint8_t*) malloc(b58size);
 	if (b58key == NULL) {
 		libp2p_crypto_encoding_base58_encode((unsigned char*)message->key, message->key_size, (unsigned char**) &b58key, &b58size);
 		libp2p_logger_debug("resolver", "Attempting to use kademlia to get key %s.\n", b58key);
@@ -161,19 +161,13 @@ struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct Hashtabl
 	unsigned char message_protobuf[message_protobuf_size];
 	libp2p_message_protobuf_encode(message, message_protobuf, message_protobuf_size, &message_protobuf_size);
 	libp2p_message_free(message);
-	struct SessionContext session_context;
-	session_context.insecure_stream = stream;
-	session_context.default_stream = stream;
-	// switch to kademlia
-	if (!libp2p_routing_dht_upgrade_stream(&session_context))
-		return NULL;
 	struct StreamMessage outgoing;
 	outgoing.data = message_protobuf;
 	outgoing.data_size = message_protobuf_size;
-	stream->write(&session_context, &outgoing);
+	kademlia_stream->write(kademlia_stream->stream_context, &outgoing);
 	struct StreamMessage* response;
 	// we should get back a protobuf'd record
-	stream->read(&session_context, &response, 5);
+	kademlia_stream->read(kademlia_stream->stream_context, &response, 5);
 	if (response->data_size == 1)
 		return NULL;
 	// turn the protobuf into a Node
