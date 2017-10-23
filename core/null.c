@@ -58,20 +58,18 @@ void ipfs_null_connection (void *ptr) {
     libp2p_logger_info("null", "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
     // try to read from the network
-    uint8_t *results = 0;
-    size_t bytes_read = 0;
+    struct StreamMessage *results = 0;
     // handle the call
    	for(;;) {
    		// immediately attempt to negotiate multistream
    		if (!libp2p_net_multistream_send_protocol(session))
    			break;
-   	    if (!session->default_stream->read(session, &results, &bytes_read, DEFAULT_NETWORK_TIMEOUT)) {
-   	    	// problem reading;
-   	    	break;
+   	    if (!session->default_stream->read(session, &results, DEFAULT_NETWORK_TIMEOUT)) {
+   	    		// problem reading;
+   	    		break;
    	    }
-   		retVal = libp2p_protocol_marshal(results, bytes_read, session, connection_param->local_node->protocol_handlers);
-   		if (results != NULL)
-   			free(results);
+   		retVal = libp2p_protocol_marshal(results->data, results->data_size, session, connection_param->local_node->protocol_handlers);
+   		libp2p_stream_message_free(results);
    		// exit the loop on error (or if they ask us to no longer loop by returning 0)
    		if (retVal <= 0)
    			break;

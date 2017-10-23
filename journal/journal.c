@@ -303,6 +303,7 @@ int ipfs_journal_adjust_time(struct JournalToDo* todo, struct IpfsNode* local_no
  * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
  */
 int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, struct SessionContext* session_context, void* protocol_context) {
+	struct StreamMessage* msg = NULL;
 	// remove protocol
 	uint8_t *incoming_pos = (uint8_t*) incoming;
 	size_t pos_size = incoming_size;
@@ -315,11 +316,15 @@ int ipfs_journal_handle_message(const uint8_t* incoming, size_t incoming_size, s
 				break;
 			} else {
 				// read next segment from network
-				if (!session_context->default_stream->read(session_context, &incoming_pos, &pos_size, 10))
+				if (!session_context->default_stream->read(session_context, &msg, 10)) {
 					return -1;
+				}
+				incoming_pos = msg->data;
 				second_read = 1;
 			}
 		}
+		libp2p_stream_message_free(msg);
+		msg = NULL;
 	}
 	libp2p_logger_debug("journal", "Handling incoming message from %s.\n", session_context->remote_peer_id);
 	struct IpfsNode* local_node = (struct IpfsNode*)protocol_context;

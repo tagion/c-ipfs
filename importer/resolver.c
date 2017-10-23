@@ -168,15 +168,15 @@ struct HashtableNode* ipfs_resolver_remote_get(const char* path, struct Hashtabl
 	if (!libp2p_routing_dht_upgrade_stream(&session_context))
 		return NULL;
 	stream->write(&session_context, message_protobuf, message_protobuf_size);
-	unsigned char* response;
-	size_t response_size;
+	struct StreamMessage* response;
 	// we should get back a protobuf'd record
-	stream->read(&session_context, &response, &response_size, 5);
-	if (response_size == 1)
+	stream->read(&session_context, &response, 5);
+	if (response->data_size == 1)
 		return NULL;
 	// turn the protobuf into a Node
 	struct HashtableNode* node;
-	ipfs_hashtable_node_protobuf_decode(response, response_size, &node);
+	ipfs_hashtable_node_protobuf_decode(response->data, response->data_size, &node);
+	libp2p_stream_message_free(response);
 	return node;
 }
 

@@ -104,13 +104,12 @@ void* ipfs_bitswap_engine_peer_request_processor_start(void* ctx) {
 						libp2p_peer_handle_connection_error(current_peer_entry);
 					} else if (retVal > 0) {
 						libp2p_logger_debug("bitswap_engine", "%d bytes waiting on network for peer %s.\n", retVal, libp2p_peer_id_to_string(current_peer_entry));
-						unsigned char* buffer = NULL;
-						size_t buffer_len = 0;
-						if (current_peer_entry->sessionContext->default_stream->read(current_peer_entry->sessionContext, &buffer, &buffer_len, 1)) {
+						struct StreamMessage* buffer = NULL;
+						if (current_peer_entry->sessionContext->default_stream->read(current_peer_entry->sessionContext, &buffer, 1)) {
 							// handle it
-							libp2p_logger_debug("bitswap_engine", "%lu bytes read, result: [%s].\n", buffer_len, buffer);
-							int retVal = libp2p_protocol_marshal(buffer, buffer_len, current_peer_entry->sessionContext, context->ipfsNode->protocol_handlers);
-							free(buffer);
+							libp2p_logger_debug("bitswap_engine", "%lu bytes read, result: [%s].\n", buffer->data_size, buffer->data);
+							int retVal = libp2p_protocol_marshal(buffer->data, buffer->data_size, current_peer_entry->sessionContext, context->ipfsNode->protocol_handlers);
+							libp2p_stream_message_free(buffer);
 							did_some_processing = 1;
 							if (retVal == -1) {
 								libp2p_logger_error("bitswap_engine", "protocol_marshal tried to handle the network traffic, but failed.\n");
