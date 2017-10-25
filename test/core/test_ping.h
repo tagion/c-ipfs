@@ -55,7 +55,7 @@ int test_ping() {
     remote_peer->addr_head->item = multiaddress_new_from_string("/ip4/192.168.43.234/tcp/4001/");
 
     // connect using a dialer
-    dialer = libp2p_conn_dialer_new(fs_repo->config->identity->peer, &fs_repo->config->identity->private_key);
+    dialer = libp2p_conn_dialer_new(fs_repo->config->identity->peer, NULL, NULL);
     conn = libp2p_conn_dialer_get_connection(dialer, remote_peer->addr_head->item);
 
     //TODO: Dialer should know the protocol

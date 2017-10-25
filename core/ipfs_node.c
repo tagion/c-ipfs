@@ -90,8 +90,8 @@ int ipfs_node_online_new(const char* repo_path, struct IpfsNode** node) {
 	// fill in the node
 	local_node->repo = fs_repo;
 	local_node->identity = fs_repo->config->identity;
-	local_node->dialer = libp2p_conn_dialer_new(local_node->identity->peer, &local_node->identity->private_key);
 	local_node->peerstore = libp2p_peerstore_new(local_node->identity->peer);
+	local_node->dialer = libp2p_conn_dialer_new(local_node->identity->peer, local_node->peerstore, &local_node->identity->private_key);
 	local_node->providerstore = libp2p_providerstore_new(fs_repo->config->datastore, local_node->identity->peer);
 	local_node->blockstore = ipfs_blockstore_new(fs_repo);
 	local_node->protocol_handlers = ipfs_node_online_build_protocol_handlers(local_node);
@@ -136,8 +136,8 @@ int ipfs_node_offline_new(const char* repo_path, struct IpfsNode** node) {
 	// fill in the node
 	local_node->repo = fs_repo;
 	local_node->identity = fs_repo->config->identity;
-	local_node->dialer = libp2p_conn_dialer_new(local_node->identity->peer, &local_node->identity->private_key);
 	local_node->peerstore = libp2p_peerstore_new(local_node->identity->peer);
+	local_node->dialer = libp2p_conn_dialer_new(local_node->identity->peer, local_node->peerstore, &local_node->identity->private_key);
 	local_node->providerstore = libp2p_providerstore_new(fs_repo->config->datastore, local_node->identity->peer);
 	local_node->blockstore = ipfs_blockstore_new(fs_repo);
 	local_node->protocol_handlers = ipfs_node_online_build_protocol_handlers(local_node);
