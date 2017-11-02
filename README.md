@@ -13,11 +13,11 @@ IPFS implementation in C, (not just an API client library).
 * [libp2p](https://github.com/libp2p/specs)
 
 ## Prerequisites: To compile the C version you will need:
-[lmdb](https://github.com/jmjatlanta/lmdb)
-[c-protobuf](https://github.com/Agorise/c-protobuf)
-[c-multihash](https://github.com/Agorise/c-multihash)
-[c-multiaddr](https://github.com/Agorise/c-multiaddr)
-[c-libp2p](https://github.com/Agorise/c-libp2p)
+* [lmdb](https://github.com/jmjatlanta/lmdb)
+* [c-protobuf](https://github.com/Agorise/c-protobuf)
+* [c-multihash](https://github.com/Agorise/c-multihash)
+* [c-multiaddr](https://github.com/Agorise/c-multiaddr)
+* [c-libp2p](https://github.com/Agorise/c-libp2p)
 
 And of course this project at https://github.com/Agorise/c-ipfs
 
