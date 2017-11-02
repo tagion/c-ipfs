@@ -4,7 +4,7 @@ IPFS implementation in C, (not just an API client library).
 ## Quick start for users:
 * **ipfs init** to create an ipfs repository on your machine
 * **ipfs add MyFile.txt** to add a file to the repository, will return with a hash that can be used to retrieve the file.
-* **ipfs cat [hash]** to retrieve a file from the repository
+* **ipfs cat \[hash\]** to retrieve a file from the repository
 
 ## For techies (ipfs spec docs):
 * [getting started]https://github.com/ipfs/specs/blob/master/overviews/implement-ipfs.md
