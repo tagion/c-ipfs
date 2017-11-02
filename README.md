@@ -1,18 +1,18 @@
 # C-IPFS
 IPFS implementation in C, (not just an API client library).<br/>
 <br/>
-**Quick start for users:**<br/>
+## Quick start for users:<br/>
 * **ipfs init** to create an ipfs repository on your machine
 * **ipfs add MyFile.txt** to add a file to the repository, will return with a hash that can be used to retrieve the file.
 * **ipfs cat [hash]** to retrieve a file from the repository<br/>
 <br/>
-**For techies:**<br/>
+## For techies:<br/>
 getting started: https://github.com/ipfs/specs/blob/master/overviews/implement-ipfs.md <br>
 specifications: https://github.com/ipfs/specs <br>
 getting started: https://github.com/ipfs/community/issues/177 <br> 
 libp2p: https://github.com/libp2p/specs <br>
 <br>
-Prerequisites: To compile the C version you will need:<br>
+## Prerequisites: To compile the C version you will need:<br>
 lmdb https://github.com/jmjatlanta/lmdb<br>
 c-protobuf https://github.com/Agorise/c-protobuf<br>
 c-multihash https://github.com/Agorise/c-multihash<br>
