@@ -35,7 +35,7 @@
 static int null_shutting_down = 0;
 
 /**
- * We've received a connection. Find out what they want.
+ * We've received a new connection. Find out what they want.
  *
  * @param ptr a pointer to a null_connection_params struct
  */
@@ -66,11 +66,13 @@ void ipfs_null_connection (void *ptr) {
 		for(;;) {
 			// Read from the network
 			if (!session->default_stream->read(session, &results, DEFAULT_NETWORK_TIMEOUT)) {
-				// problem reading;
-   	    			break;
+				// problem reading
+   	    		break;
 			}
-			retVal = libp2p_protocol_marshal(results, session, connection_param->local_node->protocol_handlers);
-			libp2p_stream_message_free(results);
+			if (results != NULL) {
+				retVal = libp2p_protocol_marshal(results, session, connection_param->local_node->protocol_handlers);
+				libp2p_stream_message_free(results);
+			}
 			// exit the loop on error (or if they ask us to no longer loop by returning 0)
 			if (retVal <= 0)
 				break;

@@ -2,6 +2,7 @@
 #include <pthread.h>
 
 #include "libp2p/conn/dialer.h"
+#include "libp2p/identify/identify.h"
 #include "libp2p/net/multistream.h"
 #include "libp2p/utils/vector.h"
 #include "libp2p/secio/secio.h"
@@ -45,6 +46,8 @@ struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* n
 		libp2p_utils_vector_add(retVal, libp2p_net_multistream_build_protocol_handler(retVal));
 		// yamux
 		libp2p_utils_vector_add(retVal, yamux_build_protocol_handler());
+		// identify
+		libp2p_utils_vector_add(retVal, libp2p_identify_build_protocol_handler(retVal));
 	}
 	return retVal;
 }
