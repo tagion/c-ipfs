@@ -33,7 +33,7 @@ int ipfs_journal_shutdown_handler(void* context);
  * @param protocol_context in this case, an IpfsNode
  * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
  */
-int ipfs_journal_handle_message(const struct StreamMessage* msg, struct SessionContext* session_context, void* protocol_context) ;
+int ipfs_journal_handle_message(const struct StreamMessage* msg, struct Stream* stream, void* protocol_context) ;
 
 /***
  * Build the protocol handler struct for the Journal protocol

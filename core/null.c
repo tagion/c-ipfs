@@ -49,35 +49,33 @@ void ipfs_null_connection (void *ptr) {
 		return;
     }
 
-    session->insecure_stream = libp2p_net_connection_new(connection_param->file_descriptor, connection_param->ip, connection_param->port);
-    session->default_stream = session->insecure_stream;
     session->datastore = connection_param->local_node->repo->config->datastore;
     session->filestore = connection_param->local_node->repo->config->filestore;
     session->host = connection_param->ip;
     session->port = connection_param->port;
+    session->insecure_stream = libp2p_net_connection_new(connection_param->file_descriptor, connection_param->ip, connection_param->port, session);
+    session->default_stream = session->insecure_stream;
 
     libp2p_logger_info("null", "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
     // try to read from the network
     struct StreamMessage *results = 0;
-	// immediately attempt to negotiate multistream
-	if (libp2p_net_multistream_send_protocol(session)) {
-		// handle the call
-		for(;;) {
-			// Read from the network
-			if (!session->default_stream->read(session, &results, DEFAULT_NETWORK_TIMEOUT)) {
-				// problem reading
-   	    		break;
-			}
-			if (results != NULL) {
-				retVal = libp2p_protocol_marshal(results, session, connection_param->local_node->protocol_handlers);
-				libp2p_stream_message_free(results);
-			}
-			// exit the loop on error (or if they ask us to no longer loop by returning 0)
-			if (retVal <= 0)
-				break;
+	// handle the call
+	for(;;) {
+		// Read from the network
+		if (!session->default_stream->read(session->default_stream->stream_context, &results, DEFAULT_NETWORK_TIMEOUT)) {
+			// problem reading
+  	    		break;
 		}
-   	}
+		if (results != NULL) {
+			retVal = libp2p_protocol_marshal(results, session->default_stream, connection_param->local_node->protocol_handlers);
+			libp2p_stream_message_free(results);
+		}
+		if (retVal < 0) {
+			// exit the loop on error
+			break;
+		}
+	} // end of loop
 
 	(*(connection_param->count))--; // update counter.
 	if (connection_param->ip != NULL)

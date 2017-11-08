@@ -7,6 +7,7 @@
 #include "libp2p/os/utils.h"
 #include "libp2p/utils/logger.h"
 #include "libp2p/net/stream.h"
+#include "libp2p/net/connectionstream.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/datastore/ds_helper.h"
 #include "ipfs/exchange/exchange.h"
@@ -35,8 +36,11 @@ int ipfs_bitswap_shutdown_handler(void* context) {
  * @param protocol_context the protocol-dependent context
  * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
  */
-int ipfs_bitswap_handle_message(const struct StreamMessage* msg, struct SessionContext* session_context, void* protocol_context) {
+int ipfs_bitswap_handle_message(const struct StreamMessage* msg, struct Stream* stream, void* protocol_context) {
 	struct IpfsNode* local_node = (struct IpfsNode*)protocol_context;
+	struct SessionContext* session_context = libp2p_net_connection_get_session_context(stream);
+	if (session_context == NULL)
+		return -1;
 	int retVal = ipfs_bitswap_network_handle_message(local_node, session_context, msg->data, msg->data_size);
 	if (retVal == 0)
 		return -1;

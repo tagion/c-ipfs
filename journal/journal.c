@@ -306,7 +306,7 @@ int ipfs_journal_adjust_time(struct JournalToDo* todo, struct IpfsNode* local_no
  * @param protocol_context in this case, an IpfsNode
  * @returns 0 if the caller should not continue looping, <0 on error, >0 on success
  */
-int ipfs_journal_handle_message(const struct StreamMessage* incoming_msg, struct SessionContext* session_context, void* protocol_context) {
+int ipfs_journal_handle_message(const struct StreamMessage* incoming_msg, struct Stream* stream, void* protocol_context) {
 	struct StreamMessage* msg = NULL;
 	// remove protocol
 	uint8_t *incoming_pos = (uint8_t*) incoming_msg->data;
@@ -320,7 +320,7 @@ int ipfs_journal_handle_message(const struct StreamMessage* incoming_msg, struct
 				break;
 			} else {
 				// read next segment from network
-				if (!session_context->default_stream->read(session_context, &msg, 10)) {
+				if (!stream->read(stream->stream_context, &msg, 10)) {
 					return -1;
 				}
 				incoming_pos = msg->data;
@@ -330,7 +330,6 @@ int ipfs_journal_handle_message(const struct StreamMessage* incoming_msg, struct
 		libp2p_stream_message_free(msg);
 		msg = NULL;
 	}
-	libp2p_logger_debug("journal", "Handling incoming message from %s.\n", session_context->remote_peer_id);
 	struct IpfsNode* local_node = (struct IpfsNode*)protocol_context;
 	// un-protobuf the message
 	struct JournalMessage* message = NULL;
@@ -342,7 +341,6 @@ int ipfs_journal_handle_message(const struct StreamMessage* incoming_msg, struct
 	// NOTE: If our_time_diff is negative, the remote's clock is faster than ours.
 	// if it is positive, our clock is faster than theirs.
 	if ( llabs(our_time_diff) > 300) {
-		libp2p_logger_error("journal", "The clock of peer %s is out of 5 minute range. Seconds difference: %llu", session_context->remote_peer_id, our_time_diff);
 		if (second_read) {
 			free(incoming_pos);
 		}

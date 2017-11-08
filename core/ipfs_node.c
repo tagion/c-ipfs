@@ -39,13 +39,13 @@ struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* n
 		// journal
 		libp2p_utils_vector_add(retVal, ipfs_journal_build_protocol_handler(node));
 		// kademlia
-		libp2p_utils_vector_add(retVal, libp2p_routing_dht_build_protocol_handler(node->peerstore, node->providerstore));
+		libp2p_utils_vector_add(retVal, libp2p_routing_dht_build_protocol_handler(node->peerstore, node->providerstore, node->repo->config->datastore, node->repo->config->filestore));
 		// bitswap
 		libp2p_utils_vector_add(retVal, ipfs_bitswap_build_protocol_handler(node));
 		// multistream
 		libp2p_utils_vector_add(retVal, libp2p_net_multistream_build_protocol_handler(retVal));
 		// yamux
-		libp2p_utils_vector_add(retVal, yamux_build_protocol_handler());
+		libp2p_utils_vector_add(retVal, libp2p_yamux_build_protocol_handler());
 		// identify
 		libp2p_utils_vector_add(retVal, libp2p_identify_build_protocol_handler(retVal));
 	}
