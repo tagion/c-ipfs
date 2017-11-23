@@ -6,6 +6,12 @@
 #include "ipfs/core/swarm.h"
 #include "ipfs/core/http_request.h"
 
+/***
+ * Connect to a swarm
+ * @param local_node the local node
+ * @param address the address of the remote
+ * @returns true(1) on success, false(0) otherwise
+ */
 int ipfs_swarm_connect(struct IpfsNode* local_node, const char* address) {
 	char* response = NULL;
 	size_t response_size;

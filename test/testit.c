@@ -7,6 +7,7 @@
 #include "core/test_null.h"
 #include "core/test_daemon.h"
 #include "core/test_node.h"
+#include "core/test_compat_go.h"
 #include "exchange/test_bitswap.h"
 #include "exchange/test_bitswap_request_queue.h"
 #include "flatfs/test_flatfs.h"
@@ -124,7 +125,6 @@ int build_test_collection() {
 	add_test("test_merkledag_get_data", test_merkledag_get_data, 1);
 	add_test("test_merkledag_add_node", test_merkledag_add_node, 1);
 	add_test("test_merkledag_add_node_with_links", test_merkledag_add_node_with_links, 1);
-	// 50 below
 	add_test("test_namesys_publisher_publish", test_namesys_publisher_publish, 1);
 	add_test("test_namesys_resolver_resolve", test_namesys_resolver_resolve, 1);
 	add_test("test_resolver_get", test_resolver_get, 0); // not working (test directory does not exist)
@@ -142,6 +142,7 @@ int build_test_collection() {
 	add_test("test_ping", test_ping, 0); // socket connect failed
 	add_test("test_ping_remote", test_ping_remote, 0); // need to test more
 	add_test("test_null_add_provider", test_null_add_provider, 0); // need to test more
+	add_test("test_compat_go_join_swarm", test_compat_go_join_swarm, 0); // remote must be running
 	return 1;
 }
 
