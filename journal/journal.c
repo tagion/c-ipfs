@@ -19,6 +19,8 @@
  * @returns true(1) if the protocol in incoming is something we can handle. False(0) otherwise.
  */
 int ipfs_journal_can_handle(const struct StreamMessage* msg) {
+	if (msg == NULL || msg->data_size == 0 || msg->data == NULL)
+		return 0;
 	const char* protocol = "/ipfs/journalio/1.0.0";
 	if (msg->data_size < 21)
 		return 0;

@@ -15,6 +15,11 @@ int test_compat_go_join_swarm() {
 	pthread_t daemon_thread;
 	struct FSRepo* fs_repo = NULL;
 
+	libp2p_logger_add_class("test_api");
+	libp2p_logger_add_class("yamux");
+	libp2p_logger_add_class("identify");
+	libp2p_logger_add_class("null");
+
 	// Here is the connection information for the GO version:
 	char* remote_string = "/ip4/10.211.55.2/tcp/4001/ipfs/QmacSE6bCZiAu7nrYkhPATaSoL2q9BszkKzbX6fCiXuBGA";
 
@@ -32,7 +37,13 @@ int test_compat_go_join_swarm() {
 	// try to connect to a remote swarm
 	struct IpfsNode *local_node = NULL;
 	ipfs_node_offline_new(ipfs_path1, &local_node);
-	ipfs_swarm_connect(local_node, remote_string);
+	if (!ipfs_swarm_connect(local_node, remote_string)) {
+		libp2p_logger_error("test_api", "Unable to do swarm connect.\n");
+		goto exit;
+	}
+
+	// see what the remote will do
+	sleep(20);
 
 	retVal = 1;
 	exit:

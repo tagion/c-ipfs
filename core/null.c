@@ -34,6 +34,31 @@
 
 static int null_shutting_down = 0;
 
+/***
+ * Listens on a particular stream, and marshals the request
+ * @param stream the stream to listen to
+ * @param protocol_handlers a vector of protocol handlers
+ * @returns <0 on error, 0 if we shouldn't handle this anymore, or 1 on success
+ */
+int ipfs_null_listen_and_handle(struct Stream* stream, struct Libp2pVector* protocol_handlers) {
+	struct StreamMessage* results = NULL;
+	int retVal = 0;
+	// Read from the network
+	if (!stream->read(stream->stream_context, &results, DEFAULT_NETWORK_TIMEOUT)) {
+		libp2p_logger_error("null", "Unable to read from network. Exiting.\n");
+		return retVal;
+	}
+	if (results != NULL) {
+		libp2p_logger_debug("null", "Attempting to marshal %d bytes from network.\n", results->data_size);
+		retVal = libp2p_protocol_marshal(results, stream, protocol_handlers);
+		libp2p_logger_debug("null", "The return value from the attempt to marshal %d bytes was %d.\n", results->data_size, retVal);
+		libp2p_stream_message_free(results);
+	} else {
+		libp2p_logger_debug("null", "Attempted read, but results were null. This is normal.\n");
+	}
+	return retVal;
+}
+
 /**
  * We've received a new connection. Find out what they want.
  *
@@ -59,20 +84,13 @@ void ipfs_null_connection (void *ptr) {
     libp2p_logger_info("null", "Connection %d, count %d\n", connection_param->file_descriptor, *(connection_param->count));
 
     // try to read from the network
-    struct StreamMessage *results = 0;
 	// handle the call
 	for(;;) {
 		// Read from the network
-		if (!session->default_stream->read(session->default_stream->stream_context, &results, DEFAULT_NETWORK_TIMEOUT)) {
-			// problem reading
-  	    		break;
-		}
-		if (results != NULL) {
-			retVal = libp2p_protocol_marshal(results, session->default_stream, connection_param->local_node->protocol_handlers);
-			libp2p_stream_message_free(results);
-		}
+		retVal = ipfs_null_listen_and_handle(session->default_stream, connection_param->local_node->protocol_handlers);
 		if (retVal < 0) {
 			// exit the loop on error
+			libp2p_logger_debug("null", "Exiting loop due to retVal being %d.\n", retVal);
 			break;
 		}
 	} // end of loop

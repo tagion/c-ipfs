@@ -312,7 +312,15 @@ int ipfs_core_http_process_swarm_connect(struct IpfsNode* local_node, struct Htt
 		multiaddress_free(ma);
 		return 0;
 	}
-	// ok, we're good. Send stuff back to the user
+	// ok, we're good. Start a thread to listen to them, and send stuff back to the user
+	// JMJ Debug - just put a loop here for testing
+	while(1) {
+		int retVal = ipfs_null_listen_and_handle(new_peer->sessionContext->default_stream, local_node->protocol_handlers);
+		if (retVal < 0)
+			break;
+		else
+			sleep(1);
+	}
 	*resp = ipfs_core_http_response_new();
 	struct HttpResponse* response = *resp;
 	if (response == NULL) {

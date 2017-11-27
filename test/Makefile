@@ -43,3 +43,5 @@ all: test_ipfs
 clean:
 	rm -f *.o
 	rm -f test_ipfs
+	
+rebuild: clean all

@@ -18,6 +18,8 @@
 #include "ipfs/exchange/bitswap/want_manager.h"
 
 int ipfs_bitswap_can_handle(const struct StreamMessage* msg) {
+	if (msg == NULL || msg->data == NULL || msg->data_size == 0)
+		return 0;
 	char* result = strnstr((char*)msg->data, "/ipfs/bitswap", msg->data_size);
 	if(result == NULL || result != (char*)msg->data)
 		return 0;
