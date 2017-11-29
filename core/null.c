@@ -18,6 +18,7 @@
 #include "libp2p/routing/dht_protocol.h"
 #include "libp2p/secio/secio.h"
 #include "libp2p/utils/logger.h"
+#include "libp2p/swarm/swarm.h"
 #include "ipfs/core/daemon.h"
 #include "ipfs/core/ipfs_node.h"
 #include "ipfs/exchange/bitswap/network.h"
@@ -26,6 +27,7 @@
 #include "ipfs/merkledag/node.h"
 #include "ipfs/routing/routing.h"
 #include "ipfs/util/thread_pool.h"
+#include "libp2p/swarm/swarm.h"
 
 #define BUF_SIZE 4096
 
@@ -153,9 +155,8 @@ void* ipfs_null_listen (void *ptr)
 {
 	null_shutting_down = 0;
     int socketfd, s, count = 0;
-    threadpool thpool = thpool_init(25);
+    //threadpool thpool = thpool_init(25);
     struct IpfsNodeListenParams *listen_param;
-    struct null_connection_params *connection_param;
 
     listen_param = (struct IpfsNodeListenParams*) ptr;
 
@@ -186,6 +187,10 @@ void* ipfs_null_listen (void *ptr)
 				continue;
 			}
 
+			// add the new connection to the swarm
+			libp2p_swarm_add_connection(listen_param->local_node->swarm, s, listen_param->ipv4, listen_param->port);
+
+			/*
 			count++;
 			connection_param = malloc (sizeof (struct null_connection_params));
 			if (connection_param) {
@@ -207,18 +212,20 @@ void* ipfs_null_listen (void *ptr)
 				// Create pthread for ipfs_null_connection.
 				thpool_add_work(thpool, ipfs_null_connection, connection_param);
 			}
-    		} else {
-    			// timeout... do maintenance
-    			struct PeerEntry* entry = current_peer_entry->item;
-    			ipfs_null_do_maintenance(listen_param->local_node, entry->peer);
-    			if (current_peer_entry != NULL)
-    				current_peer_entry = current_peer_entry->next;
-    			if (current_peer_entry == NULL)
-    				current_peer_entry = listen_param->local_node->peerstore->head_entry;
-    		}
+			*/
+    	} else {
+    		// timeout... do maintenance
+    		struct PeerEntry* entry = current_peer_entry->item;
+    		// JMJ Debugging
+    		//ipfs_null_do_maintenance(listen_param->local_node, entry->peer);
+    		if (current_peer_entry != NULL)
+    			current_peer_entry = current_peer_entry->next;
+    		if (current_peer_entry == NULL)
+    			current_peer_entry = listen_param->local_node->peerstore->head_entry;
+    	}
     }
 
-    thpool_destroy(thpool);
+    //thpool_destroy(thpool);
 
     close(socketfd);
 

@@ -19,6 +19,9 @@ int test_compat_go_join_swarm() {
 	libp2p_logger_add_class("yamux");
 	libp2p_logger_add_class("identify");
 	libp2p_logger_add_class("null");
+	libp2p_logger_add_class("multistream");
+	libp2p_logger_add_class("swarm");
+	libp2p_logger_add_class("secio");
 
 	// Here is the connection information for the GO version:
 	char* remote_string = "/ip4/10.211.55.2/tcp/4001/ipfs/QmacSE6bCZiAu7nrYkhPATaSoL2q9BszkKzbX6fCiXuBGA";

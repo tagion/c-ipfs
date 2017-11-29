@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "libp2p/peer/peerstore.h"
 #include "libp2p/peer/providerstore.h"
+#include "libp2p/swarm/swarm.h"
 #include "ipfs/blocks/blockstore.h"
 #include "ipfs/exchange/exchange.h"
 #include "ipfs/repo/config/identity.h"
@@ -39,6 +40,7 @@ struct IpfsNode {
 	struct Libp2pVector* protocol_handlers;
 	struct ApiContext* api_context;
 	struct Dialer* dialer;
+	struct SwarmContext* swarm;
 	//struct Pinner pinning; // an interface
 	//struct Mount** mounts;
 	// TODO: Add more here
