@@ -164,7 +164,11 @@ int ipfs_core_http_process_object(struct IpfsNode* local_node, struct HttpReques
 		if (request->arguments->total == 1) {
 			char* hash = (char*)libp2p_utils_vector_get(request->arguments, 0);
 			struct Cid* cid = NULL;
-			ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid);
+			if (!ipfs_cid_decode_hash_from_base58((unsigned char*)hash, strlen(hash), &cid)) {
+				ipfs_cid_free(cid);
+				cid = NULL;
+				return 0;
+			}
 			*response = ipfs_core_http_response_new();
 			struct HttpResponse* res = *response;
 			res->content_type = "application/json";
@@ -291,63 +295,6 @@ int ipfs_core_http_process_dht(struct IpfsNode* local_node, struct HttpRequest* 
 	return retVal;
 }
 
-int ipfs_core_http_process_swarm_connect(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** resp) {
-	// get the address
-	if (request->arguments == NULL || request->arguments->total < 0)
-		return 0;
-	const char* address = (char*) libp2p_utils_vector_get(request->arguments, 0);
-	if (address == NULL)
-		return 0;
-	// TODO: see if we are already connected, or at least already have this peer in our peerstore
-	// attempt to connect
-	struct MultiAddress* ma = multiaddress_new_from_string(address);
-	if (ma == NULL) {
-		libp2p_logger_error("http_request", "swarm_connect: Unable to convert %s to a MultiAddress.\n", address);
-		return 0;
-	}
-	struct Libp2pPeer* new_peer = libp2p_peer_new_from_multiaddress(ma);
-	if (!libp2p_peer_connect(local_node->dialer, new_peer, local_node->peerstore, local_node->repo->config->datastore, 30)) {
-		libp2p_logger_error("http_request", "swarm_connect: Unable to connect to peer %s.\n", libp2p_peer_id_to_string(new_peer));
-		libp2p_peer_free(new_peer);
-		multiaddress_free(ma);
-		return 0;
-	}
-	*resp = ipfs_core_http_response_new();
-	struct HttpResponse* response = *resp;
-	if (response == NULL) {
-		libp2p_logger_error("http_response", "swarm_connect: Unable to allocate memory for the response.\n");
-		libp2p_peer_free(new_peer);
-		multiaddress_free(ma);
-		return 0;
-	}
-	response->content_type = "application/json";
-	char* json = "{ \"Strings\": [ \"%s\"] }";
-	response->bytes_size =  strlen(json) + strlen(address) + 1;
-	response->bytes = (uint8_t*) malloc(response->bytes_size);
-	if (response->bytes == NULL) {
-		response->bytes_size = 0;
-		response->content_type = NULL;
-		libp2p_peer_free(new_peer);
-		multiaddress_free(ma);
-		return 0;
-	}
-	sprintf((char*)response->bytes, json, address);
-	// getting rid of the peer here will close the connection. That's not what we want
-	//libp2p_peer_free(new_peer);
-	multiaddress_free(ma);
-	return 1;
-
-}
-
-int ipfs_core_http_process_swarm(struct IpfsNode* local_node, struct HttpRequest* request, struct HttpResponse** response) {
-	int retVal = 0;
-	if (strcmp(request->sub_command, "connect") == 0) {
-		// connect to a peer
-		retVal = ipfs_core_http_process_swarm_connect(local_node, request, response);
-	}
-	return retVal;
-}
-
 /***
  * Process the parameters passed in from an http request
  * @param local_node the context
@@ -366,8 +313,6 @@ int ipfs_core_http_request_process(struct IpfsNode* local_node, struct HttpReque
 		retVal = ipfs_core_http_process_object(local_node, request, response);
 	} else if (strcmp(request->command, "dht") == 0) {
 		retVal = ipfs_core_http_process_dht(local_node, request, response);
-	} else if (strcmp(request->command, "swarm") == 0) {
-		retVal = ipfs_core_http_process_swarm(local_node, request, response);
 	}
 	return retVal;
 }

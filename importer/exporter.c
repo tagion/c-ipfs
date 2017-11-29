@@ -295,7 +295,7 @@ int ipfs_exporter_object_cat(struct CliArguments* args, FILE* output_file) {
 		request->arguments = libp2p_utils_vector_new(1);
 		libp2p_utils_vector_add(request->arguments, hash);
 		size_t response_size = 0;
-		int retVal = ipfs_core_http_request_get(local_node, request, &response, &response_size);
+		int retVal = ipfs_core_http_request_post(local_node, request, &response, &response_size, "", 0);
 		if (response != NULL && response_size > 0) {
 			fwrite(response, 1, response_size, output_file);
 			free(response);
