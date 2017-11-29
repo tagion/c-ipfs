@@ -215,7 +215,7 @@ void* ipfs_null_listen (void *ptr)
 			*/
     	} else {
     		// timeout... do maintenance
-    		struct PeerEntry* entry = current_peer_entry->item;
+    		//struct PeerEntry* entry = current_peer_entry->item;
     		// JMJ Debugging
     		//ipfs_null_do_maintenance(listen_param->local_node, entry->peer);
     		if (current_peer_entry != NULL)
