@@ -47,7 +47,7 @@ struct Libp2pVector* ipfs_node_online_build_protocol_handlers(struct IpfsNode* n
 		// yamux
 		libp2p_utils_vector_add(retVal, libp2p_yamux_build_protocol_handler());
 		// identify
-		libp2p_utils_vector_add(retVal, libp2p_identify_build_protocol_handler(retVal));
+		libp2p_utils_vector_add(retVal, libp2p_identify_build_protocol_handler(node->identity->peer->id, node->identity->peer->id_size));
 	}
 	return retVal;
 }
