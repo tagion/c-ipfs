@@ -35,8 +35,6 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 	}
 }*/
 
-const int DefaultResolverCacheTTL = 60;
-
 // ipfs_namesys_resolve implements Resolver.
 int ipfs_namesys_resolve(char **path, char *name)
 {

@@ -11,6 +11,8 @@
 #include "ipfs/repo/init.h"
 #include "ipfs/core/ipfs_node.h"
 #include "libp2p/utils/logger.h"
+#include "ipfs/namesys/name.h"
+#include "ipfs/repo/fsrepo/jsmn.h"
 
 /**
  * pull objects from ipfs
@@ -286,8 +288,23 @@ int ipfs_exporter_object_cat(struct CliArguments* args, FILE* output_file) {
 	}
 
 	if (local_node->mode == MODE_API_AVAILABLE) {
+		const char ipns_prefix[] = "/ipns/";
+		const char ipfs_prefix[] = "/ipfs/";
 		char* hash = args->argv[args->verb_index + 1];
 		libp2p_logger_debug("exporter", "We're attempting to use the API for this object get of %s.\n", hash);
+		if (memcmp(hash, ipfs_prefix, sizeof(ipfs_prefix)-1) == 0) {
+			// skip ipfs_prefix;
+			hash += sizeof(ipfs_prefix)-1;
+		} else if (memcmp(hash, ipns_prefix, sizeof(ipns_prefix)-1) == 0) {
+			char *response = NULL;
+			size_t response_size;
+			if (ipfs_name_resolve(local_node, hash, &response, &response_size) && response && response_size > 0) {
+				hash = jsmn_simple_parser(response, response_size, "Path");
+				if (!hash) {
+					return 0;
+				}
+			}
+		}
 		struct HttpRequest* request = ipfs_core_http_request_new();
 		char* response = NULL;
 		request->command = "object";

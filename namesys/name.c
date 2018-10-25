@@ -11,39 +11,43 @@
 /***
  * Publish IPNS name
  */
-int ipfs_name_publish(struct IpfsNode* local_node, char* name) {
+int ipfs_name_publish(struct IpfsNode* local_node, char* name, char **response, size_t *response_size) {
 	// call api.
-	char* response = NULL;
 	struct HttpRequest* request = ipfs_core_http_request_new();
 	if (request == NULL)
 		return 0;
 	request->command = "name";
 	request->sub_command = "publish";
 	libp2p_utils_vector_add(request->arguments, name);
-	size_t response_size = 0;
-	int retVal = ipfs_core_http_request_post(local_node, request, &response, &response_size, "", 0);
-	if (response != NULL && response_size > 0) {
-		fwrite(response, 1, response_size, stdout);
-		free(response);
-	}
+	int retVal = ipfs_core_http_request_post(local_node, request, response, response_size, "", 0);
 	ipfs_core_http_request_free(request);
 	return retVal;
 }
 
-int ipfs_name_resolve(struct IpfsNode* local_node, char* name) {
+/***
+ * Resolve IPNS name
+ */
+int ipfs_name_resolve(struct IpfsNode* local_node, char* name, char **response, size_t *response_size) {
 	// ask api
-	char* response = NULL;
+	const char prefix[] = "/ipns/";
+	char *ipns = NULL;
 	struct HttpRequest* request = ipfs_core_http_request_new();
 	if (request == NULL)
 		return 0;
 	request->command = "name";
 	request->sub_command = "resolve";
+	if (memcmp(name, prefix, sizeof(prefix)-1)!=0) {
+		ipns = malloc(sizeof(prefix) + strlen(name));
+		if (ipns) {
+			strcpy(ipns, prefix);
+			strcat(ipns, name);
+			name = ipns;
+		}
+	}
 	libp2p_utils_vector_add(request->arguments, name);
-	size_t response_size = 0;
-	int retVal = ipfs_core_http_request_post(local_node, request, &response, &response_size, "", 0);
-	if (response != NULL && response_size > 0) {
-		fwrite(response, 1, response_size, stdout);
-		free(response);
+	int retVal = ipfs_core_http_request_post(local_node, request, response, response_size, "", 0);
+	if (ipns) {
+		free(ipns);
 	}
 	ipfs_core_http_request_free(request);
 	return retVal;
@@ -77,14 +81,20 @@ int ipfs_name(struct CliArguments* args) {
 		goto exit;
 	}
 
+	char *response = NULL;
+	size_t response_size;
 	// determine what we're doing
 	if (strcmp(which, "publish") == 0) {
-		retVal = ipfs_name_publish(client_node, path);
+		retVal = ipfs_name_publish(client_node, path, &response, &response_size);
 	} else if (strcmp(which, "resolve") == 0) {
-		retVal = ipfs_name_resolve(client_node, path);
+		retVal = ipfs_name_resolve(client_node, path, &response, &response_size);
 	} else {
 		libp2p_logger_error("name", "Nothing found on command line. Should be \"name resolve\" or \"name publish\".\n");
 		goto exit;
+	}
+	if (response != NULL && response_size > 0) {
+		fwrite(response, 1, response_size, stdout);
+		free(response);
 	}
 
 	exit:
