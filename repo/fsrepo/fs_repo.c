@@ -13,7 +13,7 @@
 #include "ipfs/repo/fsrepo/fs_repo.h"
 #include "libp2p/os/utils.h"
 #include "ipfs/repo/fsrepo/lmdb_datastore.h"
-#include "jsmn.h"
+#include "ipfs/repo/fsrepo/jsmn.h"
 #include "multiaddr/multiaddr.h"
 
 /** 

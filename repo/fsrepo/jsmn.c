@@ -1,4 +1,6 @@
-#include "jsmn.h"
+#include "ipfs/repo/fsrepo/jsmn.h"
+#include <string.h>
+#include <stdlib.h>
 
 /**
  * Allocates a fresh unused token from the token pull.
@@ -310,4 +312,33 @@ void jsmn_init(jsmn_parser *parser) {
 	parser->pos = 0;
 	parser->toknext = 0;
 	parser->toksuper = -1;
+}
+
+char *jsmn_simple_parser(char *full_json, int json_len, char *key) {
+	int num_tokens = 256, len, i;
+	if (!full_json || !key) {
+		return NULL;
+	}
+	jsmn_parser parser;
+	jsmn_init(&parser);
+	jsmntok_t tokens[num_tokens];
+	num_tokens = jsmn_parse(&parser, full_json, json_len, tokens, 256);
+	if (num_tokens <= 0) {
+		return NULL;
+	}
+	len = strlen(key);
+	for (i = 0; i < num_tokens; i++) {
+		jsmntok_t curr_token = tokens[i];
+		if (len == (curr_token.end - curr_token.start) && memcmp(full_json + curr_token.start, key, len) == 0) {
+			curr_token = tokens[i+1];
+			len = curr_token.end - curr_token.start;
+			char *ret = malloc(len + 1);
+			if (!ret) {
+				return NULL;
+			}
+			strncpy(ret, full_json + curr_token.start, len);
+			return ret;
+		}
+	}
+	return NULL;
 }
