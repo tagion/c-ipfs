@@ -165,7 +165,7 @@ void* ipfs_null_listen (void *ptr)
         return (void*) 2;
     }
 
-    libp2p_logger_error("null", "Ipfs listening on %d\n", listen_param->port);
+    libp2p_logger_info("null", "Ipfs listening on %d\n", listen_param->port);
 
     // when we have nothing to do, check on the connections to see if we're still connected
     struct Libp2pLinkedList* current_peer_entry = NULL;

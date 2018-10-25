@@ -70,8 +70,9 @@ int ipfs_daemon (int argc, char **argv)
 {
 	char* repo_path = NULL;
 
+	libp2p_logger_add_class("daemon");
 	if (!ipfs_repo_get_directory(argc, argv, &repo_path)) {
-		fprintf(stderr, "Unable to open repo: %s\n", repo_path);
+		libp2p_logger_error("daemon", "Unable to open repo: %s\n", repo_path);
 		return 0;
 	}
 

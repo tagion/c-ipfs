@@ -750,7 +750,7 @@ int api_start (struct IpfsNode* local_node, int max_conns, int timeout)
 		return 0;
 	}
 
-	libp2p_logger_debug("api", "Started API on localhost port %d.\n", port);
+	libp2p_logger_info("api", "API server listening on %d.\n", port);
 	return 1;
 }
 
