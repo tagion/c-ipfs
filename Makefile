@@ -3,7 +3,8 @@ DEBUG = true
 export DEBUG
 
 all:
-	#cd ../c-libp2p; make all;
+	cd c-libp2p; make all;
+	cd lmdb/libraries/liblmdb; make all;
 	cd blocks; make all;
 	cd cid; make all;
 	cd cmd; make all;
@@ -27,8 +28,10 @@ all:
 	cd util; make all;
 	cd main; make all;
 	cd test; make all;
-	
+
 clean:
+	cd c-libp2p; make clean;
+	cd lmdb/libraries/liblmdb; make clean;
 	cd blocks; make clean;
 	cd cid; make clean;
 	cd cmd; make clean;
